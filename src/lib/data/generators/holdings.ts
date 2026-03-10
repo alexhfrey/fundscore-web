@@ -4,6 +4,8 @@ import {
   SectorWeight,
   AssetAllocationItem,
   CreditQualityItem,
+  MaturityBucket,
+  AssetClassCode,
 } from "../../types";
 
 const EQUITY_HOLDINGS: { name: string; ticker: string; sector: string }[] = [
@@ -83,32 +85,24 @@ const BOND_SECTORS = [
 ];
 
 export function generateHoldings(
-  category: string,
+  assetClass: AssetClassCode,
   seed: number
 ): {
   holdings: Holding[];
   sectorWeights: SectorWeight[];
   assetAllocation: AssetAllocationItem[];
   creditQuality?: CreditQualityItem[];
+  benchmarkSectorWeights?: SectorWeight[];
+  maturityDistribution?: MaturityBucket[];
 } {
   const rng = createSeededRandom(seed);
-  const isFixedIncome = [
-    "Intermediate Core Bond",
-    "Intermediate Core-Plus Bond",
-    "High Yield Bond",
-    "Short-Term Bond",
-    "Bank Loan",
-  ].includes(category);
-  const isAllocation = [
-    "Moderate Allocation",
-    "Aggressive Allocation",
-    "Conservative Allocation",
-  ].includes(category);
+  const isFI = assetClass === "FI" || assetClass === "MU";
+  const isMA = assetClass === "MA";
 
-  const holdingPool = isFixedIncome
+  const holdingPool = isFI
     ? BOND_HOLDINGS.map((h) => ({ ...h, ticker: null as string | null }))
     : EQUITY_HOLDINGS.map((h) => ({ ...h, ticker: h.ticker as string | null }));
-  const sectorPool = isFixedIncome ? BOND_SECTORS : EQUITY_SECTORS;
+  const sectorPool = isFI ? BOND_SECTORS : EQUITY_SECTORS;
 
   const numHoldings = rng.nextInt(10, 15);
   const shuffled = rng.shuffle([...holdingPool]);
@@ -130,6 +124,7 @@ export function generateHoldings(
     ticker: h.ticker,
     weight: weights[i],
     sector: h.sector,
+    benchmarkWeight: Number(Math.max(0, weights[i] + rng.nextRange(-3, 1.5)).toFixed(2)),
   }));
 
   const sectorMap = new Map<string, number>();
@@ -146,13 +141,8 @@ export function generateHoldings(
     .sort((a, b) => b.weight - a.weight);
 
   let assetAllocation: AssetAllocationItem[];
-  if (isAllocation) {
-    const equityPct =
-      category === "Aggressive Allocation"
-        ? rng.nextRange(70, 85)
-        : category === "Moderate Allocation"
-          ? rng.nextRange(50, 65)
-          : rng.nextRange(25, 40);
+  if (isMA) {
+    const equityPct = rng.nextRange(50, 65);
     const bondPct = rng.nextRange(90 - equityPct, 95 - equityPct);
     const cashPct = 100 - equityPct - bondPct;
     assetAllocation = [
@@ -160,7 +150,7 @@ export function generateHoldings(
       { type: "Fixed Income", weight: Number(bondPct.toFixed(1)) },
       { type: "Cash", weight: Number(cashPct.toFixed(1)) },
     ];
-  } else if (isFixedIncome) {
+  } else if (isFI) {
     const fiWeight = rng.nextRange(92, 98);
     assetAllocation = [
       { type: "Fixed Income", weight: Number(fiWeight.toFixed(1)) },
@@ -175,34 +165,37 @@ export function generateHoldings(
   }
 
   let creditQuality: CreditQualityItem[] | undefined;
-  if (isFixedIncome) {
-    if (category === "High Yield Bond") {
-      creditQuality = [
-        { rating: "BB", weight: Number(rng.nextRange(35, 45).toFixed(1)) },
-        { rating: "B", weight: Number(rng.nextRange(30, 40).toFixed(1)) },
-        { rating: "CCC", weight: Number(rng.nextRange(8, 15).toFixed(1)) },
-        { rating: "Other", weight: Number(rng.nextRange(5, 10).toFixed(1)) },
-      ];
-    } else if (category === "Bank Loan") {
-      creditQuality = [
-        { rating: "BB", weight: Number(rng.nextRange(25, 35).toFixed(1)) },
-        { rating: "B", weight: Number(rng.nextRange(40, 55).toFixed(1)) },
-        { rating: "CCC", weight: Number(rng.nextRange(5, 12).toFixed(1)) },
-        { rating: "Other", weight: Number(rng.nextRange(3, 8).toFixed(1)) },
-      ];
-    } else {
-      creditQuality = [
-        { rating: "AAA", weight: Number(rng.nextRange(25, 40).toFixed(1)) },
-        { rating: "AA", weight: Number(rng.nextRange(10, 20).toFixed(1)) },
-        { rating: "A", weight: Number(rng.nextRange(15, 25).toFixed(1)) },
-        { rating: "BBB", weight: Number(rng.nextRange(15, 25).toFixed(1)) },
-        {
-          rating: "Below BBB",
-          weight: Number(rng.nextRange(2, 8).toFixed(1)),
-        },
-      ];
-    }
+  if (isFI) {
+    creditQuality = [
+      { rating: "AAA", weight: Number(rng.nextRange(25, 40).toFixed(1)) },
+      { rating: "AA", weight: Number(rng.nextRange(10, 20).toFixed(1)) },
+      { rating: "A", weight: Number(rng.nextRange(15, 25).toFixed(1)) },
+      { rating: "BBB", weight: Number(rng.nextRange(15, 25).toFixed(1)) },
+      {
+        rating: "Below BBB",
+        weight: Number(rng.nextRange(2, 8).toFixed(1)),
+      },
+    ];
   }
 
-  return { holdings, sectorWeights, assetAllocation, creditQuality };
+  // Generate benchmark sector weights (slightly different from fund)
+  const benchmarkSectorWeights: SectorWeight[] = sectorWeights.map((sw) => ({
+    sector: sw.sector,
+    weight: Number(Math.max(0.5, sw.weight + rng.nextRange(-4, 3)).toFixed(2)),
+  }));
+
+  // Generate maturity distribution for FI funds
+  let maturityDistribution: MaturityBucket[] | undefined;
+  if (isFI) {
+    maturityDistribution = [
+      { range: "0-1Y", weight: Number(rng.nextRange(5, 15).toFixed(1)) },
+      { range: "1-3Y", weight: Number(rng.nextRange(10, 25).toFixed(1)) },
+      { range: "3-5Y", weight: Number(rng.nextRange(15, 30).toFixed(1)) },
+      { range: "5-10Y", weight: Number(rng.nextRange(15, 25).toFixed(1)) },
+      { range: "10-20Y", weight: Number(rng.nextRange(5, 15).toFixed(1)) },
+      { range: "20+Y", weight: Number(rng.nextRange(2, 10).toFixed(1)) },
+    ];
+  }
+
+  return { holdings, sectorWeights, assetAllocation, creditQuality, benchmarkSectorWeights, maturityDistribution };
 }

@@ -49,7 +49,7 @@ export function FundTable({ funds }: FundTableProps) {
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50/50">
               <SortHeader label="Fund" sortKey="name" />
-              <SortHeader label="Category" sortKey="category" />
+              <SortHeader label="Peer Group" sortKey="peerGroup" />
               <SortHeader label="FundScore" sortKey="fundScore" />
               <SortHeader label="YTD" sortKey="ytdReturn" className="text-right" />
               <SortHeader label="1Y" sortKey="oneYearReturn" className="text-right" />
@@ -87,7 +87,7 @@ export function FundTable({ funds }: FundTableProps) {
                   </td>
                   <td className="px-4 py-3">
                     <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                      {fund.category}
+                      {fund.peerGroup}
                     </span>
                   </td>
                   <td className="px-4 py-3">

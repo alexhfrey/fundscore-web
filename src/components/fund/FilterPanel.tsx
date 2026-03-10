@@ -1,6 +1,6 @@
 "use client";
 
-import { ASSET_CLASSES, CATEGORIES } from "@/lib/constants";
+import { ASSET_CLASS_CODES, ASSET_CLASS_LABELS } from "@/lib/constants";
 import { FundFilters } from "@/lib/utils/search";
 
 interface FilterPanelProps {
@@ -20,7 +20,7 @@ export function FilterPanel({
 }: FilterPanelProps) {
   const hasFilters =
     filters.assetClass ||
-    filters.category ||
+    filters.peerGroup ||
     filters.scoreMin !== undefined ||
     filters.scoreMax !== undefined ||
     filters.expenseRatioMax !== undefined;
@@ -45,22 +45,9 @@ export function FilterPanel({
           className="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#1466b8] focus:border-transparent"
         >
           <option value="">All Asset Classes</option>
-          {ASSET_CLASSES.map((ac) => (
+          {ASSET_CLASS_CODES.map((ac) => (
             <option key={ac} value={ac}>
-              {ac}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={filters.category || ""}
-          onChange={(e) => onFilterChange("category", e.target.value || undefined)}
-          className="text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-[#1466b8] focus:border-transparent"
-        >
-          <option value="">All Categories</option>
-          {CATEGORIES.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat}
+              {ASSET_CLASS_LABELS[ac] || ac}
             </option>
           ))}
         </select>

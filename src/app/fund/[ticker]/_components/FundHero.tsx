@@ -22,9 +22,7 @@ export function FundHero({ fund }: FundHeroProps) {
               <Badge variant="primary">{fund.ticker}</Badge>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-4">
-              <span>{fund.category}</span>
-              <span>&middot;</span>
-              <span>{fund.assetClass}</span>
+              <span>{fund.peerGroup}</span>
               <span>&middot;</span>
               <span>Managed by {fund.manager}</span>
             </div>

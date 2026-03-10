@@ -17,6 +17,7 @@ export interface TradingActivity {
   recentTrades: Trade[];
   avgHoldingPeriodMonths: number;
   factorTilts: FactorTilt[];
+  numberOfIndependentDecisions: number;
 }
 
 export interface SectorHitRate {

@@ -43,7 +43,7 @@ export function CalendarReturnGrid({ returns }: CalendarReturnGridProps) {
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
-          {returns.map((r) => {
+          {[...returns].sort((a, b) => b.year - a.year).map((r) => {
             const excess = r.fundReturn - r.passiveAltReturn;
             return (
               <tr key={r.year}>

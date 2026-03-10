@@ -1,7 +1,10 @@
 "use client";
 
 import { FundDetail } from "@/lib/types";
-import { AlphaWaterfallChart } from "@/components/charts/AlphaWaterfallChart";
+import {
+  AlphaWaterfallChart,
+  WaterfallDataPoint,
+} from "@/components/charts/AlphaWaterfallChart";
 
 interface AlphaDecompositionProps {
   fund: FundDetail;
@@ -17,36 +20,28 @@ export function AlphaDecomposition({ fund }: AlphaDecompositionProps) {
   const feeDrag = Math.round(expenseRatio * 100);
   const netAlpha = grossAlpha - feeDrag;
 
-  const chartData = [
-    {
-      name: "Wins",
-      invisible: 0,
-      value: hitContribution,
-      fill: "#16a34a",
-    },
+  const chartData: WaterfallDataPoint[] = [
+    { name: "Wins", start: 0, end: hitContribution, fill: "#16a34a" },
     {
       name: "Losses",
-      invisible: grossAlpha,
-      value: missContribution,
+      start: hitContribution,
+      end: grossAlpha,
       fill: "#dc2626",
     },
     {
       name: "Gross Alpha",
-      invisible: 0,
-      value: grossAlpha,
+      start: 0,
+      end: grossAlpha,
       fill: "#1466b8",
+      isSummary: true,
     },
-    {
-      name: "Fees",
-      invisible: netAlpha,
-      value: feeDrag,
-      fill: "#dc2626",
-    },
+    { name: "Fees", start: grossAlpha, end: netAlpha, fill: "#dc2626" },
     {
       name: "Net Alpha",
-      invisible: 0,
-      value: netAlpha,
-      fill: netAlpha > 0 ? "#16a34a" : "#dc2626",
+      start: 0,
+      end: netAlpha,
+      fill: netAlpha >= 0 ? "#16a34a" : "#dc2626",
+      isSummary: true,
     },
   ];
 
@@ -58,7 +53,7 @@ export function AlphaDecomposition({ fund }: AlphaDecompositionProps) {
   return (
     <div>
       <h2 className="text-lg font-semibold text-gray-900 mb-4">
-        Alpha Decomposition
+        Expected Alpha Decomposition
       </h2>
       <div className="bg-white border border-gray-200 rounded-lg p-4">
         <AlphaWaterfallChart data={chartData} />

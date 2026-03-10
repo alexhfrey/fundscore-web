@@ -3,8 +3,15 @@ export interface PortfolioData {
   sectorWeights: SectorWeight[];
   assetAllocation: AssetAllocationItem[];
   creditQuality?: CreditQualityItem[];
+  benchmarkSectorWeights?: SectorWeight[];
+  maturityDistribution?: MaturityBucket[];
   totalHoldings: number;
   turnoverRate: number;
+}
+
+export interface MaturityBucket {
+  range: string;
+  weight: number;
 }
 
 export interface Holding {
@@ -14,6 +21,7 @@ export interface Holding {
   shares?: number;
   marketValue?: number;
   sector: string;
+  benchmarkWeight?: number;
 }
 
 export interface SectorWeight {

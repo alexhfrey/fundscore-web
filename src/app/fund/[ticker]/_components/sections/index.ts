@@ -1,0 +1,9 @@
+export { QuickGlanceSection } from "./QuickGlanceSection";
+export { AnalystNoteSection } from "./AnalystNoteSection";
+export { PerformanceSection } from "./PerformanceSection";
+export { AttributionSection } from "./AttributionSection";
+export { HoldingsSection } from "./HoldingsSection";
+export { RisksSection } from "./RisksSection";
+export { SkillSection } from "./SkillSection";
+export { FeesSection } from "./FeesSection";
+export { AdminSection } from "./AdminSection";

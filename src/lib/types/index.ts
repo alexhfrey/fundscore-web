@@ -6,3 +6,8 @@ export * from "./fees";
 export * from "./score";
 export * from "./trading";
 export * from "./model";
+export * from "./attribution";
+export * from "./factorRisk";
+export * from "./portfolioCharacteristics";
+export * from "./skillAssessment";
+export * from "./admin";

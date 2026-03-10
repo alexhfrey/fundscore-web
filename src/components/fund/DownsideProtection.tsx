@@ -115,8 +115,8 @@ export function DownsideProtection({ fund }: DownsideProtectionProps) {
                     : "Unfavorable asymmetry — captures more downside than upside."}
               {" "}
               {maxDrawdown > categoryAvgDrawdown
-                ? `Max drawdown of ${maxDrawdown.toFixed(1)}% is shallower than the ${categoryAvgDrawdown.toFixed(1)}% category average.`
-                : `Max drawdown of ${maxDrawdown.toFixed(1)}% is deeper than the ${categoryAvgDrawdown.toFixed(1)}% category average.`}
+                ? `Max drawdown of ${maxDrawdown.toFixed(1)}% is shallower than the ${categoryAvgDrawdown.toFixed(1)}% peer group average.`
+                : `Max drawdown of ${maxDrawdown.toFixed(1)}% is deeper than the ${categoryAvgDrawdown.toFixed(1)}% peer group average.`}
             </p>
           </div>
         </div>

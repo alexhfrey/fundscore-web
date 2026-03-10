@@ -41,7 +41,7 @@ export function FeesTab({ fund }: FeesTabProps) {
               {formatExpenseRatio(fees.expenseRatio)}
             </p>
             <p className="text-sm text-gray-500 mt-1">
-              Category average: {formatExpenseRatio(fees.categoryAvgExpenseRatio)}
+              Peer group average: {formatExpenseRatio(fees.peerAvgExpenseRatio)}
             </p>
           </div>
           <div className="flex items-center">
@@ -54,13 +54,13 @@ export function FeesTab({ fund }: FeesTabProps) {
                 <div
                   className="absolute h-full rounded-full bg-[#1466b8]"
                   style={{
-                    width: `${Math.min(100, (fees.expenseRatio / Math.max(fees.expenseRatio, fees.categoryAvgExpenseRatio) * 1.2) * 100 / 1.2)}%`,
+                    width: `${Math.min(100, (fees.expenseRatio / Math.max(fees.expenseRatio, fees.peerAvgExpenseRatio) * 1.2) * 100 / 1.2)}%`,
                   }}
                 />
                 <div
                   className="absolute h-full w-0.5 bg-gray-400"
                   style={{
-                    left: `${Math.min(100, (fees.categoryAvgExpenseRatio / Math.max(fees.expenseRatio, fees.categoryAvgExpenseRatio) * 1.2) * 100 / 1.2)}%`,
+                    left: `${Math.min(100, (fees.peerAvgExpenseRatio / Math.max(fees.expenseRatio, fees.peerAvgExpenseRatio) * 1.2) * 100 / 1.2)}%`,
                   }}
                 />
               </div>

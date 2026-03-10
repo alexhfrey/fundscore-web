@@ -4,12 +4,20 @@ import { RiskData } from "./risk";
 import { FeeData } from "./fees";
 import { FundScoreDetail } from "./score";
 import { TradingActivity } from "./trading";
+import { PerformanceAttribution } from "./attribution";
+import { FactorRiskProfile } from "./factorRisk";
+import { PortfolioCharacteristics } from "./portfolioCharacteristics";
+import { SkillAssessment } from "./skillAssessment";
+import { AdministrativeDetails } from "./admin";
 
 export interface FundSummary {
   ticker: string;
   name: string;
-  category: FundCategory;
-  assetClass: AssetClass;
+  assetClass: AssetClassCode;
+  geography: string;
+  focus: string;
+  size: string;
+  peerGroup: string;
   fundScore: number;
   scoreLabel: ScoreLabel;
   passiveAltTicker: string;
@@ -38,40 +46,19 @@ export interface FundDetail extends FundSummary {
   risk: RiskData;
   fees: FeeData;
   trading: TradingActivity;
+  attribution: PerformanceAttribution;
+  factorRisk: FactorRiskProfile;
+  characteristics: PortfolioCharacteristics;
+  skillAssessment: SkillAssessment;
+  admin: AdministrativeDetails;
   analystNote: string;
-  categoryAvgOneYearReturn: number;
-  categoryAvgThreeYearReturn: number;
-  categoryAumRank: number;
-  categoryFundCount: number;
+  peerAvgOneYearReturn: number;
+  peerAvgThreeYearReturn: number;
+  peerAumRank: number;
+  peerFundCount: number;
 }
 
-export type FundCategory =
-  | "Large Growth"
-  | "Large Blend"
-  | "Large Value"
-  | "Mid-Cap Growth"
-  | "Mid-Cap Blend"
-  | "Small Blend"
-  | "Foreign Large Blend"
-  | "Diversified Emerging Markets"
-  | "Intermediate Core Bond"
-  | "Intermediate Core-Plus Bond"
-  | "High Yield Bond"
-  | "Short-Term Bond"
-  | "Bank Loan"
-  | "Moderate Allocation"
-  | "Aggressive Allocation"
-  | "Conservative Allocation"
-  | "Real Estate"
-  | "Technology"
-  | "Health";
-
-export type AssetClass =
-  | "US Equity"
-  | "International Equity"
-  | "Fixed Income"
-  | "Allocation"
-  | "Specialty";
+export type AssetClassCode = "EQ" | "FI" | "MU" | "MA" | "ALT" | "RE" | "OT";
 
 export type ScoreLabel =
   | "Strong Buy"

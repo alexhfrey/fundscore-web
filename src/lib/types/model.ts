@@ -6,7 +6,7 @@ export interface ModelBacktest {
   totalFundsScored: number;
   dataStartDate: string;
   lastUpdated: string;
-  categoryAccuracy: CategoryAccuracy[];
+  peerGroupAccuracy: PeerGroupAccuracy[];
 }
 
 export interface CalibrationPoint {
@@ -31,8 +31,8 @@ export interface SpreadPoint {
   spread: number;
 }
 
-export interface CategoryAccuracy {
-  category: string;
+export interface PeerGroupAccuracy {
+  peerGroup: string;
   accuracy: number;
   sampleSize: number;
 }

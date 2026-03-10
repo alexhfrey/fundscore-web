@@ -66,29 +66,29 @@ export function getModelStats(): ModelBacktest {
     }
   }
 
-  const categoryAccuracy = [
+  const peerGroupAccuracy = [
     {
-      category: "US Equity",
+      peerGroup: "EQ.*",
       accuracy: Number(rng.nextRange(62, 72).toFixed(1)),
       sampleSize: rng.nextInt(500, 900),
     },
     {
-      category: "Fixed Income",
+      peerGroup: "FI.*",
       accuracy: Number(rng.nextRange(65, 75).toFixed(1)),
       sampleSize: rng.nextInt(300, 600),
     },
     {
-      category: "International",
+      peerGroup: "EQ.INTL.*",
       accuracy: Number(rng.nextRange(58, 68).toFixed(1)),
       sampleSize: rng.nextInt(150, 350),
     },
     {
-      category: "Allocation",
+      peerGroup: "MA.*",
       accuracy: Number(rng.nextRange(60, 70).toFixed(1)),
       sampleSize: rng.nextInt(200, 400),
     },
     {
-      category: "Specialty",
+      peerGroup: "RE.*",
       accuracy: Number(rng.nextRange(55, 65).toFixed(1)),
       sampleSize: rng.nextInt(100, 250),
     },
@@ -102,7 +102,7 @@ export function getModelStats(): ModelBacktest {
     totalFundsScored: 1847,
     dataStartDate: "2016-01-01",
     lastUpdated: "2025-12-31",
-    categoryAccuracy,
+    peerGroupAccuracy,
   };
 
   return _modelData;

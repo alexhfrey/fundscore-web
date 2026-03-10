@@ -35,7 +35,9 @@ export function ExpectedOutcomeRange({ fund }: ExpectedOutcomeRangeProps) {
     return `${sign}${value.toFixed(1)}%`;
   };
 
-  const interpretiveText = `Expected to ${alpha > 0 ? "outperform" : "underperform"} ${fund.passiveAltTicker} by ${Math.abs(alpha).toFixed(1)}%/yr (middle 50%: ${p25.toFixed(1)}% to ${p75.toFixed(1)}%)`;
+  const expectedAmount = formatValue(alpha);
+  const p10Formatted = formatValue(p10);
+  const p90Formatted = formatValue(p90);
 
   return (
     <div>
@@ -43,8 +45,18 @@ export function ExpectedOutcomeRange({ fund }: ExpectedOutcomeRangeProps) {
         Expected Outcome Range
       </h2>
       <div className="bg-white border border-gray-200 rounded-lg p-5">
+        {/* Benchmark label above the zero line */}
+        <div className="relative h-5 mb-1">
+          <div
+            className="absolute -translate-x-1/2 text-xs font-medium text-gray-500"
+            style={{ left: `${zeroLeft}%` }}
+          >
+            {fund.passiveAltTicker} (Benchmark)
+          </div>
+        </div>
+
         {/* Range visualization */}
-        <div className="relative h-16 my-6">
+        <div className="relative h-16 my-2">
           {/* Light band: 10th to 90th percentile */}
           <div
             className="absolute top-1/2 -translate-y-1/2 h-6 bg-blue-100 rounded"
@@ -81,11 +93,11 @@ export function ExpectedOutcomeRange({ fund }: ExpectedOutcomeRangeProps) {
         {/* Labels */}
         <div className="relative h-5">
           {[
-            { value: p10, label: "P10" },
-            { value: p25, label: "P25" },
-            { value: median, label: "Med" },
-            { value: p75, label: "P75" },
-            { value: p90, label: "P90" },
+            { value: p10, label: "Worst realistic case (P10)" },
+            { value: p25, label: "Below average (P25)" },
+            { value: median, label: "Most likely (P50)" },
+            { value: p75, label: "Above average (P75)" },
+            { value: p90, label: "Best realistic case (P90)" },
           ].map(({ value, label }) => (
             <div
               key={label}
@@ -100,8 +112,26 @@ export function ExpectedOutcomeRange({ fund }: ExpectedOutcomeRangeProps) {
           ))}
         </div>
 
-        {/* Interpretive text */}
-        <p className="mt-8 text-sm text-gray-600">{interpretiveText}</p>
+        {/* Legend */}
+        <div className="flex items-center gap-5 mt-8 text-xs text-gray-500">
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-4 h-2.5 bg-blue-100 rounded" />
+            Realistic range (P10–P90)
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-4 h-2.5 bg-blue-300 rounded" />
+            Typical range (P25–P75)
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-2.5 h-2.5 bg-[#1466b8] rounded-full" />
+            Most likely outcome (P50)
+          </span>
+        </div>
+
+        {/* Descriptive text */}
+        <p className="mt-4 text-sm text-gray-600">
+          We estimate {fund.name} will {alpha >= 0 ? "beat" : "trail"} its best passive alternative {fund.passiveAltTicker} by {expectedAmount} on average, with a 10-90 percentile range of {p10Formatted} to {p90Formatted}.
+        </p>
       </div>
     </div>
   );

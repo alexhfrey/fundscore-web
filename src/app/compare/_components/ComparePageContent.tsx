@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { FundSummary, FundDetail } from "@/lib/types";
-import { compareFunds } from "@/lib/data";
+import { fetchCompareFunds } from "../_actions";
 import { FundSelector } from "./FundSelector";
 import { ComparisonChart } from "./ComparisonChart";
 import { ComparisonTable } from "./ComparisonTable";
@@ -19,10 +19,14 @@ export function ComparePageContent({ allFunds }: ComparePageContentProps) {
   const [selectedTickers, setSelectedTickers] = useState<string[]>(
     initialTickers.slice(0, 4)
   );
+  const [selectedFunds, setSelectedFunds] = useState<FundDetail[]>([]);
 
-  const selectedFunds: FundDetail[] = useMemo(() => {
-    if (selectedTickers.length === 0) return [];
-    return compareFunds(selectedTickers);
+  useEffect(() => {
+    if (selectedTickers.length === 0) {
+      setSelectedFunds([]);
+      return;
+    }
+    fetchCompareFunds(selectedTickers).then(setSelectedFunds);
   }, [selectedTickers]);
 
   const addFund = (ticker: string) => {

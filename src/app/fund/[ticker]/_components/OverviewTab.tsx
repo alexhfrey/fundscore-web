@@ -55,14 +55,14 @@ export function OverviewTab({ fund }: OverviewTabProps) {
 
       {/* Key metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <MetricCard label="1Y Return" value="" subtitle={`Category avg: ${formatPercent(fund.categoryAvgOneYearReturn)}`}>
+        <MetricCard label="1Y Return" value="" subtitle={`Peer avg: ${formatPercent(fund.peerAvgOneYearReturn)}`}>
           <ReturnValue value={fund.oneYearReturn} className="text-2xl font-bold" />
         </MetricCard>
-        <MetricCard label="3Y Return (Ann.)" value="" subtitle={`Category avg: ${formatPercent(fund.categoryAvgThreeYearReturn)}`}>
+        <MetricCard label="3Y Return (Ann.)" value="" subtitle={`Peer avg: ${formatPercent(fund.peerAvgThreeYearReturn)}`}>
           <ReturnValue value={fund.threeYearReturn} className="text-2xl font-bold" />
         </MetricCard>
-        <MetricCard label="Expense Ratio" value={formatExpenseRatio(fund.expenseRatio)} subtitle={`Category avg: ${formatExpenseRatio(fund.fees.categoryAvgExpenseRatio)}`} />
-        <MetricCard label="AUM" value={formatAUM(fund.aum)} subtitle={`Rank ${fund.categoryAumRank} of ${fund.categoryFundCount} funds`} />
+        <MetricCard label="Expense Ratio" value={formatExpenseRatio(fund.expenseRatio)} subtitle={`Peer avg: ${formatExpenseRatio(fund.fees.peerAvgExpenseRatio)}`} />
+        <MetricCard label="AUM" value={formatAUM(fund.aum)} subtitle={`Rank ${fund.peerAumRank} of ${fund.peerFundCount} funds`} />
       </div>
 
       {/* Score drivers */}
@@ -75,20 +75,17 @@ export function OverviewTab({ fund }: OverviewTabProps) {
         </div>
       </div>
 
-      {/* Alpha Decomposition */}
-      <AlphaDecomposition fund={fund} />
-
-      {/* Mini performance chart */}
+      {/* Performance chart */}
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Performance vs Passive Alternative (3Y)
+          {fund.ticker} vs {fund.passiveAltTicker} — 3 Year Performance
         </h3>
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <PerformanceLineChart
             series={[
-              { name: fund.ticker, data: fundCumulative, color: "#1466b8" },
+              { name: `${fund.ticker} (Fund)`, data: fundCumulative, color: "#1466b8" },
               {
-                name: fund.passiveAltTicker,
+                name: `${fund.passiveAltTicker} (Best Passive Alternative)`,
                 data: passiveCumulative,
                 color: "#9ca3af",
               },
@@ -97,6 +94,9 @@ export function OverviewTab({ fund }: OverviewTabProps) {
           />
         </div>
       </div>
+
+      {/* Expected Alpha Decomposition */}
+      <AlphaDecomposition fund={fund} />
 
       {/* Investment objective */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

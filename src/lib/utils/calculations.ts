@@ -69,6 +69,28 @@ export function cumulativeReturnSeries(
   });
 }
 
+export interface ComputedTrailingReturns {
+  oneYear: number | null;
+  threeYear: number | null;
+  fiveYear: number | null;
+  tenYear: number | null;
+}
+
+export function computeTrailingReturns(
+  returns: MonthlyReturn[]
+): ComputedTrailingReturns {
+  const compute = (months: number) => {
+    if (returns.length < months) return null;
+    return annualizedReturn(returns.slice(-months));
+  };
+  return {
+    oneYear: returns.length >= 12 ? cumulativeReturn(returns.slice(-12)) : null,
+    threeYear: compute(36),
+    fiveYear: compute(60),
+    tenYear: compute(120),
+  };
+}
+
 export function filterReturnsByRange(
   returns: MonthlyReturn[],
   range: string

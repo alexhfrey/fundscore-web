@@ -6,6 +6,6 @@ export interface FeeData {
   frontLoad: number;
   deferredLoad: number;
   redemptionFee: number;
-  categoryAvgExpenseRatio: number;
+  peerAvgExpenseRatio: number;
   feeLevel: "Low" | "Below Average" | "Average" | "Above Average" | "High";
 }

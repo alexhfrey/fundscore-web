@@ -29,8 +29,8 @@ export function ComparisonTable({ funds }: ComparisonTableProps) {
       highlight: "highest",
     },
     {
-      label: "Category",
-      values: funds.map((f) => f.category),
+      label: "Peer Group",
+      values: funds.map((f) => f.peerGroup),
       type: "text",
     },
     {

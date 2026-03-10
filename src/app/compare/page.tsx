@@ -8,8 +8,8 @@ export const metadata = {
     "Compare up to 4 mutual funds side by side. See performance, risk, fees, and FundScore ratings compared.",
 };
 
-export default function ComparePage() {
-  const allFunds = getFundSummaries();
+export default async function ComparePage() {
+  const allFunds = await getFundSummaries();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

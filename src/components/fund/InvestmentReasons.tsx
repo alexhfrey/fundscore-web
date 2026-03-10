@@ -8,7 +8,7 @@ interface Reason {
 function evaluateInvestTriggers(fund: FundDetail): Reason[] {
   const { trading, fees, risk, fundScore, scoreLabel, managerStartYear } = fund;
   const { battingAverage, winLossRatio, activeShare, sectorHitRates } = trading;
-  const { expenseRatio, categoryAvgExpenseRatio } = fees;
+  const { expenseRatio, peerAvgExpenseRatio } = fees;
   const alpha = risk.alpha.threeYear;
   const { upsideCaptureRatio, downsideCaptureRatio } = risk;
   const tenure = 2026 - managerStartYear;
@@ -28,13 +28,13 @@ function evaluateInvestTriggers(fund: FundDetail): Reason[] {
         }
       : null,
 
-    expenseRatio < categoryAvgExpenseRatio * 0.8
+    expenseRatio < peerAvgExpenseRatio * 0.8
       ? (() => {
           const pctBelow = Math.round(
-            ((categoryAvgExpenseRatio - expenseRatio) / categoryAvgExpenseRatio) * 100
+            ((peerAvgExpenseRatio - expenseRatio) / peerAvgExpenseRatio) * 100
           );
           return {
-            text: `Fees ${pctBelow}% below category average`,
+            text: `Fees ${pctBelow}% below peer group average`,
             magnitude: pctBelow / 100,
           };
         })()
@@ -96,19 +96,19 @@ function evaluateInvestTriggers(fund: FundDetail): Reason[] {
 function evaluateAvoidTriggers(fund: FundDetail): Reason[] {
   const { trading, fees, risk, fundScore, scoreLabel, managerStartYear } = fund;
   const { battingAverage, winLossRatio, activeShare } = trading;
-  const { expenseRatio, categoryAvgExpenseRatio } = fees;
+  const { expenseRatio, peerAvgExpenseRatio } = fees;
   const alpha = risk.alpha.threeYear;
   const { downsideCaptureRatio } = risk;
   const tenure = 2026 - managerStartYear;
 
   const candidates: (Reason | null)[] = [
-    expenseRatio > categoryAvgExpenseRatio * 1.2
+    expenseRatio > peerAvgExpenseRatio * 1.2
       ? (() => {
           const pctAbove = Math.round(
-            ((expenseRatio - categoryAvgExpenseRatio) / categoryAvgExpenseRatio) * 100
+            ((expenseRatio - peerAvgExpenseRatio) / peerAvgExpenseRatio) * 100
           );
           return {
-            text: `Fees ${pctAbove}% above category average`,
+            text: `Fees ${pctAbove}% above peer group average`,
             magnitude: pctAbove / 100,
           };
         })()

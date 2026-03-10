@@ -51,10 +51,10 @@ function paragraphOne(fund: FundInput): string {
   const tenure = 2026 - fund.managerStartYear;
 
   const verdicts: Record<string, string> = {
-    strong_buy: `${fund.name} (${fund.ticker}) earns a FundScore of ${fund.fundScore}, placing it in the Strong Buy tier — among the highest-conviction active funds in the ${fund.category} category.`,
-    buy: `${fund.name} (${fund.ticker}) earns a FundScore of ${fund.fundScore}, placing it in the Buy tier within the ${fund.category} category.`,
-    hold: `${fund.name} (${fund.ticker}) carries a FundScore of ${fund.fundScore}, placing it in the Hold tier for the ${fund.category} category.`,
-    sell: `${fund.name} (${fund.ticker}) carries a FundScore of just ${fund.fundScore}, placing it in the ${fund.fundScore >= 25 ? "Underperform" : "Sell"} tier — among the weakest active offerings in the ${fund.category} category.`,
+    strong_buy: `${fund.name} (${fund.ticker}) earns a FundScore of ${fund.fundScore}, placing it in the Strong Buy tier — among the highest-conviction active funds in the ${fund.peerGroup} peer group.`,
+    buy: `${fund.name} (${fund.ticker}) earns a FundScore of ${fund.fundScore}, placing it in the Buy tier within the ${fund.peerGroup} peer group.`,
+    hold: `${fund.name} (${fund.ticker}) carries a FundScore of ${fund.fundScore}, placing it in the Hold tier for the ${fund.peerGroup} peer group.`,
+    sell: `${fund.name} (${fund.ticker}) carries a FundScore of just ${fund.fundScore}, placing it in the ${fund.fundScore >= 25 ? "Underperform" : "Sell"} tier — among the weakest active offerings in the ${fund.peerGroup} peer group.`,
   };
 
   return `${verdicts[tier]} Founded in ${year} and managing ${formatAUM(fund.aum)} in assets, the fund has operated under ${fund.manager} for ${tenure} year${tenure !== 1 ? "s" : ""}.`;
@@ -133,30 +133,30 @@ function paragraphFour(fund: FundInput): string {
 
 function paragraphFive(fund: FundInput): string {
   const expense = fund.expenseRatio;
-  const catAvg = fund.fees.categoryAvgExpenseRatio;
+  const catAvg = fund.fees.peerAvgExpenseRatio;
   const diff = expense - catAvg;
   const alpha3Y = fund.risk.alpha.threeYear;
 
   if (diff <= -0.2) {
-    return `At ${formatBps(expense)}, the expense ratio sits well below the ${fund.category} category average of ${formatBps(catAvg)} — a meaningful cost advantage that compounds over time.`;
+    return `At ${formatBps(expense)}, the expense ratio sits well below the ${fund.peerGroup} peer group average of ${formatBps(catAvg)} — a meaningful cost advantage that compounds over time.`;
   }
   if (diff <= 0.1) {
     if (alpha3Y > 1) {
-      return `The expense ratio of ${formatBps(expense)} is roughly in line with the ${fund.category} category average of ${formatBps(catAvg)}. With a three-year alpha of ${formatPct(alpha3Y)}, the fund has historically generated enough excess return to justify its fee.`;
+      return `The expense ratio of ${formatBps(expense)} is roughly in line with the ${fund.peerGroup} peer group average of ${formatBps(catAvg)}. With a three-year alpha of ${formatPct(alpha3Y)}, the fund has historically generated enough excess return to justify its fee.`;
     }
-    return `The expense ratio of ${formatBps(expense)} is roughly in line with the ${fund.category} category average of ${formatBps(catAvg)}. However, with a three-year alpha of ${formatPct(alpha3Y)}, it remains an open question whether the manager is adding enough value after costs.`;
+    return `The expense ratio of ${formatBps(expense)} is roughly in line with the ${fund.peerGroup} peer group average of ${formatBps(catAvg)}. However, with a three-year alpha of ${formatPct(alpha3Y)}, it remains an open question whether the manager is adding enough value after costs.`;
   }
   if (alpha3Y > 2) {
-    return `The expense ratio of ${formatBps(expense)} exceeds the ${fund.category} category average of ${formatBps(catAvg)} by ${formatBps(diff)}. That said, the three-year alpha of ${formatPct(alpha3Y)} suggests the manager has delivered enough excess return to offset the higher cost — though fee-sensitive investors should monitor this closely.`;
+    return `The expense ratio of ${formatBps(expense)} exceeds the ${fund.peerGroup} peer group average of ${formatBps(catAvg)} by ${formatBps(diff)}. That said, the three-year alpha of ${formatPct(alpha3Y)} suggests the manager has delivered enough excess return to offset the higher cost — though fee-sensitive investors should monitor this closely.`;
   }
-  return `The expense ratio of ${formatBps(expense)} exceeds the ${fund.category} category average of ${formatBps(catAvg)} by ${formatBps(diff)}. With a three-year alpha of just ${formatPct(alpha3Y)}, the fund has not consistently generated sufficient excess return to justify its fee premium.`;
+  return `The expense ratio of ${formatBps(expense)} exceeds the ${fund.peerGroup} peer group average of ${formatBps(catAvg)} by ${formatBps(diff)}. With a three-year alpha of just ${formatPct(alpha3Y)}, the fund has not consistently generated sufficient excess return to justify its fee premium.`;
 }
 
 function paragraphSix(fund: FundInput): string {
   const tier = scoreTier(fund.fundScore);
 
   const verdicts: Record<string, string> = {
-    strong_buy: `Bottom line: ${fund.ticker} is one of the rare active funds that has historically justified its fee premium over ${fund.passiveAltTicker} (${fund.passiveAltName}). For investors seeking active management in the ${fund.category} space, this fund merits strong consideration.`,
+    strong_buy: `Bottom line: ${fund.ticker} is one of the rare active funds that has historically justified its fee premium over ${fund.passiveAltTicker} (${fund.passiveAltName}). For investors seeking active management in the ${fund.peerGroup} space, this fund merits strong consideration.`,
     buy: `Bottom line: ${fund.ticker} has demonstrated sufficient skill to warrant its active management fee relative to ${fund.passiveAltTicker} (${fund.passiveAltName}), though investors should continue to monitor performance consistency.`,
     hold: `Bottom line: ${fund.ticker} occupies a middle ground — neither clearly justifying its active fee nor failing outright. Investors with existing positions may hold, but new money may be better allocated to ${fund.passiveAltTicker} (${fund.passiveAltName}) until the fund demonstrates a clearer edge.`,
     sell: `Bottom line: The data does not support an active management premium for ${fund.ticker}. Investors would likely be better served by the passive alternative, ${fund.passiveAltTicker} (${fund.passiveAltName}), which offers similar market exposure at a fraction of the cost.`,

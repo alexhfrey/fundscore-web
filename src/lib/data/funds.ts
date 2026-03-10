@@ -1,7 +1,6 @@
 import {
   FundDetail,
-  FundCategory,
-  AssetClass,
+  AssetClassCode,
   ScoreLabel,
   ScoreDriver,
   RiskData,
@@ -21,6 +20,11 @@ import {
 } from "./generators/returns";
 import { generateHoldings } from "./generators/holdings";
 import { generateAnalystNote } from "./generators/analystNote";
+import { generateAttribution } from "./generators/attribution";
+import { generateFactorRiskProfile } from "./generators/factorRisk";
+import { generateCharacteristics } from "./generators/characteristics";
+import { generateSkillAssessment } from "./generators/skillAssessment";
+import { generateAdminDetails } from "./generators/admin";
 
 function scoreLabel(score: number): ScoreLabel {
   if (score >= 75) return "Strong Buy";
@@ -30,23 +34,20 @@ function scoreLabel(score: number): ScoreLabel {
   return "Sell";
 }
 
-function getBenchmark(assetClass: AssetClass, category: FundCategory): string {
-  if (
-    category.includes("Bond") ||
-    category === "Bank Loan" ||
-    category === "Short-Term Bond"
-  )
-    return "Bloomberg US Agg";
-  if (category.includes("Emerging")) return "MSCI EM";
-  if (category.includes("Foreign")) return "MSCI EAFE";
+function getBenchmark(assetClass: AssetClassCode, peerGroup: string): string {
+  if (assetClass === "FI" || assetClass === "MU") return "Bloomberg US Agg";
+  if (peerGroup.includes(".EM.")) return "MSCI EM";
+  if (peerGroup.includes(".INTL.")) return "MSCI EAFE";
   return "S&P 500";
 }
 
 interface FundDef {
   ticker: string;
   name: string;
-  category: FundCategory;
-  assetClass: AssetClass;
+  assetClass: AssetClassCode;
+  geography: string;
+  focus: string;
+  size: string;
   fundScore: number;
   passiveAltTicker: string;
   passiveAltName: string;
@@ -57,62 +58,93 @@ interface FundDef {
   managerStartYear: number;
 }
 
+function peerGroup(def: FundDef): string {
+  return `${def.assetClass}.${def.geography}.${def.focus}.${def.size}`;
+}
+
 const FUND_DEFS: FundDef[] = [
   // 8 US Equity
-  { ticker: "FCNTX", name: "Fidelity Contrafund", category: "Large Growth", assetClass: "US Equity", fundScore: 78, passiveAltTicker: "VUG", passiveAltName: "Vanguard Growth ETF", expenseRatio: 0.39, aum: 130000, seed: 1001, manager: "William Danoff", managerStartYear: 1990 },
-  { ticker: "VWIGX", name: "Vanguard Intl Growth", category: "Large Growth", assetClass: "US Equity", fundScore: 65, passiveAltTicker: "SCHG", passiveAltName: "Schwab US Large-Cap Growth ETF", expenseRatio: 0.42, aum: 55000, seed: 1002, manager: "Matthew Dobbs", managerStartYear: 2016 },
-  { ticker: "DODGX", name: "Dodge & Cox Stock", category: "Large Value", assetClass: "US Equity", fundScore: 72, passiveAltTicker: "VTV", passiveAltName: "Vanguard Value ETF", expenseRatio: 0.51, aum: 85000, seed: 1003, manager: "Dana Emery", managerStartYear: 2014 },
-  { ticker: "TRBCX", name: "T. Rowe Price Blue Chip Growth", category: "Large Growth", assetClass: "US Equity", fundScore: 69, passiveAltTicker: "IWF", passiveAltName: "iShares Russell 1000 Growth ETF", expenseRatio: 0.56, aum: 42000, seed: 1004, manager: "Paul Greene", managerStartYear: 2019 },
-  { ticker: "POAGX", name: "Primecap Odyssey Aggressive Growth", category: "Mid-Cap Growth", assetClass: "US Equity", fundScore: 81, passiveAltTicker: "IWP", passiveAltName: "iShares Russell Mid-Cap Growth ETF", expenseRatio: 0.62, aum: 12000, seed: 1005, manager: "Joel Fried", managerStartYear: 2004 },
-  { ticker: "FLPSX", name: "Fidelity Low-Priced Stock", category: "Mid-Cap Blend", assetClass: "US Equity", fundScore: 55, passiveAltTicker: "VO", passiveAltName: "Vanguard Mid-Cap ETF", expenseRatio: 0.52, aum: 28000, seed: 1006, manager: "Joel Tillinghast", managerStartYear: 1989 },
-  { ticker: "VSCIX", name: "Vanguard Small-Cap Index", category: "Small Blend", assetClass: "US Equity", fundScore: 42, passiveAltTicker: "IJR", passiveAltName: "iShares Core S&P Small-Cap ETF", expenseRatio: 0.04, aum: 96000, seed: 1007, manager: "Gerard O'Reilly", managerStartYear: 2016 },
-  { ticker: "ANCFX", name: "American Funds Fundamental", category: "Large Blend", assetClass: "US Equity", fundScore: 58, passiveAltTicker: "SPY", passiveAltName: "SPDR S&P 500 ETF", expenseRatio: 0.61, aum: 110000, seed: 1008, manager: "Dina Perry", managerStartYear: 2015 },
+  { ticker: "FCNTX", name: "Fidelity Contrafund", assetClass: "EQ", geography: "US", focus: "BROAD", size: "LARGE", fundScore: 78, passiveAltTicker: "VUG", passiveAltName: "Vanguard Growth ETF", expenseRatio: 0.39, aum: 130000, seed: 1001, manager: "William Danoff", managerStartYear: 1990 },
+  { ticker: "VWIGX", name: "Vanguard Intl Growth", assetClass: "EQ", geography: "US", focus: "BROAD", size: "LARGE", fundScore: 65, passiveAltTicker: "SCHG", passiveAltName: "Schwab US Large-Cap Growth ETF", expenseRatio: 0.42, aum: 55000, seed: 1002, manager: "Matthew Dobbs", managerStartYear: 2016 },
+  { ticker: "DODGX", name: "Dodge & Cox Stock", assetClass: "EQ", geography: "US", focus: "BROAD", size: "LARGE", fundScore: 72, passiveAltTicker: "VTV", passiveAltName: "Vanguard Value ETF", expenseRatio: 0.51, aum: 85000, seed: 1003, manager: "Dana Emery", managerStartYear: 2014 },
+  { ticker: "TRBCX", name: "T. Rowe Price Blue Chip Growth", assetClass: "EQ", geography: "US", focus: "BROAD", size: "LARGE", fundScore: 69, passiveAltTicker: "IWF", passiveAltName: "iShares Russell 1000 Growth ETF", expenseRatio: 0.56, aum: 42000, seed: 1004, manager: "Paul Greene", managerStartYear: 2019 },
+  { ticker: "POAGX", name: "Primecap Odyssey Aggressive Growth", assetClass: "EQ", geography: "US", focus: "BROAD", size: "MID", fundScore: 81, passiveAltTicker: "IWP", passiveAltName: "iShares Russell Mid-Cap Growth ETF", expenseRatio: 0.62, aum: 12000, seed: 1005, manager: "Joel Fried", managerStartYear: 2004 },
+  { ticker: "FLPSX", name: "Fidelity Low-Priced Stock", assetClass: "EQ", geography: "US", focus: "BROAD", size: "MID", fundScore: 55, passiveAltTicker: "VO", passiveAltName: "Vanguard Mid-Cap ETF", expenseRatio: 0.52, aum: 28000, seed: 1006, manager: "Joel Tillinghast", managerStartYear: 1989 },
+  { ticker: "VSCIX", name: "Vanguard Small-Cap Index", assetClass: "EQ", geography: "US", focus: "BROAD", size: "SMALL", fundScore: 42, passiveAltTicker: "IJR", passiveAltName: "iShares Core S&P Small-Cap ETF", expenseRatio: 0.04, aum: 96000, seed: 1007, manager: "Gerard O'Reilly", managerStartYear: 2016 },
+  { ticker: "ANCFX", name: "American Funds Fundamental", assetClass: "EQ", geography: "US", focus: "BROAD", size: "LARGE", fundScore: 58, passiveAltTicker: "SPY", passiveAltName: "SPDR S&P 500 ETF", expenseRatio: 0.61, aum: 110000, seed: 1008, manager: "Dina Perry", managerStartYear: 2015 },
 
   // 6 Fixed Income
-  { ticker: "PIMIX", name: "PIMCO Income Fund", category: "Intermediate Core-Plus Bond", assetClass: "Fixed Income", fundScore: 85, passiveAltTicker: "BND", passiveAltName: "Vanguard Total Bond Market ETF", expenseRatio: 0.59, aum: 155000, seed: 2001, manager: "Daniel Ivascyn", managerStartYear: 2012 },
-  { ticker: "MWHYX", name: "Metropolitan West High Yield", category: "High Yield Bond", assetClass: "Fixed Income", fundScore: 71, passiveAltTicker: "HYG", passiveAltName: "iShares iBoxx High Yield ETF", expenseRatio: 0.65, aum: 8500, seed: 2002, manager: "Laird Landmann", managerStartYear: 2009 },
-  { ticker: "DODIX", name: "Dodge & Cox Income", category: "Intermediate Core Bond", assetClass: "Fixed Income", fundScore: 68, passiveAltTicker: "AGG", passiveAltName: "iShares Core US Aggregate Bond ETF", expenseRatio: 0.41, aum: 72000, seed: 2003, manager: "Thomas Dugan", managerStartYear: 2018 },
-  { ticker: "VBTLX", name: "Vanguard Total Bond Market", category: "Intermediate Core Bond", assetClass: "Fixed Income", fundScore: 45, passiveAltTicker: "SCHZ", passiveAltName: "Schwab US Aggregate Bond ETF", expenseRatio: 0.05, aum: 320000, seed: 2004, manager: "Joshua Barrickman", managerStartYear: 2013 },
-  { ticker: "BKLN", name: "Invesco Senior Loan ETF", category: "Bank Loan", assetClass: "Fixed Income", fundScore: 52, passiveAltTicker: "SRLN", passiveAltName: "SPDR Blackstone Senior Loan ETF", expenseRatio: 0.65, aum: 5200, seed: 2005, manager: "Kevin Egan", managerStartYear: 2011 },
-  { ticker: "VFSUX", name: "Vanguard Short-Term Investment Grade", category: "Short-Term Bond", assetClass: "Fixed Income", fundScore: 47, passiveAltTicker: "VCSH", passiveAltName: "Vanguard Short-Term Corp Bond ETF", expenseRatio: 0.10, aum: 68000, seed: 2006, manager: "Samuel Martinez", managerStartYear: 2020 },
+  { ticker: "PIMIX", name: "PIMCO Income Fund", assetClass: "FI", geography: "US", focus: "IG_BROAD", size: "INTERM", fundScore: 85, passiveAltTicker: "BND", passiveAltName: "Vanguard Total Bond Market ETF", expenseRatio: 0.59, aum: 155000, seed: 2001, manager: "Daniel Ivascyn", managerStartYear: 2012 },
+  { ticker: "MWHYX", name: "Metropolitan West High Yield", assetClass: "FI", geography: "US", focus: "HY", size: "BROAD", fundScore: 71, passiveAltTicker: "HYG", passiveAltName: "iShares iBoxx High Yield ETF", expenseRatio: 0.65, aum: 8500, seed: 2002, manager: "Laird Landmann", managerStartYear: 2009 },
+  { ticker: "DODIX", name: "Dodge & Cox Income", assetClass: "FI", geography: "US", focus: "IG_BROAD", size: "INTERM", fundScore: 68, passiveAltTicker: "AGG", passiveAltName: "iShares Core US Aggregate Bond ETF", expenseRatio: 0.41, aum: 72000, seed: 2003, manager: "Thomas Dugan", managerStartYear: 2018 },
+  { ticker: "VBTLX", name: "Vanguard Total Bond Market", assetClass: "FI", geography: "US", focus: "IG_BROAD", size: "INTERM", fundScore: 45, passiveAltTicker: "SCHZ", passiveAltName: "Schwab US Aggregate Bond ETF", expenseRatio: 0.05, aum: 320000, seed: 2004, manager: "Joshua Barrickman", managerStartYear: 2013 },
+  { ticker: "BKLN", name: "Invesco Senior Loan ETF", assetClass: "FI", geography: "US", focus: "BANK_LOAN", size: "BROAD", fundScore: 52, passiveAltTicker: "SRLN", passiveAltName: "SPDR Blackstone Senior Loan ETF", expenseRatio: 0.65, aum: 5200, seed: 2005, manager: "Kevin Egan", managerStartYear: 2011 },
+  { ticker: "VFSUX", name: "Vanguard Short-Term Investment Grade", assetClass: "FI", geography: "US", focus: "SHORT_IG", size: "SHORT", fundScore: 47, passiveAltTicker: "VCSH", passiveAltName: "Vanguard Short-Term Corp Bond ETF", expenseRatio: 0.10, aum: 68000, seed: 2006, manager: "Samuel Martinez", managerStartYear: 2020 },
 
   // 3 International
-  { ticker: "DODFX", name: "Dodge & Cox International Stock", category: "Foreign Large Blend", assetClass: "International Equity", fundScore: 74, passiveAltTicker: "VEA", passiveAltName: "Vanguard FTSE Developed Markets ETF", expenseRatio: 0.63, aum: 44000, seed: 3001, manager: "Diana Strandberg", managerStartYear: 2014 },
-  { ticker: "ODVYX", name: "Oppenheimer Developing Markets", category: "Diversified Emerging Markets", assetClass: "International Equity", fundScore: 61, passiveAltTicker: "VWO", passiveAltName: "Vanguard FTSE Emerging Markets ETF", expenseRatio: 0.88, aum: 17000, seed: 3002, manager: "Justin Leverenz", managerStartYear: 2007 },
-  { ticker: "TEPLX", name: "Templeton Growth Fund", category: "Foreign Large Blend", assetClass: "International Equity", fundScore: 38, passiveAltTicker: "IXUS", passiveAltName: "iShares Core MSCI Total Intl ETF", expenseRatio: 0.96, aum: 9500, seed: 3003, manager: "Peter Sartori", managerStartYear: 2019 },
+  { ticker: "DODFX", name: "Dodge & Cox International Stock", assetClass: "EQ", geography: "INTL", focus: "BROAD", size: "LARGE", fundScore: 74, passiveAltTicker: "VEA", passiveAltName: "Vanguard FTSE Developed Markets ETF", expenseRatio: 0.63, aum: 44000, seed: 3001, manager: "Diana Strandberg", managerStartYear: 2014 },
+  { ticker: "ODVYX", name: "Oppenheimer Developing Markets", assetClass: "EQ", geography: "EM", focus: "BROAD", size: "LARGE", fundScore: 61, passiveAltTicker: "VWO", passiveAltName: "Vanguard FTSE Emerging Markets ETF", expenseRatio: 0.88, aum: 17000, seed: 3002, manager: "Justin Leverenz", managerStartYear: 2007 },
+  { ticker: "TEPLX", name: "Templeton Growth Fund", assetClass: "EQ", geography: "INTL", focus: "BROAD", size: "LARGE", fundScore: 38, passiveAltTicker: "IXUS", passiveAltName: "iShares Core MSCI Total Intl ETF", expenseRatio: 0.96, aum: 9500, seed: 3003, manager: "Peter Sartori", managerStartYear: 2019 },
 
   // 3 Allocation
-  { ticker: "PRWCX", name: "T. Rowe Price Capital Appreciation", category: "Moderate Allocation", assetClass: "Allocation", fundScore: 82, passiveAltTicker: "AOR", passiveAltName: "iShares Core Growth Allocation ETF", expenseRatio: 0.70, aum: 53000, seed: 4001, manager: "David Giroux", managerStartYear: 2006 },
-  { ticker: "OAKBX", name: "Oakmark Equity & Income", category: "Moderate Allocation", assetClass: "Allocation", fundScore: 64, passiveAltTicker: "AOM", passiveAltName: "iShares Core Moderate Allocation ETF", expenseRatio: 0.78, aum: 15000, seed: 4002, manager: "Adam Abbas", managerStartYear: 2020 },
-  { ticker: "VWELX", name: "Vanguard Wellington", category: "Moderate Allocation", assetClass: "Allocation", fundScore: 76, passiveAltTicker: "AOR", passiveAltName: "iShares Core Growth Allocation ETF", expenseRatio: 0.24, aum: 100000, seed: 4003, manager: "Michael Stack", managerStartYear: 2017 },
+  { ticker: "PRWCX", name: "T. Rowe Price Capital Appreciation", assetClass: "MA", geography: "US", focus: "BALANCED", size: "BROAD", fundScore: 82, passiveAltTicker: "AOR", passiveAltName: "iShares Core Growth Allocation ETF", expenseRatio: 0.70, aum: 53000, seed: 4001, manager: "David Giroux", managerStartYear: 2006 },
+  { ticker: "OAKBX", name: "Oakmark Equity & Income", assetClass: "MA", geography: "US", focus: "BALANCED", size: "BROAD", fundScore: 64, passiveAltTicker: "AOM", passiveAltName: "iShares Core Moderate Allocation ETF", expenseRatio: 0.78, aum: 15000, seed: 4002, manager: "Adam Abbas", managerStartYear: 2020 },
+  { ticker: "VWELX", name: "Vanguard Wellington", assetClass: "MA", geography: "US", focus: "BALANCED", size: "BROAD", fundScore: 76, passiveAltTicker: "AOR", passiveAltName: "iShares Core Growth Allocation ETF", expenseRatio: 0.24, aum: 100000, seed: 4003, manager: "Michael Stack", managerStartYear: 2017 },
 
   // 3 Specialty
-  { ticker: "VGSIX", name: "Vanguard Real Estate Index", category: "Real Estate", assetClass: "Specialty", fundScore: 50, passiveAltTicker: "VNQ", passiveAltName: "Vanguard Real Estate ETF", expenseRatio: 0.12, aum: 63000, seed: 5001, manager: "Gerard O'Reilly", managerStartYear: 2016 },
-  { ticker: "FOCPX", name: "Fidelity OTC Portfolio", category: "Technology", assetClass: "Specialty", fundScore: 70, passiveAltTicker: "QQQ", passiveAltName: "Invesco QQQ Trust", expenseRatio: 0.78, aum: 18000, seed: 5002, manager: "Christopher Lin", managerStartYear: 2018 },
-  { ticker: "VGHCX", name: "Vanguard Health Care", category: "Health", assetClass: "Specialty", fundScore: 63, passiveAltTicker: "VHT", passiveAltName: "Vanguard Health Care ETF", expenseRatio: 0.32, aum: 42000, seed: 5003, manager: "Jean Hynes", managerStartYear: 2008 },
+  { ticker: "VGSIX", name: "Vanguard Real Estate Index", assetClass: "RE", geography: "US", focus: "BROAD", size: "BROAD", fundScore: 50, passiveAltTicker: "VNQ", passiveAltName: "Vanguard Real Estate ETF", expenseRatio: 0.12, aum: 63000, seed: 5001, manager: "Gerard O'Reilly", managerStartYear: 2016 },
+  { ticker: "FOCPX", name: "Fidelity OTC Portfolio", assetClass: "EQ", geography: "US", focus: "TECH", size: "LARGE", fundScore: 70, passiveAltTicker: "QQQ", passiveAltName: "Invesco QQQ Trust", expenseRatio: 0.78, aum: 18000, seed: 5002, manager: "Christopher Lin", managerStartYear: 2018 },
+  { ticker: "VGHCX", name: "Vanguard Health Care", assetClass: "EQ", geography: "US", focus: "HEALTH", size: "LARGE", fundScore: 63, passiveAltTicker: "VHT", passiveAltName: "Vanguard Health Care ETF", expenseRatio: 0.32, aum: 42000, seed: 5003, manager: "Jean Hynes", managerStartYear: 2008 },
 
   // 2 Low-score funds
-  { ticker: "LEXCX", name: "Legg Mason Value Trust", category: "Large Blend", assetClass: "US Equity", fundScore: 22, passiveAltTicker: "VOO", passiveAltName: "Vanguard S&P 500 ETF", expenseRatio: 1.15, aum: 3200, seed: 6001, manager: "Sam Peters", managerStartYear: 2017 },
-  { ticker: "HSFAX", name: "Hussman Strategic Growth", category: "Large Blend", assetClass: "US Equity", fundScore: 15, passiveAltTicker: "SPY", passiveAltName: "SPDR S&P 500 ETF", expenseRatio: 1.02, aum: 420, seed: 6002, manager: "John Hussman", managerStartYear: 2000 },
+  { ticker: "LEXCX", name: "Legg Mason Value Trust", assetClass: "EQ", geography: "US", focus: "BROAD", size: "LARGE", fundScore: 22, passiveAltTicker: "VOO", passiveAltName: "Vanguard S&P 500 ETF", expenseRatio: 1.15, aum: 3200, seed: 6001, manager: "Sam Peters", managerStartYear: 2017 },
+  { ticker: "HSFAX", name: "Hussman Strategic Growth", assetClass: "EQ", geography: "US", focus: "BROAD", size: "LARGE", fundScore: 15, passiveAltTicker: "SPY", passiveAltName: "SPDR S&P 500 ETF", expenseRatio: 1.02, aum: 420, seed: 6002, manager: "John Hussman", managerStartYear: 2000 },
 ];
 
-function generateScoreDrivers(score: number, seed: number): ScoreDriver[] {
+// Map peer group to a return profile key for generators
+function returnProfileKey(def: FundDef): string {
+  if (def.assetClass === "FI" || def.assetClass === "MU") {
+    if (def.focus === "HY") return "High Yield Bond";
+    if (def.focus === "BANK_LOAN") return "Bank Loan";
+    if (def.focus === "SHORT_IG") return "Short-Term Bond";
+    return "Intermediate Core Bond";
+  }
+  if (def.assetClass === "MA") return "Moderate Allocation";
+  if (def.assetClass === "RE") return "Real Estate";
+  if (def.focus === "TECH") return "Technology";
+  if (def.focus === "HEALTH") return "Health";
+  if (def.geography === "EM") return "Diversified Emerging Markets";
+  if (def.geography === "INTL") return "Foreign Large Blend";
+  if (def.size === "SMALL") return "Small Blend";
+  if (def.size === "MID") return "Mid-Cap Growth";
+  return "Large Growth";
+}
+
+function generateScoreDrivers(
+  score: number,
+  seed: number,
+  trading: TradingActivity,
+  fees: FeeData
+): ScoreDriver[] {
   const rng = createSeededRandom(seed + 500);
-  const driverNames = [
-    { name: "Performance", weight: 0.25, desc: "Historical risk-adjusted returns vs passive alternative" },
-    { name: "Credit Quality", weight: 0.20, desc: "Portfolio credit risk and default probability" },
-    { name: "Liquidity", weight: 0.15, desc: "Fund liquidity and redemption risk" },
-    { name: "Portfolio Structure", weight: 0.10, desc: "Diversification and concentration measures" },
-    { name: "Fees", weight: 0.10, desc: "Total cost of ownership vs peers" },
-    { name: "Underwriting", weight: 0.10, desc: "Quality of security selection process" },
-    { name: "Concentration", weight: 0.10, desc: "Position-level concentration risk" },
+
+  const battingScore = Math.min(100, Math.max(0, Math.round((trading.battingAverage - 0.35) / 0.35 * 100)));
+  const winBetScore = Math.min(100, Math.max(0, Math.round((trading.avgWinSize - 40) / 160 * 100)));
+  const lossBetScore = Math.min(100, Math.max(0, Math.round((160 - trading.avgLossSize) / 120 * 100)));
+  const indepScore = Math.min(100, Math.max(0, Math.round((trading.numberOfIndependentDecisions - 30) / 270 * 100)));
+  const feeRatio = fees.expenseRatio / fees.peerAvgExpenseRatio;
+  const feeScore = Math.min(100, Math.max(0, Math.round((1.5 - feeRatio) / 1.0 * 100)));
+
+  const driverDefs = [
+    { name: "Batting Average", weight: 0.25, rawScore: battingScore, desc: "Percentage of active bets that outperform" },
+    { name: "Win / Bet", weight: 0.25, rawScore: winBetScore, desc: "Average gain from winning positions (bps)" },
+    { name: "Loss / Bet", weight: 0.20, rawScore: lossBetScore, desc: "Average loss from losing positions (bps, lower is better)" },
+    { name: "Independent Decisions", weight: 0.15, rawScore: indepScore, desc: "Number of distinct active bets vs benchmark" },
+    { name: "Fees", weight: 0.15, rawScore: feeScore, desc: "Total cost of ownership vs peer group average" },
   ];
 
-  return driverNames.map((d) => {
-    const driverScore = Math.min(
-      100,
-      Math.max(0, Math.round(score + rng.nextRange(-20, 20)))
-    );
+  return driverDefs.map((d) => {
+    const driverScore = Math.min(100, Math.max(0, Math.round(d.rawScore + rng.nextRange(-5, 5))));
     return {
       name: d.name,
       score: driverScore,
@@ -139,15 +171,9 @@ function generateScoreTrend(
   });
 }
 
-function generateRiskData(category: string, seed: number): RiskData {
+function generateRiskData(assetClass: AssetClassCode, seed: number): RiskData {
   const rng = createSeededRandom(seed + 700);
-  const isEquity = ![
-    "Intermediate Core Bond",
-    "Intermediate Core-Plus Bond",
-    "High Yield Bond",
-    "Short-Term Bond",
-    "Bank Loan",
-  ].includes(category);
+  const isEquity = assetClass === "EQ" || assetClass === "RE" || assetClass === "ALT" || assetClass === "OT";
 
   const baseVol = isEquity ? rng.nextRange(12, 22) : rng.nextRange(3, 10);
   const baseSharpe = rng.nextRange(0.3, 1.2);
@@ -210,7 +236,8 @@ function generateRiskData(category: string, seed: number): RiskData {
 
 function generateFeeData(
   expenseRatio: number,
-  category: string,
+  assetClass: AssetClassCode,
+  focus: string,
   seed: number
 ): FeeData {
   const rng = createSeededRandom(seed + 800);
@@ -223,29 +250,20 @@ function generateFeeData(
     Math.max(0, expenseRatio - mgmtFee - twelveB1).toFixed(2)
   );
 
-  const categoryAvgs: Record<string, number> = {
-    "Large Growth": 0.82,
-    "Large Blend": 0.75,
-    "Large Value": 0.78,
-    "Mid-Cap Growth": 0.95,
-    "Mid-Cap Blend": 0.88,
-    "Small Blend": 0.92,
-    "Foreign Large Blend": 0.90,
-    "Diversified Emerging Markets": 1.10,
-    "Intermediate Core Bond": 0.55,
-    "Intermediate Core-Plus Bond": 0.62,
-    "High Yield Bond": 0.75,
-    "Short-Term Bond": 0.45,
-    "Bank Loan": 0.80,
-    "Moderate Allocation": 0.72,
-    "Aggressive Allocation": 0.85,
-    "Conservative Allocation": 0.65,
-    "Real Estate": 0.90,
-    Technology: 1.05,
-    Health: 0.95,
+  // Peer group average expense ratios by asset class + focus
+  const peerAvgs: Record<string, number> = {
+    "EQ.BROAD": 0.82,
+    "EQ.TECH": 1.05,
+    "EQ.HEALTH": 0.95,
+    "FI.IG_BROAD": 0.58,
+    "FI.HY": 0.75,
+    "FI.BANK_LOAN": 0.80,
+    "FI.SHORT_IG": 0.45,
+    "MA.BALANCED": 0.72,
+    "RE.BROAD": 0.90,
   };
 
-  const catAvg = categoryAvgs[category] || 0.8;
+  const catAvg = peerAvgs[`${assetClass}.${focus}`] || 0.8;
   let feeLevel: FeeData["feeLevel"];
   const ratio = expenseRatio / catAvg;
   if (ratio < 0.5) feeLevel = "Low";
@@ -265,14 +283,13 @@ function generateFeeData(
         : 0,
     deferredLoad: 0,
     redemptionFee: 0,
-    categoryAvgExpenseRatio: catAvg,
+    peerAvgExpenseRatio: catAvg,
     feeLevel,
   };
 }
 
 function generateTradingActivity(
   score: number,
-  category: string,
   seed: number
 ): TradingActivity {
   const rng = createSeededRandom(seed + 900);
@@ -369,6 +386,8 @@ function generateTradingActivity(
     return { factor: fd.factor, exposure, label: fd.labels[labelIdx] };
   });
 
+  const numberOfIndependentDecisions = Math.round(rng.nextRange(30, 300));
+
   return {
     battingAverage,
     avgWinSize,
@@ -382,21 +401,24 @@ function generateTradingActivity(
     recentTrades,
     avgHoldingPeriodMonths,
     factorTilts,
+    numberOfIndependentDecisions,
   };
 }
 
 let _allFunds: FundDetail[] | null = null;
 
 function buildFundDetail(def: FundDef): FundDetail {
-  const benchmark = getBenchmark(def.assetClass, def.category);
-  const monthlyReturns = generateMonthlyReturns(def.category, def.seed);
+  const pg = peerGroup(def);
+  const profileKey = returnProfileKey(def);
+  const benchmark = getBenchmark(def.assetClass, pg);
+  const monthlyReturns = generateMonthlyReturns(profileKey, def.seed);
   const benchmarkReturns = generateBenchmarkReturns(benchmark);
   const passiveAltReturns = generateMonthlyReturns(
-    def.category,
+    profileKey,
     def.seed + 100
   );
   const categoryAvgReturns = generateMonthlyReturns(
-    def.category,
+    profileKey,
     def.seed + 200
   );
   const trailingReturns = computeTrailingReturns(monthlyReturns);
@@ -408,50 +430,76 @@ function buildFundDetail(def: FundDef): FundDetail {
     categoryAvgReturns
   );
 
-  const holdingsData = generateHoldings(def.category, def.seed);
-  const riskData = generateRiskData(def.category, def.seed);
-  const feeData = generateFeeData(def.expenseRatio, def.category, def.seed);
+  const holdingsData = generateHoldings(def.assetClass, def.seed);
+  const riskData = generateRiskData(def.assetClass, def.seed);
+  const feeData = generateFeeData(def.expenseRatio, def.assetClass, def.focus, def.seed);
   const tradingData = generateTradingActivity(
     def.fundScore,
-    def.category,
     def.seed
   );
-  const scoreDrivers = generateScoreDrivers(def.fundScore, def.seed);
+  const scoreDrivers = generateScoreDrivers(def.fundScore, def.seed, tradingData, feeData);
   const scoreTrend = generateScoreTrend(def.fundScore, def.seed);
+
+  const attributionData = generateAttribution(
+    def.assetClass,
+    def.expenseRatio,
+    riskData.beta.threeYear,
+    holdingsData.holdings,
+    holdingsData.sectorWeights,
+    holdingsData.benchmarkSectorWeights || [],
+    def.seed + 1100
+  );
+  const factorRiskData = generateFactorRiskProfile(
+    def.assetClass,
+    riskData.beta.threeYear,
+    def.seed + 1200
+  );
+  const characteristicsData = generateCharacteristics(
+    def.assetClass,
+    def.fundScore,
+    def.seed + 1300
+  );
+  const skillAssessmentData = generateSkillAssessment(
+    tradingData.battingAverage,
+    tradingData.avgWinSize,
+    tradingData.avgLossSize,
+    tradingData.numberOfIndependentDecisions,
+    riskData.informationRatio,
+    def.assetClass,
+    def.seed + 1400
+  );
+  const adminData = generateAdminDetails(def.name, def.seed + 1500);
 
   const rng = createSeededRandom(def.seed + 300);
 
   const objectives: Record<string, string> = {
-    "US Equity":
-      "The fund seeks long-term capital appreciation by investing primarily in common stocks of U.S. companies.",
-    "International Equity":
-      "The fund seeks long-term capital growth by investing in equity securities of companies located outside the United States.",
-    "Fixed Income":
-      "The fund seeks to maximize total return, consistent with preservation of capital and prudent investment management.",
-    Allocation:
-      "The fund seeks to provide long-term capital appreciation and current income through a diversified portfolio of equity and fixed-income securities.",
-    Specialty:
-      "The fund seeks to provide long-term capital appreciation by investing in companies within its target sector.",
+    EQ: "The fund seeks long-term capital appreciation by investing primarily in common stocks.",
+    FI: "The fund seeks to maximize total return, consistent with preservation of capital and prudent investment management.",
+    MU: "The fund seeks to maximize total return through a diversified portfolio of fixed-income securities across multiple sectors.",
+    MA: "The fund seeks to provide long-term capital appreciation and current income through a diversified portfolio of equity and fixed-income securities.",
+    RE: "The fund seeks to provide long-term capital appreciation by investing in real estate investment trusts and related securities.",
+    ALT: "The fund seeks to provide long-term capital appreciation through alternative investment strategies.",
+    OT: "The fund seeks to provide long-term capital appreciation by investing in companies within its target sector.",
   };
 
   const strategies: Record<string, string> = {
-    "US Equity":
-      "The fund invests primarily in common stocks. The fund manager uses fundamental analysis to identify companies with strong competitive positions, experienced management, and attractive valuations relative to their intrinsic value.",
-    "International Equity":
-      "The fund invests in a diversified portfolio of stocks of companies domiciled outside the U.S. The manager employs a bottom-up, value-oriented approach to identify undervalued opportunities across developed and emerging markets.",
-    "Fixed Income":
-      "The fund invests in a diversified portfolio of fixed-income instruments. The manager actively manages duration, sector allocation, and security selection to generate alpha relative to the benchmark.",
-    Allocation:
-      "The fund uses a flexible allocation approach, shifting between equity and fixed-income securities based on the manager's assessment of relative value, economic outlook, and market conditions.",
-    Specialty:
-      "The fund concentrates its investments in its target sector, using deep industry expertise and fundamental research to identify the most promising opportunities.",
+    EQ: "The fund invests primarily in common stocks. The fund manager uses fundamental analysis to identify companies with strong competitive positions, experienced management, and attractive valuations relative to their intrinsic value.",
+    FI: "The fund invests in a diversified portfolio of fixed-income instruments. The manager actively manages duration, sector allocation, and security selection to generate alpha relative to the benchmark.",
+    MU: "The fund invests across multiple fixed-income sectors including investment grade, high yield, and securitized debt. The manager dynamically allocates across sectors to optimize risk-adjusted returns.",
+    MA: "The fund uses a flexible allocation approach, shifting between equity and fixed-income securities based on the manager's assessment of relative value, economic outlook, and market conditions.",
+    RE: "The fund invests in a diversified portfolio of real estate securities, using deep industry expertise and fundamental research to identify the most promising opportunities.",
+    ALT: "The fund employs alternative investment strategies to generate returns with low correlation to traditional asset classes.",
+    OT: "The fund concentrates its investments in its target sector, using deep industry expertise and fundamental research to identify the most promising opportunities.",
   };
 
   const fundWithoutNote = {
     ticker: def.ticker,
     name: def.name,
-    category: def.category,
     assetClass: def.assetClass,
+    geography: def.geography,
+    focus: def.focus,
+    size: def.size,
+    peerGroup: pg,
     fundScore: def.fundScore,
     scoreLabel: scoreLabel(def.fundScore),
     passiveAltTicker: def.passiveAltTicker,
@@ -470,9 +518,9 @@ function buildFundDetail(def: FundDef): FundDetail {
     manager: def.manager,
     managerStartYear: def.managerStartYear,
     investmentObjective:
-      objectives[def.assetClass] || objectives["US Equity"],
+      objectives[def.assetClass] || objectives["EQ"],
     investmentStrategy:
-      strategies[def.assetClass] || strategies["US Equity"],
+      strategies[def.assetClass] || strategies["EQ"],
     benchmark,
     minInvestment: rng.pick([1000, 2500, 3000, 5000, 10000]),
     score: {
@@ -501,10 +549,15 @@ function buildFundDetail(def: FundDef): FundDetail {
     risk: riskData,
     fees: feeData,
     trading: tradingData,
-    categoryAvgOneYearReturn: Number(categoryAvgTrailing.oneYear.toFixed(2)),
-    categoryAvgThreeYearReturn: Number(categoryAvgTrailing.threeYear.toFixed(2)),
-    categoryAumRank: rng.nextInt(1, Math.max(2, Math.round(def.aum / 500))),
-    categoryFundCount: rng.nextInt(80, 350),
+    attribution: attributionData,
+    factorRisk: factorRiskData,
+    characteristics: characteristicsData,
+    skillAssessment: skillAssessmentData,
+    admin: adminData,
+    peerAvgOneYearReturn: Number(categoryAvgTrailing.oneYear.toFixed(2)),
+    peerAvgThreeYearReturn: Number(categoryAvgTrailing.threeYear.toFixed(2)),
+    peerAumRank: rng.nextInt(1, Math.max(2, Math.round(def.aum / 500))),
+    peerFundCount: rng.nextInt(80, 350),
   };
 
   return {
@@ -524,8 +577,11 @@ export function getFundSummaries(): FundSummary[] {
   return getAllFunds().map((f) => ({
     ticker: f.ticker,
     name: f.name,
-    category: f.category,
     assetClass: f.assetClass,
+    geography: f.geography,
+    focus: f.focus,
+    size: f.size,
+    peerGroup: f.peerGroup,
     fundScore: f.fundScore,
     scoreLabel: f.scoreLabel,
     passiveAltTicker: f.passiveAltTicker,

@@ -151,17 +151,17 @@ export function ModelPageContent({ data }: ModelPageContentProps) {
         </div>
       </section>
 
-      {/* Accuracy by category */}
+      {/* Accuracy by peer group */}
       <section>
         <h2 className="text-2xl font-bold text-gray-900 mb-4">
-          Accuracy by Category
+          Accuracy by Peer Group
         </h2>
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50/50">
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
-                  Category
+                  Peer Group
                 </th>
                 <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">
                   Accuracy
@@ -172,10 +172,10 @@ export function ModelPageContent({ data }: ModelPageContentProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {data.categoryAccuracy.map((cat) => (
-                <tr key={cat.category}>
+              {data.peerGroupAccuracy.map((cat) => (
+                <tr key={cat.peerGroup}>
                   <td className="px-4 py-3 font-medium text-gray-900">
-                    {cat.category}
+                    {cat.peerGroup}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <span

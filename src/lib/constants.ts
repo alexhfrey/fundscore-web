@@ -28,35 +28,46 @@ export const SCORE_THRESHOLDS = {
   underperform: 25,
 } as const;
 
-export const ASSET_CLASSES = [
-  "US Equity",
-  "International Equity",
-  "Fixed Income",
-  "Allocation",
-  "Specialty",
+export const ASSET_CLASS_CODES = [
+  "EQ",
+  "FI",
+  "MU",
+  "MA",
+  "ALT",
+  "RE",
+  "OT",
 ] as const;
 
-export const CATEGORIES = [
-  "Large Growth",
-  "Large Blend",
-  "Large Value",
-  "Mid-Cap Growth",
-  "Mid-Cap Blend",
-  "Small Blend",
-  "Foreign Large Blend",
-  "Diversified Emerging Markets",
-  "Intermediate Core Bond",
-  "Intermediate Core-Plus Bond",
-  "High Yield Bond",
-  "Short-Term Bond",
-  "Bank Loan",
-  "Moderate Allocation",
-  "Aggressive Allocation",
-  "Conservative Allocation",
-  "Real Estate",
-  "Technology",
-  "Health",
-] as const;
+export const ASSET_CLASS_LABELS: Record<string, string> = {
+  EQ: "Equity",
+  FI: "Fixed Income",
+  MU: "Multi-Sector FI",
+  MA: "Multi-Asset",
+  ALT: "Alternatives",
+  RE: "Real Estate",
+  OT: "Other",
+};
+
+export const GEOGRAPHY_LABELS: Record<string, string> = {
+  US: "US",
+  INTL: "International",
+  EM: "Emerging Markets",
+  GLOBAL: "Global",
+  BROAD: "Broad",
+};
+
+export const FOCUS_LABELS: Record<string, string> = {
+  BROAD: "Broad Market",
+  TECH: "Technology",
+  HEALTH: "Healthcare",
+  IG_BROAD: "Investment Grade",
+  HY: "High Yield",
+  BANK_LOAN: "Bank Loan",
+  SHORT_IG: "Short-Term IG",
+  BALANCED: "Balanced",
+  AGGRESSIVE: "Aggressive",
+  CONSERVATIVE: "Conservative",
+};
 
 export const TIME_RANGES = ["1Y", "3Y", "5Y", "10Y", "Max"] as const;
 export type TimeRange = (typeof TIME_RANGES)[number];

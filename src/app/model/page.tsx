@@ -7,8 +7,8 @@ export const metadata = {
     "How FundScore works: methodology, historical accuracy, and backtest performance. See how our predictions hold up against real results.",
 };
 
-export default function ModelPage() {
-  const modelData = getModelStats();
+export default async function ModelPage() {
+  const modelData = await getModelStats();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
