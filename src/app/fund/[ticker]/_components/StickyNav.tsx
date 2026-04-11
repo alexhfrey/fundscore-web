@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
+import { ScoreRing } from "@/components/ui/ScoreRing";
 
 interface Section {
   id: string;
@@ -9,9 +10,11 @@ interface Section {
 
 interface StickyNavProps {
   sections: Section[];
+  fundScore?: number;
+  ticker?: string;
 }
 
-export function StickyNav({ sections }: StickyNavProps) {
+export function StickyNav({ sections, fundScore, ticker }: StickyNavProps) {
   const [activeId, setActiveId] = useState(sections[0]?.id ?? "");
   const navRef = useRef<HTMLDivElement>(null);
   const isClickScrolling = useRef(false);
@@ -68,6 +71,12 @@ export function StickyNav({ sections }: StickyNavProps) {
           ref={navRef}
           className="flex gap-1 overflow-x-auto scrollbar-hide py-2 -mx-1"
         >
+          {fundScore != null && ticker && (
+            <div className="flex items-center gap-1.5 pr-3 mr-2 border-r border-gray-200 flex-shrink-0">
+              <ScoreRing score={fundScore} size={32} strokeWidth={3} showLabel={false} textVariant="mini" />
+              <span className="text-xs font-semibold text-gray-700">{ticker}</span>
+            </div>
+          )}
           {sections.map((s) => (
             <button
               key={s.id}

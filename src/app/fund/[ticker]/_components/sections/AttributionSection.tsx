@@ -166,8 +166,10 @@ export function AttributionSection({ fund }: AttributionSectionProps) {
     <div className="space-y-8">
       {/* Plain-English summary */}
       {topContributor && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-          <p className="text-sm text-gray-700">
+        <div className="flex items-start gap-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+          <div className="w-1 self-stretch bg-blue-500 rounded-full flex-shrink-0" />
+          <p className="text-sm text-gray-800 leading-relaxed">
+            <span className="font-semibold">Key finding:</span>{" "}
             Over the past 3 years, this fund&apos;s {topContributor.label} added the most value (
             <span className="font-semibold text-green-700">{formatBps(topContributor.value)}</span>
             ), while fees dragged performance by{" "}

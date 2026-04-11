@@ -25,7 +25,7 @@ function ScaleIcon({ className }: { className?: string }) {
   );
 }
 
-function extractBottomLine(paragraphs: string[]): string | null {
+export function extractBottomLine(paragraphs: string[]): string | null {
   if (paragraphs.length === 0) return null;
   const last = paragraphs[paragraphs.length - 1];
   // Look for "Bottom line:" prefix (case-insensitive)

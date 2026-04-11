@@ -3,6 +3,7 @@
 import { FundDetail } from "@/lib/types";
 import { Badge } from "@/components/ui/Badge";
 import { formatExpenseRatio } from "@/lib/utils/format";
+import { computeTrailingReturns } from "@/lib/utils/calculations";
 import { ActiveShareBreakdown } from "@/components/fund/ActiveShareBreakdown";
 import { PassiveRecipe } from "@/components/fund/PassiveRecipe";
 
@@ -23,8 +24,55 @@ export function FeesSection({ fund }: FeesSectionProps) {
     ? fund.fees.expenseRatio / fund.trading.activeShare
     : fund.fees.expenseRatio;
 
+  const passiveExpenseApprox = fund.expenseRatio < 0.15 ? 0.03 : 0.04;
+  const feeGap = (fund.expenseRatio - passiveExpenseApprox) * 100;
+
+  const passiveReturns = computeTrailingReturns(fund.performance.passiveAltMonthlyReturns);
+  const fund3Y = fund.performance.trailingReturns.threeYear;
+  const passive3Y = passiveReturns.threeYear;
+  const netReturnDiff = fund3Y != null && passive3Y != null ? fund3Y - passive3Y : null;
+  const grossSkill = netReturnDiff != null ? netReturnDiff + feeGap : null;
+
   return (
     <div className="space-y-8">
+      {/* Can It Earn Its Fees? — relocated from hero */}
+      {grossSkill != null && (
+        <div className="bg-white border border-gray-200 rounded-lg p-5">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-500 mb-4">
+            Can This Manager Earn Their Fees?
+          </h3>
+          <div className="max-w-md space-y-2 text-sm">
+            <div className="flex justify-between items-baseline">
+              <span className="text-gray-600">Manager&apos;s gross edge</span>
+              <span className={`font-bold tabular-nums ${grossSkill >= 0 ? "text-green-700" : "text-red-700"}`}>
+                {grossSkill >= 0 ? "+" : ""}{grossSkill.toFixed(2)}%/yr
+              </span>
+            </div>
+            <div className="flex justify-between items-baseline">
+              <span className="text-gray-600">Extra fees vs {fund.passiveAltTicker}</span>
+              <span className="font-bold tabular-nums text-red-700">
+                &minus;{feeGap.toFixed(2)}%/yr
+              </span>
+            </div>
+            <div className="border-t border-gray-300 my-1" />
+            <div className="flex justify-between items-baseline">
+              <span className="font-semibold text-gray-900">Net expected edge</span>
+              <span className={`font-black text-base tabular-nums ${
+                netReturnDiff != null && netReturnDiff >= 0 ? "text-green-700" : "text-red-700"
+              }`}>
+                {netReturnDiff != null ? `${netReturnDiff >= 0 ? "+" : ""}${netReturnDiff.toFixed(2)}%/yr` : "\u2014"}
+              </span>
+            </div>
+          </div>
+          <p className="text-[11px] text-gray-400 mt-3">
+            Based on 3-year annualized returns
+          </p>
+        </div>
+      )}
+
+      {/* Active Share Breakdown */}
+      <ActiveShareBreakdown fund={fund} />
+
       {/* Fee overview */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
@@ -82,13 +130,15 @@ export function FeesSection({ fund }: FeesSectionProps) {
         </div>
       </div>
 
-      {/* Active Share Breakdown */}
-      <ActiveShareBreakdown fund={fund} />
-
-      {/* Fee breakdown */}
-      <div>
-        <h3 className="text-base font-semibold text-gray-900 mb-4">Fee Breakdown</h3>
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      {/* Fee breakdown — collapsed */}
+      <details className="group">
+        <summary className="cursor-pointer text-sm font-medium text-gray-600 hover:text-gray-900 py-2 flex items-center gap-2">
+          <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+          Fee Breakdown
+        </summary>
+        <div className="mt-2 bg-white border border-gray-200 rounded-lg overflow-hidden">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50/50">
@@ -118,12 +168,17 @@ export function FeesSection({ fund }: FeesSectionProps) {
             </tbody>
           </table>
         </div>
-      </div>
+      </details>
 
-      {/* Sales charges */}
-      <div>
-        <h3 className="text-base font-semibold text-gray-900 mb-4">Sales Charges</h3>
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      {/* Sales charges — collapsed */}
+      <details className="group">
+        <summary className="cursor-pointer text-sm font-medium text-gray-600 hover:text-gray-900 py-2 flex items-center gap-2">
+          <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+          Sales Charges
+        </summary>
+        <div className="mt-2 bg-white border border-gray-200 rounded-lg overflow-hidden">
           <table className="min-w-full text-sm">
             <tbody className="divide-y divide-gray-100">
               <tr>
@@ -147,7 +202,7 @@ export function FeesSection({ fund }: FeesSectionProps) {
             </tbody>
           </table>
         </div>
-      </div>
+      </details>
 
       {/* Passive Clone Recipe */}
       <PassiveRecipe fund={fund} />
