@@ -2,7 +2,7 @@
 
 import { FundDetail } from "@/lib/types";
 import { FactorSensitivityChart } from "@/components/charts/FactorSensitivityChart";
-import { HistoricalScenarioTable } from "@/components/charts/HistoricalScenarioTable";
+
 import { RiskDecompositionChart } from "@/components/charts/RiskDecompositionChart";
 import { DurationRiskChart } from "@/components/charts/DurationRiskChart";
 import { getFundType } from "@/lib/utils/fundTypeHelpers";
@@ -84,20 +84,7 @@ export function RisksSection({ fund }: RisksSectionProps) {
         </p>
       </div>
 
-      {/* 2. Historical Stress Scenarios (promoted) */}
-      {factorRisk.historicalScenarios.length > 0 && (
-        <div>
-          <h3 className="text-base font-semibold text-gray-900 mb-2">
-            How This Fund Handled Past Crises
-          </h3>
-          <p className="text-sm text-gray-500 mb-4">
-            Fund performance during major market events, compared to the passive alternative.
-          </p>
-          <HistoricalScenarioTable scenarios={factorRisk.historicalScenarios} />
-        </div>
-      )}
-
-      {/* 3. Up vs Down Markets (simplified capture ratios) */}
+      {/* 2. Up vs Down Markets (simplified capture ratios) */}
       <div className="bg-white border border-gray-200 rounded-lg p-5">
         <h3 className="text-base font-semibold text-gray-900 mb-3">
           Up Markets vs Down Markets

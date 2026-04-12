@@ -12,10 +12,12 @@ import {
   SkillSection,
   FeesSection,
   AdminSection,
+  StressTestSection,
 } from "./sections";
 
 const NAV_SECTIONS = [
   { id: "analyst-take", label: "Analyst Take" },
+  { id: "stress-test", label: "Stress Test" },
   { id: "risks", label: "Risk Profile" },
   { id: "track-record", label: "Track Record" },
   { id: "skill", label: "Skill or Luck?" },
@@ -38,6 +40,18 @@ export function FundScrollPage({ fund }: FundScrollPageProps) {
         <ScrollSection id="analyst-take" title="Analyst Take">
           <AnalystNoteSection fund={fund} />
         </ScrollSection>
+
+        {fund.factorRisk.historicalScenarios.length > 0 && (
+          <ScrollSection
+            id="stress-test"
+            title="Stress Test: When It Mattered Most"
+            description={`How ${fund.ticker} performed vs ${fund.passiveAltTicker} during historic market crises`}
+            tier="evidence"
+            badge="FundScore Exclusive"
+          >
+            <StressTestSection fund={fund} />
+          </ScrollSection>
+        )}
 
         <ScrollSection
           id="risks"

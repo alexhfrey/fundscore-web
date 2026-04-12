@@ -34,6 +34,12 @@ export function Header() {
               >
                 Compare
               </Link>
+              <Link
+                href="/xray"
+                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                X-Ray
+              </Link>
             </nav>
           </div>
           <div className="flex items-center gap-4">

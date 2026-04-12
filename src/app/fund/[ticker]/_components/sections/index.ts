@@ -7,3 +7,4 @@ export { RisksSection } from "./RisksSection";
 export { SkillSection } from "./SkillSection";
 export { FeesSection } from "./FeesSection";
 export { AdminSection } from "./AdminSection";
+export { StressTestSection } from "./StressTestSection";
