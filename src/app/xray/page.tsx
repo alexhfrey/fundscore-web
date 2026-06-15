@@ -1,16 +1,10 @@
-import { Suspense } from "react";
-import { getFundSummaries } from "@/lib/data";
-import { XRayPageContent } from "./_components/XRayPageContent";
-
 export const metadata = {
-  title: "Portfolio X-Ray \u2014 FundScore.ai",
+  title: "Portfolio X-Ray — FundScore.ai",
   description:
     "See what you actually own, what you're actually paying, and whether it's worth it.",
 };
 
-export default async function XRayPage() {
-  const allFunds = await getFundSummaries();
-
+export default function XRayPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
@@ -20,13 +14,14 @@ export default async function XRayPage() {
           whether it&apos;s worth it.
         </p>
       </div>
-      <Suspense
-        fallback={
-          <div className="text-center py-12 text-gray-400">Loading...</div>
-        }
-      >
-        <XRayPageContent allFunds={allFunds} />
-      </Suspense>
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
+        <p className="text-sm font-medium text-amber-800">
+          Portfolio X-Ray — wiring in progress
+        </p>
+        <p className="text-sm text-amber-700 mt-1">
+          This tool is being rebuilt against live data.
+        </p>
+      </div>
     </div>
   );
 }

@@ -11,25 +11,29 @@ interface FundTableProps {
   funds: FundSummary[];
 }
 
-export function FundTable({ funds }: FundTableProps) {
-  const router = useRouter();
-  const { items, sortConfig, requestSort } = useSortableData(funds, {
-    key: "fundScore",
-    direction: "desc",
-  });
+type SortConfig = ReturnType<
+  typeof useSortableData<FundSummary>
+>["sortConfig"];
 
-  const SortHeader = ({
-    label,
-    sortKey,
-    className = "",
-  }: {
-    label: string;
-    sortKey: string;
-    className?: string;
-  }) => (
+interface SortHeaderProps {
+  label: string;
+  sortKey: string;
+  className?: string;
+  sortConfig: SortConfig;
+  onSort: (key: string) => void;
+}
+
+function SortHeader({
+  label,
+  sortKey,
+  className = "",
+  sortConfig,
+  onSort,
+}: SortHeaderProps) {
+  return (
     <th
       className={`px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none hover:text-gray-700 ${className}`}
-      onClick={() => requestSort(sortKey)}
+      onClick={() => onSort(sortKey)}
     >
       <div className="flex items-center gap-1">
         {label}
@@ -41,6 +45,14 @@ export function FundTable({ funds }: FundTableProps) {
       </div>
     </th>
   );
+}
+
+export function FundTable({ funds }: FundTableProps) {
+  const router = useRouter();
+  const { items, sortConfig, requestSort } = useSortableData(funds, {
+    key: "fundScore",
+    direction: "desc",
+  });
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -48,14 +60,59 @@ export function FundTable({ funds }: FundTableProps) {
         <table className="min-w-full">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50/50">
-              <SortHeader label="Fund" sortKey="name" />
-              <SortHeader label="Peer Group" sortKey="peerGroup" />
-              <SortHeader label="FundScore" sortKey="fundScore" />
-              <SortHeader label="YTD" sortKey="ytdReturn" className="text-right" />
-              <SortHeader label="1Y" sortKey="oneYearReturn" className="text-right" />
-              <SortHeader label="3Y" sortKey="threeYearReturn" className="text-right" />
-              <SortHeader label="Expense" sortKey="expenseRatio" className="text-right" />
-              <SortHeader label="AUM" sortKey="aum" className="text-right" />
+              <SortHeader
+                label="Fund"
+                sortKey="name"
+                sortConfig={sortConfig}
+                onSort={requestSort}
+              />
+              <SortHeader
+                label="Peer Group"
+                sortKey="peerGroup"
+                sortConfig={sortConfig}
+                onSort={requestSort}
+              />
+              <SortHeader
+                label="FundScore"
+                sortKey="fundScore"
+                sortConfig={sortConfig}
+                onSort={requestSort}
+              />
+              <SortHeader
+                label="YTD"
+                sortKey="ytdReturn"
+                className="text-right"
+                sortConfig={sortConfig}
+                onSort={requestSort}
+              />
+              <SortHeader
+                label="1Y"
+                sortKey="oneYearReturn"
+                className="text-right"
+                sortConfig={sortConfig}
+                onSort={requestSort}
+              />
+              <SortHeader
+                label="3Y"
+                sortKey="threeYearReturn"
+                className="text-right"
+                sortConfig={sortConfig}
+                onSort={requestSort}
+              />
+              <SortHeader
+                label="Expense"
+                sortKey="expenseRatio"
+                className="text-right"
+                sortConfig={sortConfig}
+                onSort={requestSort}
+              />
+              <SortHeader
+                label="AUM"
+                sortKey="aum"
+                className="text-right"
+                sortConfig={sortConfig}
+                onSort={requestSort}
+              />
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -70,7 +127,7 @@ export function FundTable({ funds }: FundTableProps) {
                 <tr
                   key={fund.ticker}
                   className="cursor-pointer hover:bg-blue-50/30 transition-colors"
-                  onClick={() => router.push(`/fund/${fund.ticker}`)}
+                  onClick={() => router.push(`/funds/${fund.ticker}`)}
                 >
                   <td className="px-4 py-3">
                     <div>
