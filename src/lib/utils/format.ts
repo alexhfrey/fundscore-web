@@ -48,5 +48,7 @@ export function formatExpenseRatio(value: number): string {
 }
 
 export function formatBps(value: number): string {
-  return `${value > 0 ? "+" : ""}${value.toFixed(0)} bps`;
+  const sign = value > 0 ? "+" : "";
+  const pct = (value / 100).toFixed(2);
+  return `${sign}${pct}% (${Math.abs(Math.round(value))} bps)`;
 }

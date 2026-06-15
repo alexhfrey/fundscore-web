@@ -1,8 +1,8 @@
 import { getFundSummaries } from "@/lib/data";
 import { FundScreener } from "@/components/fund/FundScreener";
 
-export default function Home() {
-  const funds = getFundSummaries();
+export default async function Home() {
+  const funds = await getFundSummaries();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

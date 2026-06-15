@@ -26,7 +26,7 @@ export function FundScreener({ funds }: FundScreenerProps) {
       <SearchInput
         value={query}
         onChange={setQuery}
-        placeholder="Search by fund name, ticker, or category..."
+        placeholder="Search by fund name, ticker, or peer group..."
         className="max-w-xl"
       />
       <FilterPanel

@@ -2,7 +2,7 @@ import { FundSummary } from "../types";
 
 export interface FundFilters {
   assetClass?: string;
-  category?: string;
+  peerGroup?: string;
   scoreMin?: number;
   scoreMax?: number;
   expenseRatioMax?: number;
@@ -21,7 +21,7 @@ export function searchFundsList(
       (f) =>
         f.name.toLowerCase().includes(q) ||
         f.ticker.toLowerCase().includes(q) ||
-        f.category.toLowerCase().includes(q)
+        f.peerGroup.toLowerCase().includes(q)
     );
   }
 
@@ -29,8 +29,8 @@ export function searchFundsList(
     if (filters.assetClass) {
       results = results.filter((f) => f.assetClass === filters.assetClass);
     }
-    if (filters.category) {
-      results = results.filter((f) => f.category === filters.category);
+    if (filters.peerGroup) {
+      results = results.filter((f) => f.peerGroup === filters.peerGroup);
     }
     if (filters.scoreMin !== undefined) {
       results = results.filter((f) => f.fundScore >= filters.scoreMin!);

@@ -9,7 +9,14 @@ interface ScoreRingProps {
   className?: string;
   showLabel?: boolean;
   label?: string;
+  textVariant?: "default" | "hero" | "mini";
 }
+
+const TEXT_CLASSES = {
+  default: "text-3xl font-bold",
+  hero: "text-5xl font-black",
+  mini: "text-sm font-bold",
+};
 
 export function ScoreRing({
   score,
@@ -18,6 +25,7 @@ export function ScoreRing({
   className = "",
   showLabel = true,
   label,
+  textVariant = "default",
 }: ScoreRingProps) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -52,9 +60,9 @@ export function ScoreRing({
       <div
         className="absolute inset-0 flex flex-col items-center justify-center"
       >
-        <span className="text-3xl font-bold text-gray-900">{score}</span>
+        <span className={`${TEXT_CLASSES[textVariant]} text-gray-900`}>{score}</span>
         {showLabel && (
-          <span className="text-xs text-gray-500 mt-0.5">
+          <span className={`${textVariant === "mini" ? "text-[8px]" : "text-xs"} text-gray-500 mt-0.5`}>
             {label || "FundScore"}
           </span>
         )}

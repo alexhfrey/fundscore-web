@@ -35,18 +35,10 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/model"
+                  href="/xray"
                   className="text-sm text-gray-500 hover:text-gray-900"
                 >
-                  Model Details
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/compare"
-                  className="text-sm text-gray-500 hover:text-gray-900"
-                >
-                  Compare Funds
+                  Portfolio X-Ray
                 </Link>
               </li>
             </ul>

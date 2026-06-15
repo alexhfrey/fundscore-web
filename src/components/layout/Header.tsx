@@ -23,16 +23,10 @@ export function Header() {
                 Screener
               </Link>
               <Link
-                href="/model"
+                href="/xray"
                 className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
               >
-                Model
-              </Link>
-              <Link
-                href="/compare"
-                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Compare
+                X-Ray
               </Link>
             </nav>
           </div>
