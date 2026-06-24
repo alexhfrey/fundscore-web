@@ -66,7 +66,10 @@ export function Footer() {
               .
             </p>
             <p className="text-xs text-gray-400 mt-4">
-              Data shown is synthetic for demonstration purposes.
+              For informational purposes only — not investment advice and not a
+              recommendation to buy or sell any fund. Data is derived from SEC
+              filings and reference sources; holdings are filed with a lag. This
+              is a pre-launch preview.
             </p>
           </div>
         </div>
