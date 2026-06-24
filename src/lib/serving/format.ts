@@ -419,3 +419,187 @@ export function betProfilePeerAnchor(
 function num(v: number | null | undefined): number | null {
   return typeof v === "number" && isFinite(v) ? v : null;
 }
+
+// ============================================================================
+// Story-section takeaway builders (page IA: one consistent "**Label** —
+// punchline with the number" line opening each story section).
+// ----------------------------------------------------------------------------
+// Each builder composes its line DETERMINISTICALLY from already-served fact
+// fields and returns null when the inputs aren't present, so the takeaway line
+// collapses rather than printing a guess. No fabrication: every number in the
+// returned string traces to a field passed in.
+// ============================================================================
+
+interface XrayDiffRow {
+  exposure_type?: string;
+  exposure_name?: string;
+  difference?: number | null;
+  fund_exposure?: number | null;
+  exposure_id?: string;
+  holdings_baseline?: string | null;
+}
+
+/**
+ * Section "What's it betting on?" takeaway: the single biggest active exposure
+ * difference vs the passive alternative, plus the top-10 concentration when
+ * present. Reads the same exposure_xray rows the section renders.
+ */
+export function buildBetsTakeaway(
+  rows: XrayDiffRow[] | null | undefined,
+): string | null {
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+
+  const diffs = rows.filter(
+    (r) =>
+      (r.exposure_type === "sector" ||
+        r.exposure_type === "theme" ||
+        r.exposure_type === "stock") &&
+      num(r.difference) != null,
+  );
+  if (diffs.length === 0) return null;
+  const top = diffs.reduce((a, b) =>
+    Math.abs(num(b.difference) ?? 0) > Math.abs(num(a.difference) ?? 0) ? b : a,
+  );
+  const pp = (num(top.difference) as number) * 100;
+  const dir = pp >= 0 ? "overweight" : "underweight";
+  const lead = `biggest active bet is ${dir} ${top.exposure_name} (${fmtPP(pp)} vs the index)`;
+
+  // Absolute top-10 weight concentration row, when present.
+  const top10 = rows.find(
+    (r) =>
+      r.exposure_type === "concentration" &&
+      r.exposure_id === "concentration::top10_weight" &&
+      r.holdings_baseline === "absolute" &&
+      num(r.fund_exposure) != null,
+  );
+  const concClause =
+    top10 != null
+      ? `; top-10 holdings are ${fmtPct(num(top10.fund_exposure), 0)} of the portfolio`
+      : "";
+
+  return `${lead}${concClause}.`;
+}
+
+interface ReturnPeriodsLite {
+  one_year?: number | null;
+  three_year?: number | null;
+  five_year?: number | null;
+  ten_year?: number | null;
+}
+
+/**
+ * Section "How have the bets done?" takeaway: the fund's own realized return
+ * over the longest available horizon (annualized for 3Y+). Fund-only by design
+ * — the served per-period passive figures are on a different window, so we do
+ * NOT pair a mismatched passive number here.
+ */
+export function buildResultTakeaway(
+  rp: ReturnPeriodsLite | null | undefined,
+  isPassive: boolean,
+): string | null {
+  if (!rp) return null;
+  const horizons: { key: keyof ReturnPeriodsLite; label: string; ann: boolean }[] =
+    [
+      { key: "ten_year", label: "10 years", ann: true },
+      { key: "five_year", label: "5 years", ann: true },
+      { key: "three_year", label: "3 years", ann: true },
+      { key: "one_year", label: "the past year", ann: false },
+    ];
+  const pick = horizons.find((h) => num(rp[h.key]) != null);
+  if (!pick) return null;
+  const v = num(rp[pick.key]) as number;
+  const subject = isPassive ? "the index has returned" : "the fund has returned";
+  const rate = `${fmtPct(v)}${pick.ann ? " a year" : ""}`;
+  return `over ${pick.label}, ${subject} ${rate}.`;
+}
+
+interface SkillLite {
+  label?: string | null;
+  p_skill?: number | null;
+  alpha_ir?: number | null;
+}
+interface AttrRowLite {
+  period?: string;
+  dimension?: string;
+  member_label?: string;
+  rank_direction?: string;
+  contribution_to_active_return_bps?: number | null;
+}
+
+/**
+ * Section "Is the manager good at stock-picking — or did the bets carry it?"
+ * takeaway. Combines, but keeps DISTINCT: (a) the returns-based skill read and
+ * (b) the bet-by-bet attribution (top help / top drag). The two are never
+ * summed — they are reported as separate clauses. For a passive fund there is
+ * no stock-picking read, so this returns null and the caller shows bet-character
+ * only.
+ */
+export function buildVerdictTakeaway(
+  skill: SkillLite | null | undefined,
+  attrRows: AttrRowLite[] | null | undefined,
+  isPassive: boolean,
+): string | null {
+  if (isPassive) return null;
+
+  const clauses: string[] = [];
+
+  // (a) Skill read — historical evidence, never a prediction.
+  if (skill && skill.label) {
+    const band = skillBandLabel(skill.label).toLowerCase();
+    const p = num(skill.p_skill);
+    clauses.push(
+      p != null
+        ? `the stock-picking shows ${band} (P(skill) ${fmtPct(p, 0)})`
+        : `the stock-picking shows ${band}`,
+    );
+  }
+
+  // (b) Attribution — top help and top drag from the same period/dimension,
+  // shown as separate items (never summed with the skill read or each other).
+  if (Array.isArray(attrRows) && attrRows.length > 0) {
+    const period =
+      ["3Y", "5Y", "1Y"].find((p) =>
+        attrRows.some(
+          (r) => r.period === p && r.dimension === "stock" && num(r.contribution_to_active_return_bps) != null,
+        ),
+      ) ?? attrRows.find((r) => num(r.contribution_to_active_return_bps) != null)?.period;
+    if (period) {
+      const dim = attrRows.some(
+        (r) => r.period === period && r.dimension === "stock",
+      )
+        ? "stock"
+        : "sector";
+      const scoped = attrRows.filter(
+        (r) => r.period === period && r.dimension === dim && num(r.contribution_to_active_return_bps) != null,
+      );
+      const help = scoped
+        .filter((r) => (num(r.contribution_to_active_return_bps) ?? 0) > 0)
+        .sort(
+          (a, b) =>
+            (num(b.contribution_to_active_return_bps) ?? 0) -
+            (num(a.contribution_to_active_return_bps) ?? 0),
+        )[0];
+      const drag = scoped
+        .filter((r) => (num(r.contribution_to_active_return_bps) ?? 0) < 0)
+        .sort(
+          (a, b) =>
+            (num(a.contribution_to_active_return_bps) ?? 0) -
+            (num(b.contribution_to_active_return_bps) ?? 0),
+        )[0];
+      const parts: string[] = [];
+      if (help)
+        parts.push(
+          `biggest help ${help.member_label} ${fmtSignedBps(num(help.contribution_to_active_return_bps))}`,
+        );
+      if (drag)
+        parts.push(
+          `biggest drag ${drag.member_label} ${fmtSignedBps(num(drag.contribution_to_active_return_bps))}`,
+        );
+      if (parts.length > 0)
+        clauses.push(`over ${period} vs the index, ${parts.join(", ")}`);
+    }
+  }
+
+  if (clauses.length === 0) return null;
+  return `${clauses.join("; ")}.`;
+}

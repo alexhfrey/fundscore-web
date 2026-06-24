@@ -8,6 +8,7 @@ export { RiskAttribution } from "./RiskAttribution";
 export { Alternatives } from "./Alternatives";
 export { SelectionEvidence } from "./SelectionEvidence";
 export { SourceFooter } from "./SourceFooter";
+export { Performance } from "./Performance";
 export {
   Section,
   Card,
@@ -18,4 +19,5 @@ export {
   UnlockLine,
   Evidence,
   Chip,
+  SectionTakeaway,
 } from "./primitives";

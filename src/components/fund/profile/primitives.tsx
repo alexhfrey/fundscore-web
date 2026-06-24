@@ -179,6 +179,31 @@ export function Evidence({
   );
 }
 
+/**
+ * A single consistent-format takeaway line that opens a story section:
+ * a bold **Label** then an em-dash and the plain punchline with the number.
+ * The same shape is reused across the story sections (bets / result / verdict)
+ * so the page reads with one rhythm. Renders nothing when `text` is null — the
+ * caller derives `text` deterministically from served facts (never fabricated),
+ * and a missing input collapses the line rather than printing a guess.
+ */
+export function SectionTakeaway({
+  label,
+  text,
+}: {
+  label: string;
+  text: string | null;
+}) {
+  if (!text) return null;
+  return (
+    <p className="mb-3 text-[15px] leading-relaxed text-gray-800">
+      <span className="font-semibold text-gray-900">{label}</span>
+      <span className="text-gray-400"> — </span>
+      {text}
+    </p>
+  );
+}
+
 /** A pill/chip. */
 export function Chip({
   className = "",
