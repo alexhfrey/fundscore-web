@@ -37,6 +37,32 @@ export function isLocked(v: unknown): v is Locked {
   return typeof v === "object" && v !== null && "locked" in v;
 }
 
+// --- Inline data-freshness: a typed reader over the already-served, public
+// `source_inventory.source_stamps`. status ∈ {"available", "stale", "missing"}.
+// A "missing" stamp always carries a null as_of_date, so consumers must treat
+// "missing" exactly like an absent stamp (suppress the as-of affordance, fall
+// back to base copy). Only "stale" prints a carried/older-than affordance.
+export type StampStatus = "available" | "stale" | "missing";
+export interface SourceStamp {
+  source_domain: string;
+  as_of_date: string | null;
+  status: StampStatus | null;
+}
+
+/**
+ * Read the source stamp for a domain from the served (public) source inventory.
+ * Returns null when the inventory or the domain's stamp is absent. The
+ * `source_inventory` section is public, so no gating concern.
+ */
+export function stampByDomain(
+  src: { source_stamps?: SourceStamp[] } | null | undefined,
+  domain: string,
+): SourceStamp | null {
+  const stamps = src?.source_stamps;
+  if (!Array.isArray(stamps)) return null;
+  return stamps.find((s) => s?.source_domain === domain) ?? null;
+}
+
 // --- shapes of the sections we actually render (others stay opaque) ---
 export interface Identity {
   ticker: string | null;

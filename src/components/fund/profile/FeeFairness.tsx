@@ -8,10 +8,12 @@ import {
   fmtBps,
   fmtSignedBps,
   fmtDollars,
+  fmtDate,
   fairnessChip,
   feeDollars,
   EM_DASH,
 } from "@/lib/serving/format";
+import type { SourceStamp } from "@/lib/serving/profile";
 
 interface FairFee {
   gap_bps: number | null;
@@ -39,9 +41,11 @@ interface Fees {
 export function FeeFairness({
   fees,
   isPassive,
+  expenseStamp,
 }: {
   fees: Fees | null;
   isPassive: boolean;
+  expenseStamp?: SourceStamp | null;
 }) {
   if (!fees || fees.net_expense_ratio_bps == null) {
     return (
@@ -149,8 +153,20 @@ export function FeeFairness({
       </Card>
 
       <AsOf>
-        Expense data: SEC MFRR / prospectus filings. Passive fee: matched ETF
-        blend. {ff?.method_version ? `Method ${ff.method_version}.` : ""}
+        Expense data: SEC MFRR / prospectus filings
+        {/* Guard on the as-of date, not stamp presence: a `missing` stamp carries
+            a null date (e.g. CHNTX), so we fall back to the base copy with no
+            "as of —" literal and no stale note. */}
+        {expenseStamp?.as_of_date != null ? (
+          <>
+            , as of {fmtDate(expenseStamp.as_of_date)}
+            {expenseStamp.status === "stale" ? (
+              <span className="text-gray-400"> (carried — awaiting newer filing)</span>
+            ) : null}
+          </>
+        ) : null}
+        . Passive fee: matched ETF blend.{" "}
+        {ff?.method_version ? `Method ${ff.method_version}.` : ""}
         {ff?.eval_date ? ` Evaluated ${ff.eval_date}.` : ""}
       </AsOf>
     </Section>

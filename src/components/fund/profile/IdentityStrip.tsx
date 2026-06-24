@@ -9,10 +9,12 @@ export function IdentityStrip({
   identity,
   requestedTicker,
   holdingsAsOf,
+  holdingsStale,
 }: {
   identity: Identity;
   requestedTicker: string;
   holdingsAsOf: string | null;
+  holdingsStale?: boolean;
 }) {
   const tags = [
     identity.fund_family,
@@ -51,9 +53,17 @@ export function IdentityStrip({
         <Stat
           label="Holdings"
           value={identity.holdings_count != null ? `${identity.holdings_count}` : EM_DASH}
-          sub={holdingsAsOf ? `as of ${fmtDate(holdingsAsOf)}` : undefined}
+          sub={
+            holdingsAsOf
+              ? `as of ${fmtDate(holdingsAsOf)}${holdingsStale ? " · stale" : ""}`
+              : undefined
+          }
         />
-        <Stat label="Inception" value={fmtDate(identity.inception_date)} />
+        <Stat
+          label="Share-class inception"
+          value={fmtDate(identity.inception_date)}
+          sub={identity.inception_date ? "earliest share class" : undefined}
+        />
       </div>
 
       {(identity.objective_text || identity.strategy_text) && (

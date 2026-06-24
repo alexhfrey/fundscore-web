@@ -163,9 +163,11 @@ function SkillAndMoves({
               )}
             </div>
             <p className="mt-2 text-xs leading-relaxed text-gray-500">
-              The evidence, from the fund&apos;s own track record
-              {se.t_years != null ? ` (${se.t_years.toFixed(1)} years)` : ""}, that
-              returns exceeded what its passive exposures explain — after fees.
+              The evidence, over the
+              {se.t_years != null ? ` ${se.t_years.toFixed(1)} years` : ""} of return
+              history we can measure, that returns exceeded what its passive
+              exposures explain — after fees. This is the measurable data window,
+              not the fund&apos;s age.
             </p>
             <Evidence summary="diagnostics">
               <ul className="space-y-0.5">

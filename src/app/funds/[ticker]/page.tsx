@@ -3,11 +3,13 @@ import {
   applyGates,
   getFundFactRow,
   isLocked,
+  stampByDomain,
   type Identity,
   type PassiveBaseline,
   type ValueOfferingReframed,
   type TheTake,
   type RiskAttribution as RiskAttributionData,
+  type SourceStamp,
   type Locked,
 } from "@/lib/serving/profile";
 import { resolveSession } from "@/lib/serving/session";
@@ -82,6 +84,15 @@ export default async function FundPage({ params }: FundPageProps) {
     last_profile_build_time: string;
   };
 
+  // Inline data-freshness: read the already-served, public per-domain stamps so a
+  // stale figure is never read as current. `source_inventory` is public, so this
+  // adds no gated field. A `missing` stamp carries a null as_of_date and is
+  // treated exactly like an absent one by each consumer.
+  const inv = row.sourceInventory as unknown as { source_stamps?: SourceStamp[] };
+  const expenseStamp = stampByDomain(inv, "expense");
+  const holdingsStamp = stampByDomain(inv, "holdings");
+  const holdingsStale = holdingsStamp?.status === "stale";
+
   return (
     <div className="bg-gray-50">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
@@ -90,6 +101,7 @@ export default async function FundPage({ params }: FundPageProps) {
           identity={identity}
           requestedTicker={ticker}
           holdingsAsOf={holdingsAsOf}
+          holdingsStale={holdingsStale}
         />
 
         {/* 2. Value Offering hero (reframed badge) — leads the page */}
@@ -108,8 +120,14 @@ export default async function FundPage({ params }: FundPageProps) {
           <InvestorFit vr={vrUnlocked} />
 
           {/* 4. Fee Fairness + True Active Fee */}
-          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          <FeeFairness fees={isLocked(row.fees) ? null : (row.fees as any)} isPassive={isPassive} />
+          <FeeFairness
+            fees={
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              isLocked(row.fees) ? null : (row.fees as any)
+            }
+            isPassive={isPassive}
+            expenseStamp={expenseStamp}
+          />
 
           {/* 5. Exposure X-Ray */}
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
