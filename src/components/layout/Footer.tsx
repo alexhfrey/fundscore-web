@@ -16,8 +16,8 @@ export function Footer() {
               </span>
             </div>
             <p className="text-sm text-gray-500 max-w-xs">
-              Forward-looking fund ratings that predict which active funds will
-              beat their passive alternatives.
+              See what you actually get for a fund&apos;s fee versus its closest
+              passive alternative.
             </p>
           </div>
           <div>
@@ -41,13 +41,29 @@ export function Footer() {
                   Portfolio X-Ray
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/methodology"
+                  className="text-sm text-gray-500 hover:text-gray-900"
+                >
+                  Methodology
+                </Link>
+              </li>
             </ul>
           </div>
           <div>
             <h3 className="text-sm font-semibold text-gray-900 mb-3">About</h3>
             <p className="text-sm text-gray-500">
-              FundScore uses SEC N-PORT filings and proprietary models to
-              generate forward-looking predictions of active fund performance.
+              FundScore uses SEC N-PORT filings and reference data to show what a
+              fund holds, what it charges, and how it compares with its passive
+              alternative.{" "}
+              <Link
+                href="/methodology"
+                className="text-gray-600 underline hover:text-gray-900"
+              >
+                See our methodology
+              </Link>
+              .
             </p>
             <p className="text-xs text-gray-400 mt-4">
               Data shown is synthetic for demonstration purposes.

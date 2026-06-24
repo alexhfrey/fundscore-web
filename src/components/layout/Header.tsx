@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AuthNav } from "./AuthNav";
 
 export function Header() {
   return (
@@ -28,12 +29,19 @@ export function Header() {
               >
                 X-Ray
               </Link>
+              <Link
+                href="/methodology"
+                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Methodology
+              </Link>
             </nav>
           </div>
           <div className="flex items-center gap-4">
             <span className="hidden sm:inline text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
               Beta
             </span>
+            <AuthNav />
           </div>
         </div>
       </div>

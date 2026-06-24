@@ -10,9 +10,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "FundScore.ai — Forward-Looking Fund Ratings",
+  title: "FundScore.ai — What you actually get for a fund's fee",
   description:
-    "Most active funds underperform. FundScore tells you which ones won't. Forward-looking, predictive fund ratings powered by data science.",
+    "See what you actually get for a fund's fee versus its closest passive alternative: holdings, fees, exposures, and skill evidence from SEC filings.",
 };
 
 export default function RootLayout({
