@@ -29,12 +29,29 @@ const GATE_RANK: Record<string, number> = {
 
 export interface Locked {
   locked: string; // tier required to view
+  // When set, a small, explicitly-whitelisted proof-point subset of the gated
+  // section is exposed for free while the full breakdown stays locked. The
+  // object is STILL locked (it carries a `locked` key), so existing isLocked()
+  // checks keep treating it as locked — components read getPreview() to render
+  // the single proof point + an unlock affordance.
+  preview?: unknown;
 }
 
 export type Section<T> = T | Locked | null;
 
 export function isLocked(v: unknown): v is Locked {
   return typeof v === "object" && v !== null && "locked" in v;
+}
+
+/**
+ * Read the whitelisted preview subset off a locked section, if present.
+ * Returns null when the value isn't locked or carries no preview. The preview
+ * is the only gated-section data a below-the-gate user ever holds; the full
+ * breakdown is never serialized to that client.
+ */
+export function getPreview(v: unknown): unknown | null {
+  if (!isLocked(v)) return null;
+  return v.preview ?? null;
 }
 
 // --- Inline data-freshness: a typed reader over the already-served, public
@@ -302,6 +319,268 @@ const GATED_SECTIONS: { col: string; gate: string }[] = [
   { col: "takeaways", gate: "takeaways" },
 ];
 
+// ============================================================================
+// Preview projectors — the free proof point per gated section.
+// ----------------------------------------------------------------------------
+// When a section is gated above the user's tier, instead of nuking the whole
+// section to `{ locked }` we surface ONE concrete, already-computed proof point
+// for free and gate the rest. Each projector copies ONLY the named, whitelisted
+// proof-point fields into the preview — it NEVER spreads the full section, so
+// the full row arrays / detail tables never reach a below-the-gate client.
+// A projector returns null when its section has no proof-point-eligible row, so
+// the component falls back to the honest LockedNotice / Unavailable state.
+// ============================================================================
+
+export interface ExposurePreview {
+  kind: "exposure";
+  exposure_name: string;
+  exposure_type: string;
+  difference: number;
+  holdings_as_of: string | null;
+}
+export interface DivergencePreview {
+  kind: "divergence";
+  exposure_name: string;
+  total_exposure_holdings: number | null;
+  beta_active_mkt: number | null;
+  divergence_state: string;
+  holdings_as_of: string | null;
+  factor_eval_date: string | null;
+}
+export interface ThemeBetaPreview {
+  kind: "theme_beta";
+  exposure_name: string;
+  beta_active_mkt: number;
+  beta_active_tstat: number | null;
+  factor_eval_date: string | null;
+}
+export interface SkillPreview {
+  kind: "skill";
+  label: string | null;
+  p_skill: number | null;
+  alpha_ir: number | null;
+  t_years: number | null;
+}
+export interface DetractorPreview {
+  kind: "detractor";
+  member_label: string;
+  period: string;
+  contribution_to_active_return_bps: number;
+  period_start_date: string | null;
+  period_end_date: string | null;
+}
+export interface ShiftPreview {
+  kind: "shift";
+  change_name: string;
+  change_type: string;
+  change_direction: string;
+  change_magnitude: number | null;
+  value_unit: string | null;
+  holdings_as_of_current: string | null;
+  holdings_as_of_prior: string | null;
+}
+export interface AlternativePreview {
+  kind: "alternative";
+  ticker: string;
+  name: string | null;
+  alternative_type: string;
+  expense_ratio_bps: number | null;
+  annual_dollar_savings_10k: number | null;
+  wrapper_alternative: string | null;
+}
+
+export type Preview =
+  | ExposurePreview
+  | DivergencePreview
+  | ThemeBetaPreview
+  | SkillPreview
+  | DetractorPreview
+  | ShiftPreview
+  | AlternativePreview;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyObj = Record<string, any>;
+function num(v: unknown): number | null {
+  return typeof v === "number" && isFinite(v) ? v : null;
+}
+
+/** Top |difference| sector/theme row (skip concentration pseudo-rows). */
+function pickTopExposureDiff(s: AnyObj): ExposurePreview | null {
+  const rows: AnyObj[] = Array.isArray(s?.rows) ? s.rows : [];
+  const cands = rows.filter(
+    (r) =>
+      (r?.exposure_type === "sector" || r?.exposure_type === "theme") &&
+      num(r?.difference) != null,
+  );
+  if (cands.length === 0) return null;
+  const top = cands.reduce((a, b) =>
+    Math.abs(num(b.difference) ?? 0) > Math.abs(num(a.difference) ?? 0) ? b : a,
+  );
+  return {
+    kind: "exposure",
+    exposure_name: String(top.exposure_name ?? ""),
+    exposure_type: String(top.exposure_type ?? ""),
+    difference: num(top.difference) as number,
+    holdings_as_of:
+      (top.holdings_as_of as string | null) ??
+      (s.fund_holdings_date as string | null) ??
+      null,
+  };
+}
+
+/** Divergence headline (top sorted row), else top theme active beta. */
+function pickDivergenceHeadline(
+  s: AnyObj,
+): DivergencePreview | ThemeBetaPreview | null {
+  const div = s?.exposure_divergence;
+  const drows: AnyObj[] = Array.isArray(div?.rows) ? div.rows : [];
+  if (drows.length > 0) {
+    const r = drows[0]; // assembler sorts headline states to the front
+    return {
+      kind: "divergence",
+      exposure_name: String(r.exposure_name ?? ""),
+      total_exposure_holdings: num(r.total_exposure_holdings),
+      beta_active_mkt: num(r.beta_active_mkt),
+      divergence_state: String(r.divergence_state ?? "minimal"),
+      holdings_as_of:
+        (r.holdings_as_of as string | null) ??
+        (div?.holdings_as_of as string | null) ??
+        null,
+      factor_eval_date:
+        (r.factor_eval_date as string | null) ??
+        (div?.factor_eval_date as string | null) ??
+        null,
+    };
+  }
+  const themes: AnyObj[] = Array.isArray(s?.factor_betas?.themes)
+    ? s.factor_betas.themes
+    : [];
+  const cands = themes.filter((t) => num(t?.beta_active_mkt) != null);
+  if (cands.length === 0) return null;
+  const top = cands.reduce((a, b) =>
+    Math.abs(num(b.beta_active_mkt) ?? 0) > Math.abs(num(a.beta_active_mkt) ?? 0) ? b : a,
+  );
+  return {
+    kind: "theme_beta",
+    exposure_name: themeLabelFor(String(top.target_id ?? "")),
+    beta_active_mkt: num(top.beta_active_mkt) as number,
+    beta_active_tstat: num(top.beta_active_tstat),
+    factor_eval_date: (s?.factor_betas?.eval_date as string | null) ?? null,
+  };
+}
+
+/** theme::ai_infrastructure → "Ai Infrastructure" (label-only, no exposure_name carried). */
+function themeLabelFor(targetId: string): string {
+  return targetId
+    .replace(/^theme::/, "")
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+/** Returns-based skill proof point from skill_evidence. */
+function pickSkillProofPoint(s: AnyObj): SkillPreview | null {
+  const se = s?.skill_evidence;
+  if (!se || typeof se !== "object" || se.label == null) return null;
+  return {
+    kind: "skill",
+    label: (se.label as string | null) ?? null,
+    p_skill: num(se.p_skill),
+    alpha_ir: num(se.alpha_ir),
+    t_years: num(se.t_years),
+  };
+}
+
+/** Top 3Y stock detractor (else best available period), vs passive. */
+function pickTopDetractor(s: AnyObj): DetractorPreview | null {
+  const rows: AnyObj[] = Array.isArray(s?.rows) ? s.rows : [];
+  const negatives = rows.filter(
+    (r) => r?.rank_direction === "negative" && num(r?.contribution_to_active_return_bps) != null,
+  );
+  if (negatives.length === 0) return null;
+  const period =
+    ["3Y", "5Y", "1Y"].find((p) =>
+      negatives.some((r) => r.period === p && r.dimension === "stock"),
+    ) ?? negatives[0].period;
+  const dim = negatives.some((r) => r.period === period && r.dimension === "stock")
+    ? "stock"
+    : "sector";
+  const scoped = negatives.filter((r) => r.period === period && r.dimension === dim);
+  if (scoped.length === 0) return null;
+  const top = scoped.reduce((a, b) =>
+    (num(b.contribution_to_active_return_bps) ?? 0) <
+    (num(a.contribution_to_active_return_bps) ?? 0)
+      ? b
+      : a,
+  );
+  return {
+    kind: "detractor",
+    member_label: String(top.member_label ?? ""),
+    period: String(top.period ?? period),
+    contribution_to_active_return_bps: num(top.contribution_to_active_return_bps) as number,
+    period_start_date: (top.period_start_date as string | null) ?? null,
+    period_end_date: (top.period_end_date as string | null) ?? null,
+  };
+}
+
+/** Top surfaced_rank positioning shift. */
+function pickTopShift(s: AnyObj): ShiftPreview | null {
+  const rows: AnyObj[] = Array.isArray(s?.rows) ? s.rows : [];
+  if (rows.length === 0) return null;
+  const top = [...rows].sort(
+    (a, b) => (a.surfaced_rank ?? 9e9) - (b.surfaced_rank ?? 9e9),
+  )[0];
+  return {
+    kind: "shift",
+    change_name: String(top.change_name ?? ""),
+    change_type: String(top.change_type ?? ""),
+    change_direction: String(top.change_direction ?? ""),
+    change_magnitude: num(top.change_magnitude),
+    value_unit: (top.value_unit as string | null) ?? null,
+    holdings_as_of_current: (top.holdings_as_of_current as string | null) ?? null,
+    holdings_as_of_prior: (top.holdings_as_of_prior as string | null) ?? null,
+  };
+}
+
+/** Cheapest TRUE substitute: cheaper_share_class first, then cross_wrapper.
+ *  Never the global-cheapest row (that is often a passive same_category index,
+ *  a misleading proof point for an active fund). */
+function pickCheapestSubstitute(s: AnyObj): AlternativePreview | null {
+  const rows: AnyObj[] = Array.isArray(s?.rows) ? s.rows : [];
+  for (const type of ["cheaper_share_class", "cross_wrapper"]) {
+    const cands = rows
+      .filter((r) => r?.alternative_type === type)
+      .sort(
+        (a, b) =>
+          (num(a.expense_ratio_bps) ?? Number.POSITIVE_INFINITY) -
+          (num(b.expense_ratio_bps) ?? Number.POSITIVE_INFINITY),
+      );
+    if (cands.length > 0) {
+      const r = cands[0];
+      return {
+        kind: "alternative",
+        ticker: String(r.ticker ?? ""),
+        name: (r.name as string | null) ?? null,
+        alternative_type: String(r.alternative_type ?? type),
+        expense_ratio_bps: num(r.expense_ratio_bps),
+        annual_dollar_savings_10k: num(r.annual_dollar_savings_10k),
+        wrapper_alternative: (r.wrapper_alternative as string | null) ?? null,
+      };
+    }
+  }
+  return null;
+}
+
+// section col -> (fullSection) => previewObject (null if no proof point available)
+const PREVIEW_PROJECTORS: Record<string, (s: AnyObj) => Preview | null> = {
+  exposureXray: pickTopExposureDiff,
+  riskAttribution: pickDivergenceHeadline,
+  managerParent: pickSkillProofPoint,
+  returnAttribution: pickTopDetractor,
+  positioningChanges: pickTopShift,
+  alternatives: pickCheapestSubstitute,
+};
+
 /** Read the fact row for a ticker. Gating is applied separately. */
 export async function getFundFactRow(ticker: string): Promise<FactRow | null> {
   const [row] = await db
@@ -326,7 +605,15 @@ export function applyGates(row: FactRow, userState: UserState): FactRow {
   for (const { col, gate: gateKey } of GATED_SECTIONS) {
     const gate = row.gates?.[gateKey] ?? "public";
     if (rank < (GATE_RANK[gate] ?? 0) && o[col] != null) {
-      o[col] = { locked: gate };
+      // Surface ONE whitelisted proof point per gated section (free), gate the
+      // rest. The projector copies only named fields — the full breakdown never
+      // ships below the gate. Sections without a projector keep the hard lock.
+      const projector = PREVIEW_PROJECTORS[col];
+      if (projector) {
+        o[col] = { preview: projector(o[col] as AnyObj) ?? null, locked: gate };
+      } else {
+        o[col] = { locked: gate };
+      }
     }
   }
 

@@ -21,6 +21,8 @@ import {
   Unavailable,
   AsOf,
   LockedNotice,
+  ProofPoint,
+  UnlockLine,
   Evidence,
 } from "./primitives";
 import {
@@ -35,11 +37,14 @@ import {
 } from "@/lib/serving/format";
 import {
   isLocked,
+  getPreview,
   type Locked,
   type RiskAttribution as RiskAttributionData,
   type FactorBetaRow,
   type DivergenceRow,
   type FactorContributionRow,
+  type DivergencePreview,
+  type ThemeBetaPreview,
 } from "@/lib/serving/profile";
 
 // A theme's target_id (theme::ai_infrastructure) → human label, when no
@@ -61,16 +66,26 @@ export function RiskAttribution({
 }) {
   // Section-level lock (gate is 'free' → anon sees the upgrade affordance).
   if (isLocked(risk)) {
+    const pp = getPreview(risk) as DivergencePreview | ThemeBetaPreview | null;
     return (
       <Section
         id="risk-attribution"
         title="Risk & Attribution"
         methodologyAnchor="risk-attribution"
       >
-        <LockedNotice tier={risk.locked}>
-          See what actually drives this fund in return space — its active factor
-          and theme bets beyond a cheap index, and how those bets played out.
-        </LockedNotice>
+        {pp ? (
+          <>
+            <RiskProofPoint pp={pp} />
+            <UnlockLine tier={risk.locked}>
+              See all factor &amp; theme bets, and how they have played out.
+            </UnlockLine>
+          </>
+        ) : (
+          <LockedNotice tier={risk.locked}>
+            See what actually drives this fund in return space — its active factor
+            and theme bets beyond a cheap index, and how those bets played out.
+          </LockedNotice>
+        )}
       </Section>
     );
   }
@@ -105,6 +120,43 @@ export function RiskAttribution({
         <ActiveReturnAttribution attr={risk.active_return_attribution} isPassive={isPassive} />
       </div>
     </Section>
+  );
+}
+
+// The single free proof point for the gated outer section: either the
+// divergence headline ("hold X% but actively bet β Y") or, absent divergence,
+// the top theme active beta. NEUTRAL framing — describes the bet, no verdict.
+function RiskProofPoint({
+  pp,
+}: {
+  pp: DivergencePreview | ThemeBetaPreview;
+}) {
+  if (pp.kind === "divergence") {
+    const holdPct = fmtPct(pp.total_exposure_holdings, 0);
+    const beta = fmtBeta(pp.beta_active_mkt);
+    const read = divergenceStateLabel(pp.divergence_state);
+    return (
+      <ProofPoint
+        label="Biggest hold-vs-bet gap"
+        value={`${pp.exposure_name}: hold ${holdPct}, active β ${beta}`}
+        readout={`This fund holds ${holdPct} in ${pp.exposure_name} but runs a ${beta} active bet on it (market stripped) — ${read.toLowerCase()}. Holding a theme isn't the same as betting on it.`}
+        asOf={
+          pp.holdings_as_of || pp.factor_eval_date
+            ? `Holdings as of ${pp.holdings_as_of ?? EM_DASH}; return-based exposures through ${pp.factor_eval_date ?? EM_DASH}.`
+            : null
+        }
+      />
+    );
+  }
+  const beta = fmtBeta(pp.beta_active_mkt);
+  const dir = pp.beta_active_mkt > 0 ? "overweight" : "underweight";
+  return (
+    <ProofPoint
+      label="Biggest active theme bet"
+      value={`${pp.exposure_name}: active β ${beta}`}
+      readout={`Beyond the market, this fund runs a ${beta} (${dir}) active bet on ${pp.exposure_name} — its largest return-based theme bet.`}
+      asOf={pp.factor_eval_date ? `Return-based exposures through ${pp.factor_eval_date}.` : null}
+    />
   );
 }
 

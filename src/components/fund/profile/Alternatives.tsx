@@ -10,9 +10,16 @@ import {
   Unavailable,
   AsOf,
   LockedNotice,
+  ProofPoint,
+  UnlockLine,
 } from "./primitives";
 import { fmtBps, fmtDollars, fmtPct } from "@/lib/serving/format";
-import { isLocked, type Locked } from "@/lib/serving/profile";
+import {
+  isLocked,
+  getPreview,
+  type Locked,
+  type AlternativePreview,
+} from "@/lib/serving/profile";
 
 interface AltReason {
   reason_code: string;
@@ -50,12 +57,32 @@ const GROUPS: { type: string; label: string; blurb: string }[] = [
 
 export function Alternatives({ alts }: { alts: Alts | Locked | null }) {
   if (isLocked(alts)) {
+    const pp = getPreview(alts) as AlternativePreview | null;
     return (
       <Section id="alternatives" title="Alternatives to Inspect" methodologyAnchor="alternatives">
-        <LockedNotice tier={alts.locked}>
-          See cheaper share classes, ETF substitutes and comparable funds before
-          deciding anything yourself.
-        </LockedNotice>
+        {pp ? (
+          <>
+            <ProofPoint
+              label={
+                pp.alternative_type === "cheaper_share_class"
+                  ? "Cheaper share class of this fund"
+                  : "Cheaper way to hold this exposure"
+              }
+              value={`${pp.ticker} at ${fmtBps(pp.expense_ratio_bps)}`}
+              readout={`${pp.ticker}${pp.name ? ` (${pp.name})` : ""} covers similar ground at ${fmtBps(pp.expense_ratio_bps)}${pp.annual_dollar_savings_10k != null ? ` — saving ${fmtDollars(pp.annual_dollar_savings_10k)}/yr per $10K invested` : ""}. An option to inspect, not a recommendation.`}
+              tone="positive"
+            />
+            <UnlockLine tier={alts.locked}>
+              See all alternatives — cheaper share classes, ETF substitutes and
+              comparable funds.
+            </UnlockLine>
+          </>
+        ) : (
+          <LockedNotice tier={alts.locked}>
+            See cheaper share classes, ETF substitutes and comparable funds before
+            deciding anything yourself.
+          </LockedNotice>
+        )}
       </Section>
     );
   }

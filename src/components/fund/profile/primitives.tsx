@@ -94,6 +94,70 @@ export function LockedNotice({
   );
 }
 
+/**
+ * A single free proof point surfaced from an otherwise-gated section: a small
+ * label, the bold headline number, a one-line plain-language readout, and an
+ * optional as-of stamp. Confident Consumer: white card, calm surface — reads as
+ * evidence, not a paywall. Pair with <UnlockLine> for the single unlock path.
+ */
+export function ProofPoint({
+  label,
+  value,
+  readout,
+  asOf,
+  tone = "neutral",
+}: {
+  label: string;
+  value: React.ReactNode;
+  readout: string;
+  asOf?: string | null;
+  tone?: "neutral" | "positive" | "negative";
+}) {
+  const valueTone =
+    tone === "positive"
+      ? "text-emerald-700"
+      : tone === "negative"
+        ? "text-rose-700"
+        : "text-gray-900";
+  return (
+    <Card>
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+        {label}
+      </div>
+      <div className={`mt-1.5 text-2xl font-bold tabular-nums ${valueTone}`}>
+        {value}
+      </div>
+      <p className="mt-1 text-sm leading-relaxed text-gray-600">{readout}</p>
+      {asOf && <AsOf>{asOf}</AsOf>}
+    </Card>
+  );
+}
+
+/** A single quiet unlock affordance — one CTA line, not a lavender box. */
+export function UnlockLine({
+  tier,
+  children,
+}: {
+  tier: string;
+  children: React.ReactNode;
+}) {
+  const cta =
+    tier === "paid" || tier === "pro"
+      ? "Upgrade to view"
+      : "Create a free account";
+  return (
+    <p className="mt-2 text-sm text-gray-500">
+      {children}{" "}
+      <Link
+        href="/signin"
+        className="font-medium text-[#1466b8] underline hover:no-underline"
+      >
+        {cta} →
+      </Link>
+    </p>
+  );
+}
+
 /** Inline evidence/source affordance — a small expandable details drawer. */
 export function Evidence({
   summary,

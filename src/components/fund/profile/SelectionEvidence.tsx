@@ -9,6 +9,8 @@ import {
   Unavailable,
   AsOf,
   LockedNotice,
+  ProofPoint,
+  UnlockLine,
   Evidence,
 } from "./primitives";
 import {
@@ -20,7 +22,14 @@ import {
   managerMovesChip,
   EM_DASH,
 } from "@/lib/serving/format";
-import { isLocked, type Locked } from "@/lib/serving/profile";
+import {
+  isLocked,
+  getPreview,
+  type Locked,
+  type SkillPreview,
+  type DetractorPreview,
+  type ShiftPreview,
+} from "@/lib/serving/profile";
 
 interface ManagerMoves {
   label: string | null;
@@ -132,6 +141,22 @@ function SkillAndMoves({
   managerParent: ManagerParent | Locked | null;
 }) {
   if (isLocked(managerParent)) {
+    const pp = getPreview(managerParent) as SkillPreview | null;
+    if (pp && pp.label) {
+      return (
+        <>
+          <ProofPoint
+            label="Returns-based skill evidence"
+            value={`${skillBandLabel(pp.label)} · P(skill) ${fmtPct(pp.p_skill, 0)}`}
+            readout={`Over ${pp.t_years != null ? `${pp.t_years.toFixed(1)} years` : "the measurable window"} of return history, the information ratio is ${fmtNum(pp.alpha_ir)} — ${skillBandLabel(pp.label).toLowerCase()} of stock-picking skill after fees.`}
+            tone={(pp.alpha_ir ?? 0) > 0 ? "positive" : "negative"}
+          />
+          <UnlockLine tier={managerParent.locked}>
+            See the full skill read &amp; the Manager Moves trade analysis.
+          </UnlockLine>
+        </>
+      );
+    }
     return (
       <LockedNotice tier={managerParent.locked}>
         See the returns-based skill evidence and the Manager Moves read.
@@ -237,6 +262,27 @@ function SkillAndMoves({
 
 function ReturnAttributionTiles({ ra }: { ra: ReturnAttribution | Locked | null }) {
   if (isLocked(ra)) {
+    const pp = getPreview(ra) as DetractorPreview | null;
+    if (pp) {
+      return (
+        <>
+          <ProofPoint
+            label={`Top ${pp.period} detractor · vs passive`}
+            value={`${pp.member_label}: ${fmtSignedBps(pp.contribution_to_active_return_bps)}`}
+            readout={`${pp.member_label} was this fund's single biggest drag versus its passive alternative over ${pp.period}, costing ${fmtSignedBps(pp.contribution_to_active_return_bps)} of active return.`}
+            tone="negative"
+            asOf={
+              pp.period_start_date && pp.period_end_date
+                ? `Brinson allocation over ${pp.period_start_date} → ${pp.period_end_date}.`
+                : null
+            }
+          />
+          <UnlockLine tier={ra.locked}>
+            See all contributors &amp; detractors, by stock, sector and theme.
+          </UnlockLine>
+        </>
+      );
+    }
     return (
       <LockedNotice tier={ra.locked}>
         See which stocks, sectors and themes drove this fund&apos;s return versus
@@ -333,6 +379,33 @@ function ContribList({
 
 function PortfolioShifts({ pc }: { pc: PositioningChanges | Locked | null }) {
   if (isLocked(pc)) {
+    const pp = getPreview(pc) as ShiftPreview | null;
+    if (pp) {
+      const mag =
+        pp.change_magnitude != null
+          ? `${pp.change_magnitude > 0 ? "+" : "−"}${Math.abs(pp.change_magnitude).toFixed(1)} ${pp.value_unit ?? "pp"}`
+          : "";
+      return (
+        <>
+          <ProofPoint
+            label="Biggest recent portfolio shift"
+            value={`${pp.change_name}: ${pp.change_direction}${mag ? ` ${mag}` : ""}`}
+            readout={`Between its two most recent filings, this fund's largest move was ${pp.change_name} (${pp.change_type}) — ${pp.change_direction}${mag ? ` by ${mag}` : ""}.`}
+            tone={
+              pp.change_direction === "increased" || pp.change_direction === "entered"
+                ? "positive"
+                : "negative"
+            }
+            asOf={
+              pp.holdings_as_of_current && pp.holdings_as_of_prior
+                ? `Current holdings ${pp.holdings_as_of_current} vs prior filing ${pp.holdings_as_of_prior}.`
+                : null
+            }
+          />
+          <UnlockLine tier={pc.locked}>See all recent shifts.</UnlockLine>
+        </>
+      );
+    }
     return (
       <LockedNotice tier={pc.locked}>
         See how this fund&apos;s exposures moved between its two most recent

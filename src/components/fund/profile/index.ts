@@ -14,6 +14,8 @@ export {
   AsOf,
   Unavailable,
   LockedNotice,
+  ProofPoint,
+  UnlockLine,
   Evidence,
   Chip,
 } from "./primitives";

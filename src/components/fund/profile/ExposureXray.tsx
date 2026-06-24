@@ -9,9 +9,16 @@ import {
   Unavailable,
   AsOf,
   LockedNotice,
+  ProofPoint,
+  UnlockLine,
 } from "./primitives";
 import { fmtPct, fmtPP, exposureTypeLabel, EM_DASH } from "@/lib/serving/format";
-import { isLocked, type Locked } from "@/lib/serving/profile";
+import {
+  isLocked,
+  getPreview,
+  type Locked,
+  type ExposurePreview,
+} from "@/lib/serving/profile";
 
 interface XrayRow {
   row_id: string;
@@ -41,12 +48,29 @@ const TYPE_ORDER = ["theme", "sector", "country_region", "style", "stock", "conc
 
 export function ExposureXray({ xray }: { xray: Xray | Locked | null }) {
   if (isLocked(xray)) {
+    const pp = getPreview(xray) as ExposurePreview | null;
     return (
       <Section id="exposure-xray" title="Exposure X-Ray" methodologyAnchor="exposure-xray">
-        <LockedNotice tier={xray.locked}>
-          See exactly what this fund owns — by theme, sector, region, stock and
-          style — and how it differs from the passive alternative.
-        </LockedNotice>
+        {pp ? (
+          <>
+            <ProofPoint
+              label={`Biggest active difference · ${exposureTypeLabel(pp.exposure_type)}`}
+              value={`${pp.exposure_name}: ${fmtPP(pp.difference * 100)}`}
+              readout={`${pp.exposure_name} is ${fmtPP(pp.difference * 100)} vs this fund's passive alternative — its single largest active exposure difference.`}
+              tone={pp.difference >= 0 ? "positive" : "negative"}
+              asOf={pp.holdings_as_of ? `Holdings as of ${pp.holdings_as_of}.` : null}
+            />
+            <UnlockLine tier={xray.locked}>
+              See the full exposure breakdown — by theme, sector, region, stock and
+              style.
+            </UnlockLine>
+          </>
+        ) : (
+          <LockedNotice tier={xray.locked}>
+            See exactly what this fund owns — by theme, sector, region, stock and
+            style — and how it differs from the passive alternative.
+          </LockedNotice>
+        )}
       </Section>
     );
   }
