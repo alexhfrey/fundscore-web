@@ -188,6 +188,40 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     ],
   },
   {
+    anchor: "risk-attribution",
+    title: "Risk & Attribution",
+    tagline:
+      "What drives a fund in return space — its active factor and theme bets beyond a cheap index, how much of a theme it holds versus actively bets on, and how those bets played out.",
+    methodVersion: "factor_exp_v0.1 · exposure_divergence_v0.1 · exposure_path_v0.1",
+    asOf:
+      "Return-based exposures through 2026-04-24; holdings side as of the displayed filing date.",
+    measures: [
+      "The factor lens regresses a fund's returns on the market, the Fama-French style factors, and a library of curated theme baskets to estimate its exposures. The active β (market exposure stripped out) is the bet beyond the market; a near-zero active β on a theme means the fund holds it only as much as the market does.",
+      "The divergence headline juxtaposes two different measurements of the same exposure: how much of a theme the fund holds (% of assets) and how much of an active bet it runs on that theme (active β). These are never added together.",
+      "The bias / timing / idiosyncratic decomposition splits a fund's realised active return over the holdings path into the persistent tilt (bias), the part from carrying more of a factor in the quarters it paid (timing), and the residual left after the factor bets (idiosyncratic).",
+    ],
+    method: [
+      "Exposures come from trailing return regressions under three control models — raw, market-stripped (the active bet), and incremental-to-FF6. We lead with the market-stripped β for any active claim. The regression runs to a fresher date than the holdings because it needs only returns, not the filing-lagged portfolio; both as-of dates are shown.",
+      "The realised attribution multiplies each factor's average active tilt by the cumulative factor return over the path (bias) and adds the covariance of tilt and return (timing). Only the idiosyncratic residual is read as stock-selection evidence — and even then it is cross-referenced with the fund's skill evidence, never asserted alone.",
+    ],
+    sources: [
+      "Fund and factor daily returns (Fama-French factors, market, curated theme baskets)",
+      "SEC N-PORT holdings (for the divergence headline's holdings side)",
+      "The matched passive blend",
+    ],
+    notMeaning: [
+      "Bias and timing are the realised contribution of the fund's exposure path, NOT a claim that the manager can time factors — three research probes found no evidence of timing skill. Only the idiosyncratic residual reads as selection skill.",
+      "This returns-based factor attribution is a separate family from the holdings-based Return Attribution; the two answer the same question two ways and are never summed.",
+      "How much of a theme a fund holds is not the same as how much it actively bets on it — a large holding can be pure market exposure.",
+      "Exposures and realised attribution describe the past, not the future; we do not forecast factor or theme returns.",
+    ],
+    limitations: [
+      "Estimated for about 4,700 funds — those with enough usable return history and a matched passive blend; the rest are shown as unavailable rather than estimated.",
+      "Where a factor or theme β isn't statistically distinguishable from zero (|t| < 2), we say so rather than present it as a real bet.",
+      "The divergence holdings side inherits the 180-day holdings staleness and filing-lag limits; where the passive blend has no theme look-through we lean on the absolute weight and active β rather than a misleading self-overweight.",
+    ],
+  },
+  {
     anchor: "manager-moves",
     title: "Manager Moves",
     tagline:

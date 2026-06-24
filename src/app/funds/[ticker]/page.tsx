@@ -7,6 +7,7 @@ import {
   type PassiveBaseline,
   type ValueOfferingReframed,
   type TheTake,
+  type RiskAttribution as RiskAttributionData,
   type Locked,
 } from "@/lib/serving/profile";
 import { resolveSession } from "@/lib/serving/session";
@@ -17,6 +18,7 @@ import {
   InvestorFit,
   FeeFairness,
   ExposureXray,
+  RiskAttribution,
   Alternatives,
   SelectionEvidence,
   SourceFooter,
@@ -112,6 +114,12 @@ export default async function FundPage({ params }: FundPageProps) {
           {/* 5. Exposure X-Ray */}
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           <ExposureXray xray={section<any>(row.exposureXray)} />
+
+          {/* 5b. Risk & Attribution: returns-based factor lens (betas / divergence / bias-timing-idio) */}
+          <RiskAttribution
+            risk={section<RiskAttributionData>(row.riskAttribution)}
+            isPassive={isPassive}
+          />
 
           {/* 6. Selection Evidence: skill + Manager Moves + Attribution + Shifts */}
           <SelectionEvidence

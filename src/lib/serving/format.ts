@@ -53,6 +53,65 @@ export function fmtNum(n: number | null | undefined, digits = 2): string {
   return n.toFixed(digits);
 }
 
+/** Signed beta, e.g. "+0.37" / "−0.58" — used for active/raw factor betas. */
+export function fmtBeta(b: number | null | undefined, digits = 2): string {
+  if (b == null || !isFinite(b)) return EM_DASH;
+  const sign = b > 0 ? "+" : b < 0 ? "−" : "";
+  return `${sign}${Math.abs(b).toFixed(digits)}`;
+}
+
+// --- Risk & Attribution (spec #13) — divergence state → label + chip. ---
+// NEUTRAL framing: describes the bet, never a buy/sell verdict.
+export function divergenceStateLabel(state: string | null | undefined): string {
+  switch (state) {
+    case "active_bet":
+      return "Active bet";
+    case "exposure_no_active_bet":
+      return "Market exposure";
+    case "active_bet_low_holdings":
+      return "Active bet";
+    case "minimal":
+      return "Minimal";
+    default:
+      return EM_DASH;
+  }
+}
+
+export function divergenceStateChip(state: string | null | undefined): string {
+  switch (state) {
+    case "active_bet":
+    case "active_bet_low_holdings":
+      return "bg-sky-50 text-sky-800 border-sky-200";
+    case "exposure_no_active_bet":
+      return "bg-slate-50 text-slate-600 border-slate-200";
+    default:
+      return "bg-gray-50 text-gray-500 border-gray-200";
+  }
+}
+
+/** Curated theme/style target_id → human label fallback (exposure_name preferred). */
+export function styleTargetLabel(targetId: string): string {
+  const id = targetId.replace(/^style::/, "");
+  switch (id) {
+    case "SMB":
+      return "Size (small minus big)";
+    case "HML":
+      return "Value (high minus low)";
+    case "RMW":
+      return "Profitability";
+    case "CMA":
+      return "Investment (conservative)";
+    case "MOM":
+    case "WML":
+      return "Momentum";
+    case "MKT":
+    case "MKT-RF":
+      return "Market";
+    default:
+      return id;
+  }
+}
+
 /** Fee dollars per a notional, recomputable from the displayed bps. */
 export function feeDollars(bps: number | null | undefined, notional: number): number | null {
   if (bps == null || !isFinite(bps)) return null;

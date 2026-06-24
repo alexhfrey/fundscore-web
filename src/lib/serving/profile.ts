@@ -137,6 +137,90 @@ export interface TheTake {
   as_of_dates: { field_id: string; as_of_date: string | null }[] | null;
 }
 
+// --- risk_attribution (spec #13) — factor/theme betas + divergence + bias/timing/idio ---
+export interface FactorBetaRow {
+  target_id: string;
+  target_kind: string; // "theme" | "style"
+  beta_active_mkt: number | null; // the active bet (market stripped) — the lead
+  beta_active_tstat: number | null;
+  beta_raw: number | null; // context: total exposure
+  beta_raw_tstat: number | null;
+  beta_incremental_ff6: number | null;
+  r2_active: number | null;
+  confidence_state: string | null;
+}
+export interface DivergenceRow {
+  target_id: string;
+  exposure_name: string;
+  exposure_type: string;
+  total_exposure_holdings: number | null; // % of AUM held
+  beta_active_mkt: number | null; // the active bet
+  beta_total: number | null;
+  beta_incremental_ff6: number | null;
+  beta_active_tstat: number | null;
+  beta_active_r2: number | null;
+  divergence_state: string; // active_bet | exposure_no_active_bet | active_bet_low_holdings | minimal
+  is_active_bet: boolean | null;
+  active_overweight_holdings: number | null;
+  holdings_overweight_reliable: boolean | null;
+  holdings_baseline_ref: string | null;
+  confidence_state_holdings: string | null;
+  confidence_state_factor: string | null;
+  holdings_as_of: string | null;
+  factor_eval_date: string | null;
+}
+export interface FactorContributionRow {
+  factor_id: string;
+  factor_type: string; // theme | sector | macro
+  avg_active_beta: number | null;
+  bias_bps: number | null; // persistent tilt — path, NOT skill
+  timing_bps: number | null; // path contribution, NOT timing skill
+  total_contribution_bps: number | null;
+  n_quarters: number | null;
+  low_coverage_flag: boolean | null;
+  pricing_suspect_flag: boolean | null;
+}
+export interface RiskAttribution {
+  factor_betas: {
+    themes: FactorBetaRow[];
+    styles: FactorBetaRow[];
+    eval_date: string | null;
+    window_weeks: number | null;
+    target_version: string | null;
+    method_version: string | null;
+    active_beta_control_model: string | null;
+    incremental_beta_control_model: string | null;
+  } | null;
+  exposure_divergence: {
+    rows: DivergenceRow[];
+    holdings_as_of: string | null;
+    factor_eval_date: string | null;
+    eval_date: string | null;
+    method_version: string | null;
+    holdings_method_version: string | null;
+    factor_method_version: string | null;
+  } | null;
+  active_return_attribution:
+    | {
+        factor_contributions: FactorContributionRow[];
+        idio: {
+          idio_contribution_bps: number | null;
+          realised_active_bps: number | null;
+          reconciliation_gap_bps: number | null;
+          n_quarters: number | null;
+        } | null;
+        window_start: string | null;
+        window_end: string | null;
+        holdings_window: string | null;
+        basis_source: string | null;
+        method_version: string | null;
+        gate: string;
+      }
+    | Locked
+    | null;
+  copy_charter: Record<string, boolean>;
+}
+
 // NOTE: Drizzle returns columns by their camelCase TS property names
 // (valueOffering, passiveBaseline, …). The keys *inside* each JSONB section are
 // snake_case (built in Python). So column accessors are camelCase; nested-field
@@ -162,6 +246,7 @@ export interface FactRow {
   sourceInventory: Record<string, unknown>;
   exposureXray: Record<string, unknown> | null;
   returnAttribution: Record<string, unknown> | null;
+  riskAttribution: RiskAttribution | null;
   positioningChanges: Record<string, unknown> | null;
   alternatives: Record<string, unknown> | null;
   takeaways: unknown[] | null;
@@ -185,6 +270,7 @@ const GATED_SECTIONS: { col: string; gate: string }[] = [
   { col: "sourceInventory", gate: "source_inventory" },
   { col: "exposureXray", gate: "exposure_xray" },
   { col: "returnAttribution", gate: "return_attribution" },
+  { col: "riskAttribution", gate: "risk_attribution" },
   { col: "positioningChanges", gate: "positioning_changes" },
   { col: "alternatives", gate: "alternatives" },
   { col: "takeaways", gate: "takeaways" },
@@ -265,6 +351,22 @@ export function applyGates(row: FactRow, userState: UserState): FactRow {
             locked_fields: ["impact_bps_per_year", "impact_bps_se"],
           },
         },
+      };
+    }
+  }
+
+  // Field-level: the Risk & Attribution section is gated 'free' (the factor-beta
+  // + divergence sub-panels are returns-complement content), but its
+  // active_return_attribution sub-panel carries its own 'paid' gate in metadata
+  // (spec #13 § serving). Strip it to a {locked} marker below 'paid' so free/anon
+  // never hold the bias/timing/idio numbers but still see the upgrade affordance.
+  if (out.riskAttribution && !isLocked(out.riskAttribution)) {
+    const ra = out.riskAttribution as RiskAttribution;
+    const attr = ra.active_return_attribution;
+    if (attr != null && !isLocked(attr) && rank < TIER_RANK.paid) {
+      out.riskAttribution = {
+        ...ra,
+        active_return_attribution: { locked: "paid" },
       };
     }
   }
