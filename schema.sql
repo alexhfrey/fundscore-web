@@ -501,3 +501,153 @@ admin_details: {
   "website": "https://www.fidelity.com"
 }
 */
+
+-- ============================================================================
+-- SERVING LAYER (Track 1B) — Value Offering hot path
+-- ----------------------------------------------------------------------------
+-- These tables replace the legacy predictive-score mock above as the profile
+-- page's data source (the mock is retired in Track 1C once the UI is rebuilt).
+-- The Python loader (fund_score: scripts/pipeline/build_serving_facts.py) does
+-- a full-replace COPY into fund_profile_facts and mirrors the build manifest
+-- into serving_manifest. Source of truth: src/lib/db/schema/serving.ts.
+-- ============================================================================
+
+CREATE TYPE tier_label AS ENUM ('Strong', 'Mixed', 'Weak');
+CREATE TYPE value_offering_status AS ENUM ('available', 'limited', 'unavailable');
+CREATE TYPE data_completeness_state AS ENUM (
+  'full', 'basic_profile_only', 'missing_passive_match',
+  'missing_holdings', 'missing_expense', 'unsupported'
+);
+
+-- One row per series_id. Hot scalars + nested JSONB payload sections matching
+-- the FundProfilePayload contract (docs/product/data_contracts/fund_profile.md).
+-- Placeholder sections (exposure_xray/alternatives/takeaways) carry an explicit
+-- {placeholder:true,...} marker until their specs ship — never synthetic data.
+CREATE TABLE fund_profile_facts (
+  series_id               text PRIMARY KEY,
+  canonical_ticker        varchar(12),
+  profile_build_version   text NOT NULL,
+  fund_name               text,                          -- SEC free text; not length-capped
+  fund_family             text,
+  asset_class             asset_class_code,
+  peer_group              varchar(64),
+  management_style        varchar(24),
+  vehicle_type            varchar(32),
+  value_offering_score    integer,                       -- null when unavailable
+  value_offering_label    tier_label,                    -- null when unavailable
+  value_offering_status   value_offering_status NOT NULL,
+  confidence_state        value_offering_status NOT NULL,
+  fee_fairness_label      tier_label,                    -- null when fair_fee null
+  fee_gap_bps             real,
+  net_expense_ratio_bps   real,
+  data_completeness_state data_completeness_state NOT NULL,
+  identity                jsonb NOT NULL,
+  value_offering          jsonb,
+  fees                    jsonb,
+  passive_baseline        jsonb,
+  performance             jsonb,
+  risk_behavior           jsonb,
+  holdings                jsonb,
+  manager_parent          jsonb,
+  source_inventory        jsonb NOT NULL,
+  gates                   jsonb NOT NULL,
+  exposure_xray           jsonb,
+  alternatives            jsonb,
+  takeaways               jsonb,
+  updated_at              timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX fpf_ticker_idx ON fund_profile_facts (canonical_ticker);
+CREATE INDEX fpf_peer_group_idx ON fund_profile_facts (peer_group);
+CREATE INDEX fpf_asset_class_idx ON fund_profile_facts (asset_class);
+CREATE INDEX fpf_vo_status_idx ON fund_profile_facts (value_offering_status);
+
+-- Mirrors data/product/fund_profiles/profile_build_manifest.json at the serving
+-- boundary (Serving Architecture Decision 4).
+CREATE TABLE serving_manifest (
+  id                    serial PRIMARY KEY,
+  profile_build_version text NOT NULL,
+  built_at              timestamptz NOT NULL DEFAULT now(),
+  active                boolean NOT NULL DEFAULT false,
+  fact_row_count        integer NOT NULL,
+  source_panels         jsonb NOT NULL,  -- [{panel,path,mtime,row_count,method_version}]
+  build_manifest        jsonb NOT NULL
+);
+
+CREATE INDEX sm_build_version_idx ON serving_manifest (profile_build_version);
+CREATE INDEX sm_active_idx ON serving_manifest (active);
+
+-- ============================================================================
+-- AUTH / ENTITLEMENTS (Track 1B follow-on) — per-user tables + RLS
+-- ----------------------------------------------------------------------------
+-- Keyed off Supabase auth.users. Applied via
+-- scripts/pipeline/apply_auth_schema.py (fund_score). Tier gating itself runs
+-- server-side in the RSC (see src/lib/serving/profile.ts); RLS here protects the
+-- per-user rows, and public-read RLS guards the serving content tables when
+-- accessed via the Supabase anon/auth roles (the loader writes as postgres,
+-- which bypasses RLS).
+-- ============================================================================
+
+CREATE TYPE entitlement_tier AS ENUM ('free', 'paid_retail', 'pro');
+
+CREATE TABLE users (
+  id         uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email      text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE entitlements (
+  user_id               uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  tier                  entitlement_tier NOT NULL DEFAULT 'free',
+  profiles_viewed_month integer NOT NULL DEFAULT 0,
+  updated_at            timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE lenses (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  slug       text NOT NULL,
+  name       text NOT NULL,
+  definition jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX lenses_user_id_idx ON lenses (user_id);
+
+-- RLS: own-row for per-user tables
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE entitlements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lenses ENABLE ROW LEVEL SECURITY;
+CREATE POLICY users_select_own ON users FOR SELECT USING (auth.uid() = id);
+CREATE POLICY users_update_own ON users FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+CREATE POLICY entitlements_select_own ON entitlements FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY lenses_all_own ON lenses FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+-- RLS: public read on serving content (loader writes as postgres / bypasses RLS)
+ALTER TABLE fund_profile_facts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE serving_manifest ENABLE ROW LEVEL SECURITY;
+CREATE POLICY fpf_public_read ON fund_profile_facts FOR SELECT USING (true);
+CREATE POLICY sm_public_read ON serving_manifest FOR SELECT USING (true);
+
+-- New-user provisioning: every auth.users insert gets a public.users +
+-- entitlements (default 'free') row, regardless of sign-up path. SECURITY
+-- DEFINER so the trigger writes past RLS.
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.users (id, email) VALUES (NEW.id, NEW.email)
+    ON CONFLICT (id) DO NOTHING;
+  INSERT INTO public.entitlements (user_id) VALUES (NEW.id)
+    ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
