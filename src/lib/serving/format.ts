@@ -268,3 +268,154 @@ export function exposureReadout(
   const dir = pp > 0 ? "More" : "Less";
   return `${dir} ${name} than the passive mix (${pp > 0 ? "+" : "−"}${Math.abs(pp).toFixed(1)} pp).`;
 }
+
+// ============================================================================
+// Plain-English verdict line (spec: plain-english-verdict-and-jargon-anchors).
+// ----------------------------------------------------------------------------
+// Nets the page's fee verdict against its skill verdict into ONE retail
+// takeaway. Composed DETERMINISTICALLY from already-served, public hero fields
+// (no free text from data, no 0-100 index reference). Returns null when any
+// required field is missing → the hero renders nothing rather than a guess.
+// The clause choices are driven off fee_fairness_label, the sign/size of
+// active_fee_bps, and skill_band — never hard-coded to one fund's case.
+// ============================================================================
+
+/** Minimal shape composeVerdictLine reads — a subset of ValueOfferingReframed. */
+export interface VerdictInputs {
+  status: string | null;
+  skill_band: string | null;
+  fee: { active_fee_bps: number | null } | null;
+}
+
+/** The "cheap / fairly priced / expensive for an active fund" lead clause. */
+function feeLeadClause(label: string | null | undefined): string | null {
+  switch (label) {
+    case "Strong":
+      return "Cheap for an active fund";
+    case "Mixed":
+      return "Fairly priced for an active fund";
+    case "Weak":
+      return "Expensive for an active fund";
+    default:
+      return null;
+  }
+}
+
+/**
+ * Compose the netting verdict sentence from public hero fields.
+ * @param vr the value_offering_reframed section (or a VerdictInputs subset)
+ * @param feeFairnessLabel the top-level fee_fairness_label fact column
+ * @returns the one-sentence verdict, or null if not scored / any field missing.
+ */
+export function composeVerdictLine(
+  vr: VerdictInputs | null | undefined,
+  feeFairnessLabel: string | null | undefined,
+): string | null {
+  // Only scored active funds get a verdict; passive/unsupported render nothing.
+  if (!vr || vr.status !== "scored") return null;
+
+  const lead = feeLeadClause(feeFairnessLabel);
+  if (lead == null) return null;
+
+  const bps = vr.fee?.active_fee_bps;
+  if (bps == null || !isFinite(bps)) return null;
+
+  const band = vr.skill_band;
+  if (band == null) return null;
+
+  // Fee clause: derive the bps premium from the served number (rounded), never
+  // a hard-coded constant. A non-positive premium reads as "no premium".
+  const roundedBps = Math.round(bps);
+  const feeClause =
+    roundedBps > 0
+      ? `you pay a ${roundedBps} bps premium over indexing`
+      : `you pay no premium over indexing`;
+
+  // Skill clause: drives the "pays off / unproven / not paying off" read off the
+  // judged-selection band. Neutral, non-predictive language.
+  let skillClause: string;
+  switch (band) {
+    case "strong":
+      skillClause =
+        roundedBps > 0
+          ? "and the stock-picking has a proven edge that justifies it"
+          : "and the stock-picking has a proven edge";
+      break;
+    case "moderate":
+      skillClause =
+        roundedBps > 0
+          ? "that the stock-picking has so far partly earned back"
+          : "with moderate evidence the stock-picking adds value";
+      break;
+    case "limited":
+      skillClause =
+        roundedBps > 0
+          ? "with only limited evidence the stock-picking has earned it back"
+          : "with only limited evidence the stock-picking adds value";
+      break;
+    case "unproven":
+      skillClause =
+        roundedBps > 0
+          ? "that only pays off if the stock-picking does, and right now the selection is unproven"
+          : "and the selection is still unproven";
+      break;
+    default:
+      return null;
+  }
+
+  return `${lead} — but ${feeClause} ${skillClause}.`;
+}
+
+// --- Bet-profile peer anchor (from exposure_xray vs_peer concentration rows) ---
+// Reads the two peer-relative concentration stats by their vs_peer rows and
+// returns them in a NON-pp format: active_share as a ratio, effective_positions
+// as a plain count. Never run these through the pp DiffPill (the effective-
+// positions delta is a raw count, not a weight fraction).
+export interface PeerConcentrationRow {
+  row_id?: string;
+  exposure_id?: string;
+  exposure_type?: string;
+  holdings_baseline?: string | null;
+  fund_exposure?: number | null;
+  passive_exposure?: number | null;
+}
+
+export interface BetProfilePeerAnchor {
+  activeShareFund: number | null;
+  activeSharePeer: number | null;
+  effPositionsFund: number | null;
+  effPositionsPeer: number | null;
+}
+
+/**
+ * Pull the two vs_peer concentration stats (active share + effective positions)
+ * from the exposure_xray rows. Returns null when neither is present. The peer
+ * value is the row's `passive_exposure` (= the peer-group reference).
+ */
+export function betProfilePeerAnchor(
+  rows: PeerConcentrationRow[] | null | undefined,
+): BetProfilePeerAnchor | null {
+  if (!Array.isArray(rows)) return null;
+  const find = (exposureId: string) =>
+    rows.find(
+      (r) =>
+        r.exposure_type === "concentration" &&
+        r.holdings_baseline === "vs_peer" &&
+        r.exposure_id === exposureId,
+    ) ?? null;
+
+  const as = find("concentration::active_share");
+  const ep = find("concentration::effective_positions");
+  if (as == null && ep == null) return null;
+
+  return {
+    activeShareFund: num(as?.fund_exposure),
+    activeSharePeer: num(as?.passive_exposure),
+    effPositionsFund: num(ep?.fund_exposure),
+    effPositionsPeer: num(ep?.passive_exposure),
+  };
+}
+
+function num(v: number | null | undefined): number | null {
+  return typeof v === "number" && isFinite(v) ? v : null;
+}

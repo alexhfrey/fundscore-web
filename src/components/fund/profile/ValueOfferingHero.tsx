@@ -7,6 +7,7 @@
 import Link from "next/link";
 import {
   badgeStyle,
+  composeVerdictLine,
   fmtBps,
   fmtPct,
   skillBandLabel,
@@ -22,13 +23,18 @@ export function ValueOfferingHero({
   vr,
   passive,
   theTake,
+  feeFairnessLabel,
 }: {
   vr: ValueOfferingReframed | null;
   passive: PassiveBaseline | null;
   theTake: TheTake | null;
+  feeFairnessLabel: string | null;
 }) {
   const scored = vr?.status === "scored" && vr.badge;
   const style = badgeStyle(vr?.badge);
+  // Plain-English netting verdict — composed only from public hero fields; null
+  // (and so rendered as nothing) for passive/unsupported or any missing field.
+  const verdictLine = composeVerdictLine(vr, feeFairnessLabel);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
@@ -103,7 +109,9 @@ export function ValueOfferingHero({
                     ? `${fmtPct(
                         vr!.replicability.idio_risk_share,
                         0,
-                      )} of its active risk is stock-specific; the rest is shared sector/theme risk.`
+                      )} of its active risk is stock-specific — ${idioRiskAnchor(
+                        vr!.replicability.idio_risk_share,
+                      )}.`
                     : null
                 }
               />
@@ -114,11 +122,21 @@ export function ValueOfferingHero({
                   vr!.skill?.ir != null
                     ? `Information ratio ${vr!.skill.ir.toFixed(
                         2,
-                      )} after fees and passive exposures.`
+                      )} — the return the manager added per unit of active risk, after fees${irDirectionAnchor(
+                        vr!.skill.ir,
+                      )}.`
                     : null
                 }
               />
             </div>
+
+            {/* Plain-English netting verdict — nets the fee verdict against the
+                skill verdict into one takeaway. Public hero fields only. */}
+            {verdictLine && (
+              <p className="mt-4 text-[15px] font-medium leading-relaxed text-gray-900">
+                {verdictLine}
+              </p>
+            )}
 
             {/* The Take — one-sentence synthesis */}
             {theTake?.assembled_text && (
@@ -168,6 +186,28 @@ export function ValueOfferingHero({
       </div>
     </div>
   );
+}
+
+// --- Jargon anchors (translations) for the two AxisCards. Definitional copy
+// only — no new claim, no forecast. The number stays; the anchor adds the plain
+// meaning + a direction/reference cue. ---
+
+/** Direction anchor for the Information Ratio: below zero = bets haven't paid off. */
+function irDirectionAnchor(ir: number): string {
+  if (ir < 0)
+    return " (below zero means the active bets have not paid off so far)";
+  if (ir > 0)
+    return " (above zero means the active bets have added value so far)";
+  return " (around zero means the active bets have been roughly a wash)";
+}
+
+/** Neutral high/low reference for the share of active risk that is stock-specific. */
+function idioRiskAnchor(share: number): string {
+  if (share >= 0.6)
+    return "more from individual stock picks than from sector/theme tilts";
+  if (share <= 0.4)
+    return "more from sector/theme tilts than from individual stock picks";
+  return "about half from individual stock picks, half from sector/theme tilts (a balanced mix for an active manager)";
 }
 
 function AxisCard({

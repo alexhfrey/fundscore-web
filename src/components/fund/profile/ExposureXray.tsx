@@ -12,7 +12,14 @@ import {
   ProofPoint,
   UnlockLine,
 } from "./primitives";
-import { fmtPct, fmtPP, exposureTypeLabel, EM_DASH } from "@/lib/serving/format";
+import {
+  fmtPct,
+  fmtPP,
+  fmtNum,
+  exposureTypeLabel,
+  betProfilePeerAnchor,
+  EM_DASH,
+} from "@/lib/serving/format";
 import {
   isLocked,
   getPreview,
@@ -25,6 +32,11 @@ interface XrayRow {
   exposure_id: string;
   exposure_name: string;
   exposure_type: string;
+  // holdings_baseline distinguishes absolute rows from peer-relative (vs_peer)
+  // and passive-relative rows. Present in the JSONB payload; typed here so the
+  // component can route concentration peer rows to the peer-anchor block.
+  holdings_baseline?: string | null;
+  baseline_ref?: string | null;
   fund_exposure: number | null;
   passive_exposure: number | null;
   difference: number | null;
@@ -115,6 +127,12 @@ export function ExposureXray({ xray }: { xray: Xray | Locked | null }) {
   const fundDate = xray.fund_holdings_date;
   const anyStale = xray.rows.some((r) => r.coverage_state === "stale");
 
+  // Peer-anchor readout: the vs_peer concentration stats (active share + effective
+  // positions) read by their vs_peer rows and shown in a NON-pp format — active
+  // share as a ratio, effective positions as a plain count. Excluded from the pp
+  // table above precisely because their deltas are counts/ratios, not weight pp.
+  const peerAnchor = betProfilePeerAnchor(xray.rows);
+
   return (
     <Section
       id="exposure-xray"
@@ -126,6 +144,7 @@ export function ExposureXray({ xray }: { xray: Xray | Locked | null }) {
       }
       methodologyAnchor="exposure-xray"
     >
+      <PeerConcentrationReadout anchor={peerAnchor} />
       <Card className="overflow-x-auto p-0">
         <table className="w-full text-sm">
           <thead>
@@ -178,6 +197,75 @@ export function ExposureXray({ xray }: { xray: Xray | Locked | null }) {
         with a lag — the most recent portfolio may differ from the filed snapshot.
       </AsOf>
     </Section>
+  );
+}
+
+/**
+ * Dedicated peer-anchor readout for the vs_peer concentration stats. Active share
+ * renders as a ratio (0.497 vs 0.671), effective positions as a plain count
+ * (17.7 vs 29.4) — NEVER as pp (those deltas are counts/ratios, not weight
+ * fractions). Each value traces to its vs_peer concentration row. Renders nothing
+ * when neither stat is available.
+ */
+function PeerConcentrationReadout({
+  anchor,
+}: {
+  anchor: ReturnType<typeof betProfilePeerAnchor>;
+}) {
+  if (!anchor) return null;
+  const { activeShareFund, activeSharePeer, effPositionsFund, effPositionsPeer } =
+    anchor;
+  const hasActiveShare = activeShareFund != null && activeSharePeer != null;
+  const hasEffPositions = effPositionsFund != null && effPositionsPeer != null;
+  if (!hasActiveShare && !hasEffPositions) return null;
+
+  // Plain anchor: effective positions IS the count of distinct bets, so anchor
+  // the "fewer / more distinct bets" read on it (fall back to active share only
+  // when positions are absent). Neutral reference, not a grade. Render the count
+  // anchor only when its driving stat exists.
+  let betsAnchor: string | null = null;
+  if (hasEffPositions) {
+    betsAnchor = `It makes ${
+      (effPositionsFund as number) < (effPositionsPeer as number) ? "fewer" : "more"
+    } distinct bets than its peers.`;
+  } else if (hasActiveShare) {
+    betsAnchor = `It deviates ${
+      (activeShareFund as number) > (activeSharePeer as number) ? "more" : "less"
+    } from its peers' average holdings.`;
+  }
+
+  return (
+    <Card className="mb-3">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+        How concentrated vs peers
+      </div>
+      <div className="mt-1.5 grid gap-x-8 gap-y-1.5 text-sm sm:grid-cols-2">
+        {hasActiveShare && (
+          <div>
+            <span className="font-semibold tabular-nums text-gray-900">
+              {fmtNum(activeShareFund, 3)}
+            </span>{" "}
+            <span className="text-gray-500">
+              active share vs {fmtNum(activeSharePeer, 3)} for the average peer
+            </span>
+          </div>
+        )}
+        {hasEffPositions && (
+          <div>
+            <span className="font-semibold tabular-nums text-gray-900">
+              {fmtNum(effPositionsFund, 1)}
+            </span>{" "}
+            <span className="text-gray-500">
+              effective positions vs {fmtNum(effPositionsPeer, 1)} for the average
+              peer
+            </span>
+          </div>
+        )}
+      </div>
+      {betsAnchor && (
+        <p className="mt-1.5 text-sm leading-relaxed text-gray-600">{betsAnchor}</p>
+      )}
+    </Card>
   );
 }
 

@@ -109,6 +109,9 @@ export default async function FundPage({ params }: FundPageProps) {
           vr={vrUnlocked}
           passive={passiveUnlocked}
           theTake={theTakeUnlocked}
+          feeFairnessLabel={
+            (row.feeFairnessLabel as string | null | undefined) ?? null
+          }
         />
 
         <div className="mt-10 space-y-12">
