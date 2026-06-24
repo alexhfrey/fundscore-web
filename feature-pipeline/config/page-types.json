@@ -1,0 +1,38 @@
+{
+  "product": {
+    "name": "FundScore.ai",
+    "customer_promise": "What are you actually getting for your fees versus the fund's best passive alternative?",
+    "primary_audience": "retail investors",
+    "secondary_audience": "RIAs and fund consultants",
+    "aesthetic": "Confident Consumer — calm, trustworthy, plain-language, evidence-forward, no hype or fear-selling",
+    "good_fund_definition": "A fund with a high probability of future outperformance, either because the manager has skill or because it provides a factor/exposure bet that aligns with what the end investor wants.",
+    "fund_score_repo": "/Users/alexfrey/Projects/fund_score"
+  },
+  "page_types": {
+    "fund_profile": {
+      "label": "Fund profile",
+      "route_template": "/funds/{ticker}",
+      "needs_dev_server": true,
+      "critics": ["marketing", "design", "engineering", "data-quality", "narrative"],
+      "default_targets": ["FCNTX", "FBGRX", "DODGX", "VDIGX", "VOO"],
+      "target_kind": "ticker",
+      "source_files": [
+        "src/app/funds/[ticker]/page.tsx",
+        "src/components/fund/profile/",
+        "src/lib/serving/profile.ts",
+        "src/lib/serving/session.ts"
+      ],
+      "ground_truth": {
+        "served_table": "fund_profile_facts",
+        "ticker_column": "canonical_ticker",
+        "staging_parquet": "/Users/alexfrey/Projects/fund_score/data/product/fund_profiles/serving_facts_staging.parquet",
+        "gold_panels": {
+          "value_offering_reframed": "/Users/alexfrey/Projects/fund_score/data/gold/value_offering_reframed_panel.parquet",
+          "hierarchical_skill_posteriors": "/Users/alexfrey/Projects/fund_score/data/gold/hierarchical_skill_posteriors.parquet",
+          "fee_efficiency_score": "/Users/alexfrey/Projects/fund_score/data/gold/fee_efficiency_score.parquet",
+          "fund_scores": "/Users/alexfrey/Projects/fund_score/data/gold/fund_scores.parquet"
+        }
+      }
+    }
+  }
+}
