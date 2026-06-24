@@ -85,20 +85,24 @@ export const fundProfileFacts = pgTable(
 
     // --- nested payload sections (assembled by the loader) ---
     identity: jsonb("identity").notNull(),
-    valueOffering: jsonb("value_offering"), // full 5-leg + provenance; null when unavailable
+    valueOffering: jsonb("value_offering"), // legacy 5-leg + provenance (spec #7 v0.1); null when unavailable
+    valueOfferingReframed: jsonb("value_offering_reframed"), // spec #7 v0.3 badge typology — the hero
     fees: jsonb("fees"),
     passiveBaseline: jsonb("passive_baseline"),
     performance: jsonb("performance"),
     riskBehavior: jsonb("risk_behavior"),
     holdings: jsonb("holdings"),
-    managerParent: jsonb("manager_parent"),
+    managerParent: jsonb("manager_parent"), // carries skill_evidence + manager_moves
     sourceInventory: jsonb("source_inventory").notNull(),
     gates: jsonb("gates").notNull(),
 
-    // --- explicit placeholders (Phase 2/3) ---
-    exposureXray: jsonb("exposure_xray"),
-    alternatives: jsonb("alternatives"),
-    takeaways: jsonb("takeaways"),
+    // --- Phase 2/3 product panels (Track 1C prep — were placeholders in Track 1B) ---
+    exposureXray: jsonb("exposure_xray"), // spec #4 — differentiated exposure rows + contributors
+    returnAttribution: jsonb("return_attribution"), // spec #10 — active-return attribution
+    positioningChanges: jsonb("positioning_changes"), // spec #12 — surfaced portfolio shifts
+    alternatives: jsonb("alternatives"), // spec #6 — alternatives to inspect + reasons
+    takeaways: jsonb("takeaways"), // spec #8 (3b) — evidence bullets
+    theTake: jsonb("the_take"), // spec #8 (3a) — synthesis block
 
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

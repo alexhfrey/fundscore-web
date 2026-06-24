@@ -521,8 +521,9 @@ CREATE TYPE data_completeness_state AS ENUM (
 
 -- One row per series_id. Hot scalars + nested JSONB payload sections matching
 -- the FundProfilePayload contract (docs/product/data_contracts/fund_profile.md).
--- Placeholder sections (exposure_xray/alternatives/takeaways) carry an explicit
--- {placeholder:true,...} marker until their specs ship — never synthetic data.
+-- Sections with no real data for a fund are SQL NULL (never synthetic). The
+-- Phase 2/3 panels (value_offering_reframed/exposure_xray/return_attribution/
+-- positioning_changes/alternatives/takeaways/the_take) shipped in Track 1C prep.
 CREATE TABLE fund_profile_facts (
   series_id               text PRIMARY KEY,
   canonical_ticker        varchar(12),
@@ -533,8 +534,8 @@ CREATE TABLE fund_profile_facts (
   peer_group              varchar(64),
   management_style        varchar(24),
   vehicle_type            varchar(32),
-  value_offering_score    integer,                       -- null when unavailable
-  value_offering_label    tier_label,                    -- null when unavailable
+  value_offering_score    integer,                       -- null when unavailable (legacy v0.1)
+  value_offering_label    tier_label,                    -- null when unavailable (legacy v0.1)
   value_offering_status   value_offering_status NOT NULL,
   confidence_state        value_offering_status NOT NULL,
   fee_fairness_label      tier_label,                    -- null when fair_fee null
@@ -542,18 +543,22 @@ CREATE TABLE fund_profile_facts (
   net_expense_ratio_bps   real,
   data_completeness_state data_completeness_state NOT NULL,
   identity                jsonb NOT NULL,
-  value_offering          jsonb,
+  value_offering          jsonb,                         -- legacy 5-leg payload (spec #7 v0.1)
+  value_offering_reframed jsonb,                         -- spec #7 v0.3 badge typology (hero)
   fees                    jsonb,
   passive_baseline        jsonb,
   performance             jsonb,
   risk_behavior           jsonb,
   holdings                jsonb,
-  manager_parent          jsonb,
+  manager_parent          jsonb,                         -- carries skill_evidence + manager_moves
   source_inventory        jsonb NOT NULL,
   gates                   jsonb NOT NULL,
-  exposure_xray           jsonb,
-  alternatives            jsonb,
-  takeaways               jsonb,
+  exposure_xray           jsonb,                         -- spec #4
+  return_attribution      jsonb,                         -- spec #10
+  positioning_changes     jsonb,                         -- spec #12
+  alternatives            jsonb,                         -- spec #6
+  takeaways               jsonb,                         -- spec #8 (3b)
+  the_take                jsonb,                          -- spec #8 (3a)
   updated_at              timestamptz NOT NULL DEFAULT now()
 );
 
