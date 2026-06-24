@@ -61,9 +61,14 @@ export function ExposureXray({ xray }: { xray: Xray | Locked | null }) {
     );
   }
 
-  const hasPassive = xray.rows.some((r) => r.passive_exposure != null);
+  // Concentration rows are peer-relative counts/ratios (e.g. effective positions
+  // 17.7 vs 29.4), NOT weight differences. They must not appear in the pp difference
+  // table, where a raw count delta (e.g. -11.70) renders as a garbage "-1170 pp".
+  // They belong in a dedicated peer-anchor readout (see plain-english verdict spec).
+  const tableRows = xray.rows.filter((r) => r.exposure_type !== "concentration");
+  const hasPassive = tableRows.some((r) => r.passive_exposure != null);
   // Top rows: largest absolute difference (passive-relative) or largest weight.
-  const sorted = [...xray.rows].sort((a, b) => {
+  const sorted = [...tableRows].sort((a, b) => {
     const ad = Math.abs(a.difference ?? a.fund_exposure ?? 0);
     const bd = Math.abs(b.difference ?? b.fund_exposure ?? 0);
     return bd - ad;
