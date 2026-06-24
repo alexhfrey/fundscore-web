@@ -559,6 +559,7 @@ CREATE TABLE fund_profile_facts (
   alternatives            jsonb,                         -- spec #6
   takeaways               jsonb,                         -- spec #8 (3b)
   the_take                jsonb,                          -- spec #8 (3a)
+  risk_attribution        jsonb,                         -- spec #13 — factor/theme betas + divergence + bias/timing/idio
   updated_at              timestamptz NOT NULL DEFAULT now()
 );
 

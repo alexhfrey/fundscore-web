@@ -103,6 +103,7 @@ export const fundProfileFacts = pgTable(
     alternatives: jsonb("alternatives"), // spec #6 — alternatives to inspect + reasons
     takeaways: jsonb("takeaways"), // spec #8 (3b) — evidence bullets
     theTake: jsonb("the_take"), // spec #8 (3a) — synthesis block
+    riskAttribution: jsonb("risk_attribution"), // spec #13 — factor/theme betas + divergence + bias/timing/idio
 
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
