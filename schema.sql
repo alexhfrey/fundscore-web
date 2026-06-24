@@ -608,25 +608,73 @@ CREATE TABLE entitlements (
   updated_at            timestamptz NOT NULL DEFAULT now()
 );
 
+-- Saved personal Lenses (query_results.md § 7): a user's saved canonical query,
+-- personally named, with opt-in change-tracking. `definition` carries the
+-- canonical /q/{slug} spec verbatim so /lens/{lens_slug} re-runs the SAME
+-- screener path — the ranking is never stored or fabricated. `lens_slug` is the
+-- public shareable handle (distinct from the underlying query slug).
 CREATE TABLE lenses (
-  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id    uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  slug       text NOT NULL,
-  name       text NOT NULL,
-  definition jsonb NOT NULL DEFAULT '{}'::jsonb,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  lens_slug       text NOT NULL UNIQUE,
+  slug            text NOT NULL,                       -- underlying canonical /q/{slug}
+  name            text NOT NULL,
+  note            text,
+  change_tracking boolean NOT NULL DEFAULT true,
+  definition      jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  updated_at      timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX lenses_user_id_idx ON lenses (user_id);
+CREATE INDEX lenses_lens_slug_idx ON lenses (lens_slug);
+
+-- Change-tracking basis. One immutable row per snapshot of a Lens's ranked
+-- result set. The honest "N entered / M left" diff compares the latest snapshot
+-- to its prior; the first snapshot (at save) has no prior so a fresh Lens shows
+-- 0 changes. Never a fabricated change history.
+CREATE TABLE lens_snapshots (
+  id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  lens_id            uuid NOT NULL REFERENCES lenses(id) ON DELETE CASCADE,
+  captured_at        timestamptz NOT NULL DEFAULT now(),
+  result_as_of       text,
+  member_count       integer NOT NULL,
+  member_series_ids  jsonb NOT NULL,   -- ordered series_id list (ranked membership)
+  member_meta        jsonb NOT NULL    -- series_id -> {ticker,name} for diff copy
+);
+CREATE INDEX lens_snapshots_lens_id_idx ON lens_snapshots (lens_id);
 
 -- RLS: own-row for per-user tables
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE entitlements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE lenses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lens_snapshots ENABLE ROW LEVEL SECURITY;
 CREATE POLICY users_select_own ON users FOR SELECT USING (auth.uid() = id);
 CREATE POLICY users_update_own ON users FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 CREATE POLICY entitlements_select_own ON entitlements FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY lenses_all_own ON lenses FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+-- Snapshots are owned transitively through the parent Lens.
+CREATE POLICY lens_snapshots_all_own ON lens_snapshots FOR ALL
+  USING (EXISTS (SELECT 1 FROM lenses l WHERE l.id = lens_snapshots.lens_id AND l.user_id = auth.uid()))
+  WITH CHECK (EXISTS (SELECT 1 FROM lenses l WHERE l.id = lens_snapshots.lens_id AND l.user_id = auth.uid()));
+
+-- Public shared-Lens read (query_results.md § 7: "share read-only Lens links").
+-- A Lens is private (own-row RLS) for management, but its definition is readable
+-- by anyone who holds the lens_slug — sharing is the whole point. A SECURITY
+-- DEFINER RPC exposes ONLY the non-owner-identifying definition fields by slug,
+-- so the share path never leaks the owner's id, note, or other rows. The app
+-- re-runs the screener for the actual ranking; this returns the query spec only.
+CREATE OR REPLACE FUNCTION public.get_shared_lens(p_lens_slug text)
+RETURNS TABLE (lens_slug text, slug text, name text, change_tracking boolean, definition jsonb, created_at timestamptz)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT l.lens_slug, l.slug, l.name, l.change_tracking, l.definition, l.created_at
+  FROM public.lenses l
+  WHERE l.lens_slug = p_lens_slug
+  LIMIT 1;
+$$;
+GRANT EXECUTE ON FUNCTION public.get_shared_lens(text) TO anon, authenticated;
 
 -- RLS: public read on serving content (loader writes as postgres / bypasses RLS)
 ALTER TABLE fund_profile_facts ENABLE ROW LEVEL SECURITY;

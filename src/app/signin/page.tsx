@@ -6,19 +6,21 @@ import { signIn, signUp } from "./actions";
 export const metadata = { title: "Sign in | FundScore.ai" };
 
 interface SignInPageProps {
-  searchParams: Promise<{ mode?: string; error?: string }>;
+  searchParams: Promise<{ mode?: string; error?: string; next?: string }>;
 }
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
-  const { mode, error } = await searchParams;
+  const { mode, error, next } = await searchParams;
   const isSignup = mode === "signup";
+  const safeNext =
+    next && next.startsWith("/") && !next.startsWith("//") ? next : null;
 
-  // Already signed in? Send them to a fund profile.
+  // Already signed in? Honor the post-auth destination if one was carried.
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user) redirect("/funds/FCNTX");
+  if (user) redirect(safeNext ?? "/funds/FCNTX");
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-12">
@@ -38,6 +40,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
       )}
 
       <form className="mt-6 space-y-4">
+        {safeNext && <input type="hidden" name="next" value={safeNext} />}
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700">
             Email
@@ -77,7 +80,10 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
         {isSignup ? (
           <>
             Already have an account?{" "}
-            <Link href="/signin" className="font-medium text-indigo-600 hover:text-indigo-500">
+            <Link
+              href={safeNext ? `/signin?next=${encodeURIComponent(safeNext)}` : "/signin"}
+              className="font-medium text-indigo-600 hover:text-indigo-500"
+            >
               Sign in
             </Link>
           </>
@@ -85,7 +91,11 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
           <>
             No account?{" "}
             <Link
-              href="/signin?mode=signup"
+              href={
+                safeNext
+                  ? `/signin?mode=signup&next=${encodeURIComponent(safeNext)}`
+                  : "/signin?mode=signup"
+              }
               className="font-medium text-indigo-600 hover:text-indigo-500"
             >
               Create one free

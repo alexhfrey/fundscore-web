@@ -174,17 +174,53 @@ export const entitlements = pgTable("entitlements", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-// Saved screener views (not used by the profile page; part of the v0 schema).
+// Saved personal Lenses (query_results.md § 7). A Lens is a user's saved query
+// (the canonical /q/{slug} spec, personally named) + opt-in change-tracking.
+// `definition` carries the canonical query spec verbatim (slug + parsed text +
+// query_type + as_of) so /lens/{lens_slug} re-runs the SAME screener path the
+// public /q/{slug} uses — nothing about the ranking is fabricated or stored.
+// `lens_slug` is the public, shareable handle for the Lens (distinct from the
+// underlying query slug); RLS guards owner writes, a SECURITY-DEFINER RPC serves
+// the public shared read (see schema.sql get_shared_lens).
 export const lenses = pgTable(
   "lenses",
   {
     id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
     userId: uuid("user_id").notNull(), // = auth.users.id (FK in SQL)
-    slug: text("slug").notNull(),
+    lensSlug: text("lens_slug").notNull().unique(), // public shareable handle
+    slug: text("slug").notNull(), // underlying canonical /q/{slug}
     name: text("name").notNull(),
+    note: text("note"),
+    changeTracking: boolean("change_tracking").notNull().default(true),
     definition: jsonb("definition").notNull().default(sql`'{}'::jsonb`),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("lenses_user_id_idx").on(t.userId)],
+  (t) => [
+    index("lenses_user_id_idx").on(t.userId),
+    index("lenses_lens_slug_idx").on(t.lensSlug),
+  ],
+);
+
+// Change-tracking basis (query_results.md § 7 + Acceptance: "see what changes").
+// One immutable row per snapshot of a Lens's ranked result set. The honest diff
+// ("3 funds entered, 1 left since you saved this") is computed by comparing the
+// most-recent snapshot's `member_series_ids` to the PRIOR snapshot's — never a
+// fabricated change history. The first snapshot (taken at save) has no prior, so
+// a freshly saved Lens deterministically shows 0 changes. Snapshots are appended
+// on save and on each visit, capped server-side to bound growth.
+export const lensSnapshots = pgTable(
+  "lens_snapshots",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    lensId: uuid("lens_id").notNull(), // = lenses.id (FK in SQL, ON DELETE CASCADE)
+    capturedAt: timestamp("captured_at", { withTimezone: true }).notNull().defaultNow(),
+    resultAsOf: text("result_as_of"), // catalog as_of of the ranked set captured
+    memberCount: integer("member_count").notNull(),
+    // ordered list of series_id (the ranked result-set membership at capture)
+    memberSeriesIds: jsonb("member_series_ids").notNull(),
+    // ticker map for honest, human-readable diff copy (series_id -> ticker/name)
+    memberMeta: jsonb("member_meta").notNull(),
+  },
+  (t) => [index("lens_snapshots_lens_id_idx").on(t.lensId)],
 );

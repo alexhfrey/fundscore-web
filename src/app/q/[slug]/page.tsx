@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import {
@@ -9,6 +10,7 @@ import {
   ResultCard,
   EmptyResults,
   QueryFooter,
+  SaveLensStrip,
 } from "@/components/query";
 
 // Canonical published query page — ISR. SEO + LLM-citation target: stable URL,
@@ -89,6 +91,17 @@ export default async function QueryPage({ params }: QueryPageProps) {
               <ResultCard key={row.series_id} row={row} />
             ))}
           </div>
+        )}
+
+        {/* Save / Share strip (§ 7). Client island so the page stays ISR; the
+            Suspense boundary isolates its useSearchParams() read. */}
+        {rows.length > 0 && (
+          <Suspense fallback={null}>
+            <SaveLensStrip
+              querySlug={catalog.query_slug}
+              parsedQueryText={catalog.parsed_query_text}
+            />
+          </Suspense>
         )}
 
         <QueryFooter catalog={catalog} />

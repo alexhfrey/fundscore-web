@@ -30,6 +30,12 @@ export function Header() {
                 X-Ray
               </Link>
               <Link
+                href="/lens"
+                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Lenses
+              </Link>
+              <Link
                 href="/methodology"
                 className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
               >
