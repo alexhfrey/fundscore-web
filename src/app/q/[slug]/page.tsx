@@ -1,0 +1,98 @@
+import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+import {
+  getCanonicalCatalog,
+  getQueryBySlug,
+} from "@/lib/serving/screener";
+import {
+  QueryHeader,
+  ResultCard,
+  EmptyResults,
+  QueryFooter,
+} from "@/components/query";
+
+// Canonical published query page — ISR. SEO + LLM-citation target: stable URL,
+// statically renderable HTML with source/as-of co-published (serving_architecture
+// Decision 5). Revalidate daily; the canonical results rebuild out of band.
+export const revalidate = 86400;
+export const dynamicParams = true;
+
+interface QueryPageProps {
+  params: Promise<{ slug: string }>;
+}
+
+// Pre-render all 15 canonical query slugs at build (the SEO/citation set).
+export async function generateStaticParams() {
+  const catalog = await getCanonicalCatalog();
+  return catalog.map((c) => ({ slug: c.query_slug }));
+}
+
+export async function generateMetadata({
+  params,
+}: QueryPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const page = await getQueryBySlug(slug);
+  if (!page) return { title: "Query Not Found | FundScore" };
+  const { catalog } = page;
+  const asOf = catalog.as_of ? ` As of ${catalog.as_of}.` : "";
+  return {
+    title: `${catalog.parsed_query_text} — Funds Ranked by Relevance | FundScore`,
+    description: `${catalog.universe_size.toLocaleString()} funds ranked by Relevance to '${catalog.parsed_query_text}'. See top matches, the query-relevant metric, fees, and the Why behind each rank.${asOf}`,
+    alternates: { canonical: `/q/${slug}` },
+  };
+}
+
+export default async function QueryPage({ params }: QueryPageProps) {
+  const { slug } = await params;
+  const page = await getQueryBySlug(slug);
+  // Refusal specs do not get a canonical /q/{slug}; only valid rankings render here.
+  if (!page || page.catalog.query_type === "refusal") notFound();
+
+  const { catalog, rows } = page;
+
+  // ItemList / FinancialProduct structured data for LLM-citation + SEO. Relevance
+  // is published ONLY alongside the parsed query in the same record (§ SEO rule).
+  const itemList = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: catalog.parsed_query_text,
+    numberOfItems: rows.length,
+    itemListElement: rows.map((r) => ({
+      "@type": "ListItem",
+      position: r.rank,
+      item: {
+        "@type": "FinancialProduct",
+        name: r.fund_name,
+        tickerSymbol: r.ticker,
+        url: `/funds/${r.ticker}`,
+      },
+    })),
+  };
+
+  return (
+    <div className="bg-gray-50">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemList) }}
+      />
+      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+        <QueryHeader catalog={catalog} />
+
+        {rows.length === 0 ? (
+          <EmptyResults
+            message="No funds meet this question"
+            suggestion="Try loosening the most restrictive part of the question."
+          />
+        ) : (
+          <div className="space-y-3">
+            {rows.map((row) => (
+              <ResultCard key={row.series_id} row={row} />
+            ))}
+          </div>
+        )}
+
+        <QueryFooter catalog={catalog} />
+      </div>
+    </div>
+  );
+}
