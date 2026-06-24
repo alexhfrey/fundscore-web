@@ -51,6 +51,8 @@ export interface Identity {
   aum_usd: number | null;
   holdings_count: number | null;
   primary_benchmark: string | null;
+  objective_text?: string | null;
+  strategy_text?: string | null;
 }
 
 export interface ValueOffering {
@@ -75,9 +77,64 @@ export interface PassiveBaseline {
   etf_weights: { etf: string; etf_name: string; weight: number; rank: number }[];
 }
 
-export interface FeeFairness {
-  fee_fairness_label: string | null;
-  gap_bps: number | null;
+// --- value_offering_reframed (spec #7 v0.3) — the BADGE hero ---
+export interface NamedBet {
+  bet_id: string;
+  bet_name: string;
+  bet_type: string;
+  etf_proxy: string | null;
+  proxy_fee_bps: number | null;
+  active_weight_pp: number | null;
+  structural_or_tactical: string | null;
+}
+
+export interface ValueOfferingReframed {
+  badge: string | null;
+  bet_tag: string | null;
+  status: string | null; // "scored" | "unsupported" | "building" | ...
+  skill_band: string | null;
+  value_index: number | null; // 0-100, paid-tier only
+  eval_date: string | null;
+  holdings_as_of: string | null;
+  skill_as_of: string | null;
+  method_version: string | null;
+  methodology_link: string | null;
+  suppression_reason: string | null;
+  l2_blend_etfs: string | null;
+  fee: {
+    active_fee_bps: number | null;
+    actual_fee_bps: number | null;
+    fee_reasonableness: number | null;
+    replicable_core_fee_bps: number | null;
+  } | null;
+  skill: {
+    ir: number | null;
+    idio_alpha_bps: number | null;
+    gross_alpha_bps: number | null;
+    p_positive_skill: number | null;
+    p_negative_skill: number | null;
+  } | null;
+  replicability: {
+    replica_r2: number | null;
+    idio_te_bps: number | null;
+    active_share: number | null;
+    te_total_bps: number | null;
+    idio_risk_share: number | null;
+    low_replica_flag: boolean | null;
+    theme_contrib_bps: number | null;
+    theme_ride_delta_bps: number | null;
+    replicable_risk_share: number | null;
+  } | null;
+  named_bets: NamedBet[] | null;
+  locked_fields?: string[];
+}
+
+export interface TheTake {
+  assembled_text: string | null;
+  tension_pattern_id: string | null;
+  confidence_state: string | null;
+  method_version: string | null;
+  as_of_dates: { field_id: string; as_of_date: string | null }[] | null;
 }
 
 // NOTE: Drizzle returns columns by their camelCase TS property names
@@ -94,6 +151,8 @@ export interface FactRow {
   gates: Record<string, string>;
   identity: Identity;
   valueOffering: ValueOffering | null;
+  valueOfferingReframed: ValueOfferingReframed | null;
+  theTake: TheTake | null;
   fees: Record<string, unknown> | null;
   passiveBaseline: PassiveBaseline | null;
   performance: Record<string, unknown> | null;
@@ -102,8 +161,10 @@ export interface FactRow {
   managerParent: Record<string, unknown> | null;
   sourceInventory: Record<string, unknown>;
   exposureXray: Record<string, unknown> | null;
+  returnAttribution: Record<string, unknown> | null;
+  positioningChanges: Record<string, unknown> | null;
   alternatives: Record<string, unknown> | null;
-  takeaways: Record<string, unknown> | null;
+  takeaways: unknown[] | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
@@ -113,6 +174,8 @@ export interface FactRow {
 const GATED_SECTIONS: { col: string; gate: string }[] = [
   { col: "identity", gate: "identity" },
   { col: "valueOffering", gate: "value_offering" },
+  { col: "valueOfferingReframed", gate: "value_offering_reframed" },
+  { col: "theTake", gate: "the_take" },
   { col: "fees", gate: "fees" },
   { col: "passiveBaseline", gate: "passive_baseline" },
   { col: "performance", gate: "performance" },
@@ -121,6 +184,8 @@ const GATED_SECTIONS: { col: string; gate: string }[] = [
   { col: "managerParent", gate: "manager_parent" },
   { col: "sourceInventory", gate: "source_inventory" },
   { col: "exposureXray", gate: "exposure_xray" },
+  { col: "returnAttribution", gate: "return_attribution" },
+  { col: "positioningChanges", gate: "positioning_changes" },
   { col: "alternatives", gate: "alternatives" },
   { col: "takeaways", gate: "takeaways" },
 ];
@@ -153,7 +218,7 @@ export function applyGates(row: FactRow, userState: UserState): FactRow {
     }
   }
 
-  // Field-level: hero is public, but the score + diagnostics are free+.
+  // Field-level: hero is public, but the legacy score + diagnostics are free+.
   if (out.valueOffering && !isLocked(out.valueOffering) && rank < TIER_RANK.free) {
     const vo = out.valueOffering as ValueOffering;
     out.valueOffering = {
@@ -163,6 +228,45 @@ export function applyGates(row: FactRow, userState: UserState): FactRow {
       leg_provenance: null,
       locked_fields: ["value_offering_score", "legs", "leg_provenance"],
     };
+  }
+
+  // Field-level: the reframed BADGE hero is public (badge + bet_tag + take),
+  // but the 0-100 value_index is paid/pro only (data-products README: label-only
+  // for anon/free, label + 0-100 for paid/pro).
+  if (
+    out.valueOfferingReframed &&
+    !isLocked(out.valueOfferingReframed) &&
+    rank < TIER_RANK.paid
+  ) {
+    const vr = out.valueOfferingReframed as ValueOfferingReframed;
+    out.valueOfferingReframed = {
+      ...vr,
+      value_index: null,
+      locked_fields: ["value_index"],
+    };
+  }
+
+  // Field-level: Manager Moves direction-of-impact label is public, but the
+  // annualized bps figure is paid-tier (spec #10/#11 + contract ManagerMoves).
+  // manager_parent section gate is already 'free'; this strips bps below 'paid'.
+  if (out.managerParent && !isLocked(out.managerParent) && rank < TIER_RANK.paid) {
+    const mp = out.managerParent as Record<string, unknown>;
+    const se = mp.skill_evidence as Record<string, unknown> | null | undefined;
+    const mm = se?.manager_moves as Record<string, unknown> | null | undefined;
+    if (mm && typeof mm === "object") {
+      out.managerParent = {
+        ...mp,
+        skill_evidence: {
+          ...se,
+          manager_moves: {
+            ...mm,
+            impact_bps_per_year: null,
+            impact_bps_se: null,
+            locked_fields: ["impact_bps_per_year", "impact_bps_se"],
+          },
+        },
+      };
+    }
   }
 
   return out;
