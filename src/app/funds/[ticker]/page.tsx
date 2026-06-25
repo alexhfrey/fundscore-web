@@ -220,6 +220,7 @@ export default async function FundPage({ params }: FundPageProps) {
               <RiskAttribution
                 risk={section<RiskAttributionData>(row.riskAttribution)}
                 isPassive={isPassive}
+                managementStyle={identity.management_style}
               />
             </div>
           </div>

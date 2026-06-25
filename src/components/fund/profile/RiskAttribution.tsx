@@ -45,6 +45,7 @@ import {
   divergenceHeadlineBeta,
   isPassiveAltBaseline,
   baselineNoun,
+  activeBetAssessable,
   type Locked,
   type RiskAttribution as RiskAttributionData,
   type FactorBetaRow,
@@ -64,27 +65,55 @@ function themeLabel(targetId: string): string {
     .join(" ");
 }
 
+// The fund-level factor-beta baseline: `l2_blend` when ANY served theme/divergence
+// row is measured vs the L2 passive blend, else `market_fallback`. All of a fund's
+// rows share the same baseline in practice; this resolver is defensive against a
+// mixed payload (any real L2 row wins).
+function fundFactorBaseline(risk: RiskAttributionData): string | null {
+  const themes = risk.factor_betas?.themes ?? [];
+  const div = risk.exposure_divergence?.rows ?? [];
+  for (const r of [...themes, ...div]) {
+    if (isPassiveAltBaseline(r.active_baseline)) return "l2_blend";
+  }
+  if (themes.length > 0 || div.length > 0) return "market_fallback";
+  return null;
+}
+
 export function RiskAttribution({
   risk,
   isPassive,
+  managementStyle,
 }: {
   risk: RiskAttributionData | Locked | null;
   isPassive: boolean;
+  managementStyle: string | null;
 }) {
   // Section-level lock (gate is 'free' → anon sees the upgrade affordance).
   if (isLocked(risk)) {
     const pp = getPreview(risk) as DivergencePreview | ThemeBetaPreview | null;
+    // The free proof point IS the active-bet / divergence headline. Suppress it
+    // for an active fund whose β baseline fell back to the market — that single
+    // number would read as an active bet when it's only a market-relative figure.
+    const ppAssessable = pp ? activeBetAssessable(managementStyle, pp.active_baseline) : true;
     return (
       <Section
         id="risk-attribution"
         title="Risk & Attribution"
         methodologyAnchor="risk-attribution"
       >
-        {pp ? (
+        {pp && ppAssessable ? (
           <>
             <RiskProofPoint pp={pp} />
             <UnlockLine tier={risk.locked}>
               See all factor &amp; theme bets, and how they have played out.
+            </UnlockLine>
+          </>
+        ) : pp && !ppAssessable ? (
+          <>
+            <ActiveBetUnassessable what="bets" />
+            <UnlockLine tier={risk.locked}>
+              We&apos;ll show this fund&apos;s active bets once its passive
+              alternative has enough shared return history to price.
             </UnlockLine>
           </>
         ) : (
@@ -114,6 +143,14 @@ export function RiskAttribution({
     );
   }
 
+  // Suppress the "active bet (β)" verdict when this fund is ACTIVELY managed but
+  // its factor-beta baseline fell back to the broad market (`market_fallback`) —
+  // the served β is then the market-baseline number, which for an active fund
+  // misleads even though it reads "vs the market." We show an honest "not enough
+  // shared history" state for the active-bet reading instead. Index/passive funds
+  // on market_fallback (VOO) and active funds on l2_blend (FCNTX) stay assessable.
+  const assessable = activeBetAssessable(managementStyle, fundFactorBaseline(risk));
+
   return (
     <Section
       id="risk-attribution"
@@ -122,11 +159,28 @@ export function RiskAttribution({
       methodologyAnchor="risk-attribution"
     >
       <div className="space-y-4">
-        <FactorBetas betas={risk.factor_betas} isPassive={isPassive} />
-        <DivergenceHeadline divergence={risk.exposure_divergence} />
+        <FactorBetas betas={risk.factor_betas} isPassive={isPassive} assessable={assessable} />
+        <DivergenceHeadline divergence={risk.exposure_divergence} assessable={assessable} />
         <ActiveReturnAttribution attr={risk.active_return_attribution} isPassive={isPassive} />
       </div>
     </Section>
+  );
+}
+
+// The honest suppressed state for an active fund whose active-β baseline fell back
+// to the market: we can't yet measure its active bets against its passive
+// alternative because the matched index couldn't be priced over the return window.
+function ActiveBetUnassessable({ what }: { what: "bets" | "divergence" }) {
+  return (
+    <Unavailable>
+      We can&apos;t yet measure this fund&apos;s active bets against its passive
+      alternative — its matched index couldn&apos;t be priced over the return
+      window, so there isn&apos;t enough shared history to separate an active bet
+      from baseline exposure.{" "}
+      {what === "bets"
+        ? "What it owns is shown in the Exposure X-Ray above."
+        : "What it holds is shown in the Exposure X-Ray above."}
+    </Unavailable>
   );
 }
 
@@ -175,9 +229,11 @@ function RiskProofPoint({
 function FactorBetas({
   betas,
   isPassive,
+  assessable,
 }: {
   betas: RiskAttributionData["factor_betas"];
   isPassive: boolean;
+  assessable: boolean;
 }) {
   if (!betas || (betas.themes.length === 0 && betas.styles.length === 0)) {
     return (
@@ -206,31 +262,62 @@ function FactorBetas({
   return (
     <Card>
       <PanelHeading>What drives this fund</PanelHeading>
-      <p className="mt-1 text-xs leading-relaxed text-gray-500">
-        Active β is the bet <em>beyond {baselineNounPhrase}</em> ({usesPassiveAlt
-          ? "the fund's closest passive index blend"
-          : "broad market"} exposure stripped out). A near-zero active β on a theme
-        means the fund holds it only as much as {baselineNounPhrase} does —
-        that&apos;s baseline exposure, not an active bet.
-      </p>
-
-      {/* Themes — the active-bet narrative the investor recognises. */}
-      <div className="mt-3">
-        <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-          Top theme bets <span className="text-gray-300">(active β, {baselineShort})</span>
-        </div>
-        <ul className="mt-1.5 space-y-1.5">
-          {themes.map((t) => (
-            <ThemeBetaRow key={t.target_id} t={t} baselineNounPhrase={baselineNounPhrase} />
-          ))}
-        </ul>
-        {isPassive && (
-          <p className="mt-2 text-xs leading-relaxed text-slate-500">
-            This fund is passive — its theme exposures are market beta, so the
-            active βs sit near zero by design.
+      {assessable ? (
+        <>
+          <p className="mt-1 text-xs leading-relaxed text-gray-500">
+            Active β is the bet <em>beyond {baselineNounPhrase}</em> ({usesPassiveAlt
+              ? "the fund's closest passive index blend"
+              : "broad market"} exposure stripped out). A near-zero active β on a theme
+            means the fund holds it only as much as {baselineNounPhrase} does —
+            that&apos;s baseline exposure, not an active bet.
           </p>
-        )}
-      </div>
+
+          {/* Themes — the active-bet narrative the investor recognises. */}
+          <div className="mt-3">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+              Top theme bets <span className="text-gray-300">(active β, {baselineShort})</span>
+            </div>
+            <ul className="mt-1.5 space-y-1.5">
+              {themes.map((t) => (
+                <ThemeBetaRow key={t.target_id} t={t} baselineNounPhrase={baselineNounPhrase} />
+              ))}
+            </ul>
+            {isPassive && (
+              <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                This fund is passive — its theme exposures are market beta, so the
+                active βs sit near zero by design.
+              </p>
+            )}
+          </div>
+        </>
+      ) : (
+        // Active fund whose active-β baseline fell back to the market: the served
+        // β is the market-baseline number, which would misread as an active bet.
+        // Suppress the active-bet verdict; keep the market βs only as a labeled
+        // transparency drawer, never as the headline reading.
+        <div className="mt-2">
+          <ActiveBetUnassessable what="bets" />
+          {themes.length > 0 && (
+            <Evidence summary="Show market-relative βs (transparency only — not an active-bet reading)">
+              <ul className="space-y-0.5">
+                {themes.map((t) => (
+                  <li key={t.target_id} className="flex items-baseline justify-between gap-3">
+                    <span className="truncate">{themeLabel(t.target_id)}</span>
+                    <span className="shrink-0 tabular-nums">
+                      β vs market {fmtBeta(t.beta_active_mkt)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1.5 text-gray-400">
+                These are the fund&apos;s exposures relative to the broad market, not
+                relative to its passive alternative — so they can&apos;t be read as
+                active bets for this fund.
+              </p>
+            </Evidence>
+          )}
+        </div>
+      )}
 
       {/* Style tilts — FF6. Styles have no "vs market" reading → use raw β. */}
       {styles.length > 0 && (
@@ -255,11 +342,21 @@ function FactorBetas({
       <AsOf>
         Return-based exposures through {betas.eval_date ?? EM_DASH}
         {betas.window_weeks != null ? ` (${betas.window_weeks}-week trailing regression)` : ""}.
-        Active β is stripped of {baselineNounPhrase}
-        {usesPassiveAlt
-          ? " (the fund's L2 passive blend)"
-          : ` (${betas.active_beta_control_model ?? "mkt_1f"})`}; style β = raw.
-        Method {betas.method_version ?? EM_DASH}.
+        {assessable ? (
+          <>
+            {" "}Active β is stripped of {baselineNounPhrase}
+            {usesPassiveAlt
+              ? " (the fund's L2 passive blend)"
+              : ` (${betas.active_beta_control_model ?? "mkt_1f"})`}; style β = raw.
+          </>
+        ) : (
+          <>
+            {" "}This fund&apos;s passive alternative couldn&apos;t be priced over the
+            return window, so an active-bet β vs that alternative isn&apos;t available
+            yet; style β = raw.
+          </>
+        )}
+        {" "}Method {betas.method_version ?? EM_DASH}.
       </AsOf>
     </Card>
   );
@@ -327,8 +424,10 @@ function BetaConfidence({ t }: { t: FactorBetaRow }) {
 // ---------------------------------------------------------------------------
 function DivergenceHeadline({
   divergence,
+  assessable,
 }: {
   divergence: RiskAttributionData["exposure_divergence"];
+  assessable: boolean;
 }) {
   if (!divergence || divergence.rows.length === 0) {
     return (
@@ -350,6 +449,48 @@ function DivergenceHeadline({
   // alternative (L2 blend) when one exists, else the broad market.
   const usesPassiveAlt = rows.some((r) => isPassiveAltBaseline(r.active_baseline));
   const baselineNounPhrase = usesPassiveAlt ? "its passive alternative" : "the market";
+
+  // Active fund whose active-β baseline fell back to the market: the "active bet"
+  // side of the comparison is the market-baseline β, which would misread as a real
+  // active bet. Suppress the hold-vs-bet verdict; keep the holdings exposures (what
+  // the fund actually owns) since those are a real, served measurement.
+  if (!assessable) {
+    const heldRows = rows.filter((r) => r.total_exposure_holdings != null);
+    return (
+      <Card>
+        <PanelHeading>What you hold vs what you&apos;re betting on</PanelHeading>
+        <div className="mt-2">
+          <ActiveBetUnassessable what="divergence" />
+        </div>
+        {heldRows.length > 0 && (
+          <div className="mt-3">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+              What it holds <span className="text-gray-300">(% of assets)</span>
+            </div>
+            <ul className="mt-1.5 space-y-1">
+              {heldRows.map((r) => (
+                <li
+                  key={r.target_id}
+                  className="flex items-baseline justify-between gap-3 text-sm"
+                >
+                  <span className="truncate text-gray-700">{r.exposure_name}</span>
+                  <span className="shrink-0 tabular-nums text-gray-700">
+                    {fmtPct(r.total_exposure_holdings, 0)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <AsOf>
+          Holdings as of {divergence.holdings_as_of ?? EM_DASH}. We can show what the
+          fund holds, but not yet how much of an active bet that represents vs its
+          passive alternative — its matched index couldn&apos;t be priced over the
+          return window.
+        </AsOf>
+      </Card>
+    );
+  }
 
   return (
     <Card>

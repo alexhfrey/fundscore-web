@@ -462,6 +462,31 @@ export function baselineNoun(activeBaseline: string | null | undefined): string 
   return isPassiveAltBaseline(activeBaseline) ? "its passive alternative" : "the market";
 }
 
+/**
+ * Whether the served active-β / divergence "active bet" reading is a real,
+ * fund-specific measurement that can be shown as a verdict.
+ *
+ * It is NOT assessable when the fund is ACTIVELY managed AND its factor-beta
+ * baseline fell back to the broad market (`market_fallback`). These ~280 active
+ * funds (mostly new ETFs) have an L2-blend passive match but no L2-blend return
+ * history, so the served β is the market-baseline number — for an active fund
+ * that misleads even though it's labeled "vs the market." Suppress the active-bet
+ * verdict for them and show an honest "not enough shared history" state instead.
+ *
+ * The two correct cases stay assessable:
+ *  • Index/passive funds on `market_fallback` (e.g. VOO) — market IS the right
+ *    reference, so "vs the market" is honest.
+ *  • Active funds on `l2_blend` (e.g. FCNTX) — the headline β is the real,
+ *    passive-alternative-stripped bet.
+ */
+export function activeBetAssessable(
+  managementStyle: string | null | undefined,
+  activeBaseline: string | null | undefined,
+): boolean {
+  const isActive = managementStyle === "active";
+  return !(isActive && activeBaseline === "market_fallback");
+}
+
 /** Top |difference| sector/theme row (skip concentration pseudo-rows). */
 function pickTopExposureDiff(s: AnyObj): ExposurePreview | null {
   const rows: AnyObj[] = Array.isArray(s?.rows) ? s.rows : [];
