@@ -10,7 +10,10 @@
 //     manager-timing-skill claim. Only `idio` is a skill read.
 //   • The two attribution families (this returns-factor family vs the holdings
 //     Brinson #10 family in Selection Evidence) are SEPARATE — never summed.
-//   • Active β ≠ total holdings %. Lead the active claim with the market-stripped β.
+//   • Active β ≠ total holdings %. Lead the active claim with the HEADLINE β —
+//     stripped of the fund's named baseline (its passive alternative / L2 blend
+//     when one exists, else the market). Name the baseline per row; never call an
+//     L2-baseline bet "vs the market".
 //   • No prediction, no personalization.
 // Every number renders from the served fact section — nulls show honestly, never
 // fabricated. Dual as-of (holdings vs factor eval) disclosed per panel.
@@ -38,6 +41,10 @@ import {
 import {
   isLocked,
   getPreview,
+  factorBetaHeadline,
+  divergenceHeadlineBeta,
+  isPassiveAltBaseline,
+  baselineNoun,
   type Locked,
   type RiskAttribution as RiskAttributionData,
   type FactorBetaRow,
@@ -133,13 +140,14 @@ function RiskProofPoint({
 }) {
   if (pp.kind === "divergence") {
     const holdPct = fmtPct(pp.total_exposure_holdings, 0);
-    const beta = fmtBeta(pp.beta_active_mkt);
-    const read = divergenceStateLabel(pp.divergence_state);
+    const beta = fmtBeta(pp.beta_active_headline);
+    const baseline = baselineNoun(pp.active_baseline);
+    const read = divergenceStateLabel(pp.divergence_state, pp.active_baseline);
     return (
       <ProofPoint
         label="Biggest hold-vs-bet gap"
         value={`${pp.exposure_name}: hold ${holdPct}, active β ${beta}`}
-        readout={`This fund holds ${holdPct} in ${pp.exposure_name} but runs a ${beta} active bet on it (market stripped) — ${read.toLowerCase()}. Holding a theme isn't the same as betting on it.`}
+        readout={`This fund holds ${holdPct} in ${pp.exposure_name} but runs a ${beta} active bet on it vs ${baseline} — ${read.toLowerCase()}. Holding a theme isn't the same as betting on it.`}
         asOf={
           pp.holdings_as_of || pp.factor_eval_date
             ? `Holdings as of ${pp.holdings_as_of ?? EM_DASH}; return-based exposures through ${pp.factor_eval_date ?? EM_DASH}.`
@@ -148,13 +156,14 @@ function RiskProofPoint({
       />
     );
   }
-  const beta = fmtBeta(pp.beta_active_mkt);
-  const dir = pp.beta_active_mkt > 0 ? "overweight" : "underweight";
+  const beta = fmtBeta(pp.beta_active_headline);
+  const dir = pp.beta_active_headline > 0 ? "overweight" : "underweight";
+  const baseline = baselineNoun(pp.active_baseline);
   return (
     <ProofPoint
       label="Biggest active theme bet"
       value={`${pp.exposure_name}: active β ${beta}`}
-      readout={`Beyond the market, this fund runs a ${beta} (${dir}) active bet on ${pp.exposure_name} — its largest return-based theme bet.`}
+      readout={`Beyond ${baseline}, this fund runs a ${beta} (${dir}) active bet on ${pp.exposure_name} — its largest return-based theme bet.`}
       asOf={pp.factor_eval_date ? `Return-based exposures through ${pp.factor_eval_date}.` : null}
     />
   );
@@ -181,30 +190,38 @@ function FactorBetas({
     );
   }
 
-  // Themes worth showing as an *active bet*: |active β| materially non-zero.
+  // Themes worth showing as an *active bet*: |headline β| materially non-zero.
   const themes = betas.themes
-    .filter((t) => t.beta_active_mkt != null)
-    .sort((a, b) => Math.abs(b.beta_active_mkt ?? 0) - Math.abs(a.beta_active_mkt ?? 0))
+    .filter((t) => factorBetaHeadline(t) != null)
+    .sort((a, b) => Math.abs(factorBetaHeadline(b) ?? 0) - Math.abs(factorBetaHeadline(a) ?? 0))
     .slice(0, 6);
   const styles = betas.styles.filter((s) => s.beta_raw != null);
+
+  // Per-fund baseline (theme rows share it): an L2 passive blend when one exists,
+  // else the market. Names the bet honestly instead of always saying "market".
+  const usesPassiveAlt = themes.some((t) => isPassiveAltBaseline(t.active_baseline));
+  const baselineNounPhrase = usesPassiveAlt ? "its passive alternative" : "the market";
+  const baselineShort = usesPassiveAlt ? "passive alt stripped" : "market stripped";
 
   return (
     <Card>
       <PanelHeading>What drives this fund</PanelHeading>
       <p className="mt-1 text-xs leading-relaxed text-gray-500">
-        Active β is the bet <em>beyond the market</em> (market exposure stripped
-        out). A near-zero active β on a theme means the fund holds it only as much
-        as the market does — that&apos;s market exposure, not an active bet.
+        Active β is the bet <em>beyond {baselineNounPhrase}</em> ({usesPassiveAlt
+          ? "the fund's closest passive index blend"
+          : "broad market"} exposure stripped out). A near-zero active β on a theme
+        means the fund holds it only as much as {baselineNounPhrase} does —
+        that&apos;s baseline exposure, not an active bet.
       </p>
 
       {/* Themes — the active-bet narrative the investor recognises. */}
       <div className="mt-3">
         <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-          Top theme bets <span className="text-gray-300">(active β, market stripped)</span>
+          Top theme bets <span className="text-gray-300">(active β, {baselineShort})</span>
         </div>
         <ul className="mt-1.5 space-y-1.5">
           {themes.map((t) => (
-            <ThemeBetaRow key={t.target_id} t={t} />
+            <ThemeBetaRow key={t.target_id} t={t} baselineNounPhrase={baselineNounPhrase} />
           ))}
         </ul>
         {isPassive && (
@@ -238,16 +255,29 @@ function FactorBetas({
       <AsOf>
         Return-based exposures through {betas.eval_date ?? EM_DASH}
         {betas.window_weeks != null ? ` (${betas.window_weeks}-week trailing regression)` : ""}.
-        Active β = market-stripped ({betas.active_beta_control_model ?? "mkt_1f"});
-        style β = raw. Method {betas.method_version ?? EM_DASH}.
+        Active β is stripped of {baselineNounPhrase}
+        {usesPassiveAlt
+          ? " (the fund's L2 passive blend)"
+          : ` (${betas.active_beta_control_model ?? "mkt_1f"})`}; style β = raw.
+        Method {betas.method_version ?? EM_DASH}.
       </AsOf>
     </Card>
   );
 }
 
-function ThemeBetaRow({ t }: { t: FactorBetaRow }) {
-  const b = t.beta_active_mkt;
+function ThemeBetaRow({
+  t,
+  baselineNounPhrase,
+}: {
+  t: FactorBetaRow;
+  baselineNounPhrase: string;
+}) {
+  const b = factorBetaHeadline(t);
   const isBet = b != null && Math.abs(b) >= 0.05;
+  // When the bet is near-zero, the fund just tracks the baseline on this theme —
+  // name the baseline so it reads "passive-alt exposure" not "market exposure"
+  // for L2-baseline funds.
+  const baselineWord = baselineNounPhrase === "the market" ? "market" : "passive-alt";
   return (
     <li className="flex items-baseline justify-between gap-3 text-sm">
       <span className="truncate text-gray-700">{themeLabel(t.target_id)}</span>
@@ -259,7 +289,7 @@ function ThemeBetaRow({ t }: { t: FactorBetaRow }) {
         >
           {fmtBeta(b)}
         </span>
-        {!isBet && <span className="text-[11px] text-gray-400">market exposure</span>}
+        {!isBet && <span className="text-[11px] text-gray-400">{baselineWord} exposure</span>}
         <BetaConfidence t={t} />
       </span>
     </li>
@@ -277,6 +307,13 @@ function BetaConfidence({ t }: { t: FactorBetaRow }) {
       <ul className="space-y-0.5">
         <li>Active β t-stat: {fmtNum(ts, 1)}{strong ? "" : " — not distinguishable from zero (|t| < 2)"}</li>
         <li>Raw β (total exposure): {fmtBeta(t.beta_raw)}{t.beta_raw_tstat != null ? ` (t ${fmtNum(t.beta_raw_tstat, 1)})` : ""}</li>
+        {/* Both baselines, for transparency — headline picks the L2 blend when present. */}
+        {isPassiveAltBaseline(t.active_baseline) && t.beta_active_l2 != null && (
+          <li>
+            Active β vs passive alt: {fmtBeta(t.beta_active_l2)}; vs market:{" "}
+            {fmtBeta(t.beta_active_mkt)}
+          </li>
+        )}
         <li>Incremental vs FF6: {fmtBeta(t.beta_incremental_ff6)}</li>
         {t.r2_active != null && <li>Regression R²: {fmtPct(t.r2_active, 0)}</li>}
         <li className="text-gray-400">confidence: {t.confidence_state ?? EM_DASH}</li>
@@ -309,14 +346,20 @@ function DivergenceHeadline({
   // assembler already sorted to the front; cap to a focused set.
   const rows = divergence.rows.slice(0, 6);
 
+  // Per-fund baseline (rows share it): the bet is measured vs the fund's passive
+  // alternative (L2 blend) when one exists, else the broad market.
+  const usesPassiveAlt = rows.some((r) => isPassiveAltBaseline(r.active_baseline));
+  const baselineNounPhrase = usesPassiveAlt ? "its passive alternative" : "the market";
+
   return (
     <Card>
       <PanelHeading>What you hold vs what you&apos;re betting on</PanelHeading>
       <p className="mt-1 text-xs leading-relaxed text-gray-500">
         Two different measurements of the same exposure, never added: how much of
         a theme the fund <strong>holds</strong> (% of assets) versus how much of an
-        active <strong>bet</strong> it&apos;s running on that theme (market-stripped β).
-        Holding a lot of a theme isn&apos;t the same as betting on it.
+        active <strong>bet</strong> it&apos;s running on that theme (β vs{" "}
+        {baselineNounPhrase}). Holding a lot of a theme isn&apos;t the same as
+        betting on it.
       </p>
       <div className="mt-3 overflow-x-auto">
         <table className="w-full text-sm">
@@ -324,36 +367,53 @@ function DivergenceHeadline({
             <tr className="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-gray-400">
               <th className="py-2 pr-3 font-medium">Theme</th>
               <th className="px-3 py-2 text-right font-medium">You hold</th>
-              <th className="px-3 py-2 text-right font-medium">Active bet (β)</th>
+              <th className="px-3 py-2 text-right font-medium">
+                Active bet (β vs {usesPassiveAlt ? "passive alt" : "market"})
+              </th>
               <th className="py-2 pl-3 text-right font-medium">Read</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
-              <DivergenceTableRow key={r.target_id} r={r} />
+              <DivergenceTableRow key={r.target_id} r={r} baselineNounPhrase={baselineNounPhrase} />
             ))}
           </tbody>
         </table>
       </div>
       <AsOf>
-        Holdings as of {divergence.holdings_as_of ?? EM_DASH}; return-based
-        exposures through {divergence.factor_eval_date ?? EM_DASH}. These are
-        measured at different dates by design — the return regression is fresher
-        because it needs only returns, not the (filing-lagged) holdings.
+        Active bet β is stripped of {baselineNounPhrase}
+        {usesPassiveAlt ? " (the fund's L2 passive blend)" : ""}. Holdings as of{" "}
+        {divergence.holdings_as_of ?? EM_DASH}; return-based exposures through{" "}
+        {divergence.factor_eval_date ?? EM_DASH}. These are measured at different
+        dates by design — the return regression is fresher because it needs only
+        returns, not the (filing-lagged) holdings.
       </AsOf>
     </Card>
   );
 }
 
-function DivergenceTableRow({ r }: { r: DivergenceRow }) {
+function DivergenceTableRow({
+  r,
+  baselineNounPhrase,
+}: {
+  r: DivergenceRow;
+  baselineNounPhrase: string;
+}) {
   const isBet = r.divergence_state === "active_bet" || r.divergence_state === "active_bet_low_holdings";
+  // Headline active β — stripped of the fund's NAMED baseline (its passive
+  // alternative / L2 blend when one exists, else the market). This is the
+  // artifact-free number; never lead with the raw market-stripped β.
+  const headlineBeta = divergenceHeadlineBeta(r);
   // Plain-English read, driven off divergence_state (never conflate the two
-  // numbers). For an index fund: "market exposure, not an active bet."
+  // numbers). For an index fund: "<baseline> exposure, not an active bet."
   let read: string;
   if (r.divergence_state === "exposure_no_active_bet") {
-    read = "Market exposure, not an active bet";
+    read = `Matches ${baselineNounPhrase}, not an active bet`;
   } else if (r.divergence_state === "active_bet") {
-    read = (r.beta_active_mkt ?? 0) > 0 ? "Overweight bet vs the market" : "Underweight bet vs the market";
+    read =
+      (headlineBeta ?? 0) > 0
+        ? `Overweight bet vs ${baselineNounPhrase}`
+        : `Underweight bet vs ${baselineNounPhrase}`;
   } else if (r.divergence_state === "active_bet_low_holdings") {
     read = "A β bet without a large static weight";
   } else {
@@ -368,17 +428,17 @@ function DivergenceTableRow({ r }: { r: DivergenceRow }) {
       <td className="px-3 py-2 text-right">
         <span
           className={`tabular-nums font-medium ${
-            !isBet ? "text-gray-400" : (r.beta_active_mkt ?? 0) > 0 ? "text-sky-700" : "text-rose-700"
+            !isBet ? "text-gray-400" : (headlineBeta ?? 0) > 0 ? "text-sky-700" : "text-rose-700"
           }`}
         >
-          {fmtBeta(r.beta_active_mkt)}
+          {fmtBeta(headlineBeta)}
         </span>
       </td>
       <td className="py-2 pl-3 text-right">
         <span
           className={`inline-block rounded border px-2 py-0.5 text-[11px] font-medium ${divergenceStateChip(r.divergence_state)}`}
         >
-          {divergenceStateLabel(r.divergence_state)}
+          {divergenceStateLabel(r.divergence_state, r.active_baseline)}
         </span>
         <span className="ml-2 hidden text-[11px] text-gray-400 sm:inline">{read}</span>
       </td>

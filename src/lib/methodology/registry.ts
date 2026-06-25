@@ -196,12 +196,12 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     asOf:
       "Return-based exposures through 2026-04-24; holdings side as of the displayed filing date.",
     measures: [
-      "The factor lens regresses a fund's returns on the market, the Fama-French style factors, and a library of curated theme baskets to estimate its exposures. The active β (market exposure stripped out) is the bet beyond the market; a near-zero active β on a theme means the fund holds it only as much as the market does.",
+      "The factor lens regresses a fund's returns on the market, the Fama-French style factors, and a library of curated theme baskets to estimate its exposures. The active β is the bet beyond the fund's passive baseline — its closest passive alternative (the L2 index blend) when one exists, otherwise the broad market. A near-zero active β on a theme means the fund holds it only as much as that baseline does.",
       "The divergence headline juxtaposes two different measurements of the same exposure: how much of a theme the fund holds (% of assets) and how much of an active bet it runs on that theme (active β). These are never added together.",
       "The bias / timing / idiosyncratic decomposition splits a fund's realised active return over the holdings path into the persistent tilt (bias), the part from carrying more of a factor in the quarters it paid (timing), and the residual left after the factor bets (idiosyncratic).",
     ],
     method: [
-      "Exposures come from trailing return regressions under three control models — raw, market-stripped (the active bet), and incremental-to-FF6. We lead with the market-stripped β for any active claim. The regression runs to a fresher date than the holdings because it needs only returns, not the filing-lagged portfolio; both as-of dates are shown.",
+      "Exposures come from trailing return regressions under several control models — raw, passive-alternative-stripped (vs the fund's L2 index blend), market-stripped, and incremental-to-FF6. The headline active β for any active claim is stripped of the fund's passive alternative when one exists, and falls back to the market otherwise — the page names which baseline applies. The regression runs to a fresher date than the holdings because it needs only returns, not the filing-lagged portfolio; both as-of dates are shown.",
       "The realised attribution multiplies each factor's average active tilt by the cumulative factor return over the path (bias) and adds the covariance of tilt and return (timing). Only the idiosyncratic residual is read as stock-selection evidence — and even then it is cross-referenced with the fund's skill evidence, never asserted alone.",
     ],
     sources: [

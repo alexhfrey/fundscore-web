@@ -184,7 +184,14 @@ export interface TheTake {
 export interface FactorBetaRow {
   target_id: string;
   target_kind: string; // "theme" | "style"
-  beta_active_mkt: number | null; // the active bet (market stripped) — the lead
+  // The active bet, stripped of the *named baseline*. `beta_active_headline` is the
+  // correct lead: it is the L2-blend (passive-alternative) active beta when an L2
+  // look-through exists, else the market-stripped beta. `active_baseline` names
+  // which one it is. `beta_active_mkt`/`beta_active_l2` are kept for transparency.
+  beta_active_headline: number | null;
+  active_baseline: string | null; // "l2_blend" | "market_fallback"
+  beta_active_l2: number | null; // active vs the L2 passive blend (null when no L2)
+  beta_active_mkt: number | null; // active vs the market (always present)
   beta_active_tstat: number | null;
   beta_raw: number | null; // context: total exposure
   beta_raw_tstat: number | null;
@@ -197,7 +204,13 @@ export interface DivergenceRow {
   exposure_name: string;
   exposure_type: string;
   total_exposure_holdings: number | null; // % of AUM held
-  beta_active_mkt: number | null; // the active bet
+  // The active bet vs the *named baseline*. Divergence rows don't carry a
+  // pre-computed `beta_active_headline`; the headline is `beta_active_l2_blend`
+  // when `active_baseline === "l2_blend"`, else `beta_active_mkt` (see
+  // divergenceHeadlineBeta()). Both kept for transparency.
+  active_baseline: string | null; // "l2_blend" | "market_fallback"
+  beta_active_l2_blend: number | null; // active vs the L2 passive blend (null when no L2)
+  beta_active_mkt: number | null; // active vs the market
   beta_total: number | null;
   beta_incremental_ff6: number | null;
   beta_active_tstat: number | null;
@@ -342,7 +355,8 @@ export interface DivergencePreview {
   kind: "divergence";
   exposure_name: string;
   total_exposure_holdings: number | null;
-  beta_active_mkt: number | null;
+  beta_active_headline: number | null; // active beta vs the named baseline
+  active_baseline: string | null; // "l2_blend" | "market_fallback"
   divergence_state: string;
   holdings_as_of: string | null;
   factor_eval_date: string | null;
@@ -350,7 +364,8 @@ export interface DivergencePreview {
 export interface ThemeBetaPreview {
   kind: "theme_beta";
   exposure_name: string;
-  beta_active_mkt: number;
+  beta_active_headline: number; // active beta vs the named baseline
+  active_baseline: string | null; // "l2_blend" | "market_fallback"
   beta_active_tstat: number | null;
   factor_eval_date: string | null;
 }
@@ -404,6 +419,49 @@ function num(v: unknown): number | null {
   return typeof v === "number" && isFinite(v) ? v : null;
 }
 
+// --- Risk & Attribution baseline helpers ------------------------------------
+// The "active bet" is measured relative to a baseline. When the fund has a real
+// L2 passive blend (look-through of its closest index alternative), the headline
+// active beta is stripped of THAT blend, not the broad market — naming the
+// baseline correctly is the whole point of the headline-beta fix. Index funds /
+// funds with no L2 blend fall back to the market.
+
+/** The headline (named-baseline) active beta for a factor-beta theme row. */
+export function factorBetaHeadline(t: {
+  beta_active_headline?: number | null;
+  beta_active_mkt?: number | null;
+}): number | null {
+  // Server pre-computes `beta_active_headline` on theme rows; fall back to the
+  // market-stripped beta only if it's missing.
+  return num(t.beta_active_headline) ?? num(t.beta_active_mkt);
+}
+
+/**
+ * The headline (named-baseline) active beta for a divergence row. Divergence
+ * rows don't carry a pre-computed headline — derive it from the named baseline:
+ * the L2-blend active beta when `active_baseline === "l2_blend"`, else market.
+ */
+export function divergenceHeadlineBeta(r: {
+  active_baseline?: string | null;
+  beta_active_l2_blend?: number | null;
+  beta_active_mkt?: number | null;
+}): number | null {
+  if (r.active_baseline === "l2_blend") {
+    return num(r.beta_active_l2_blend) ?? num(r.beta_active_mkt);
+  }
+  return num(r.beta_active_mkt);
+}
+
+/** True when the active bet is measured vs the fund's passive alternative (L2). */
+export function isPassiveAltBaseline(activeBaseline: string | null | undefined): boolean {
+  return activeBaseline === "l2_blend";
+}
+
+/** Short noun phrase naming the baseline, for inline copy. */
+export function baselineNoun(activeBaseline: string | null | undefined): string {
+  return isPassiveAltBaseline(activeBaseline) ? "its passive alternative" : "the market";
+}
+
 /** Top |difference| sector/theme row (skip concentration pseudo-rows). */
 function pickTopExposureDiff(s: AnyObj): ExposurePreview | null {
   const rows: AnyObj[] = Array.isArray(s?.rows) ? s.rows : [];
@@ -440,7 +498,8 @@ function pickDivergenceHeadline(
       kind: "divergence",
       exposure_name: String(r.exposure_name ?? ""),
       total_exposure_holdings: num(r.total_exposure_holdings),
-      beta_active_mkt: num(r.beta_active_mkt),
+      beta_active_headline: divergenceHeadlineBeta(r),
+      active_baseline: (r.active_baseline as string | null) ?? null,
       divergence_state: String(r.divergence_state ?? "minimal"),
       holdings_as_of:
         (r.holdings_as_of as string | null) ??
@@ -455,15 +514,16 @@ function pickDivergenceHeadline(
   const themes: AnyObj[] = Array.isArray(s?.factor_betas?.themes)
     ? s.factor_betas.themes
     : [];
-  const cands = themes.filter((t) => num(t?.beta_active_mkt) != null);
+  const cands = themes.filter((t) => factorBetaHeadline(t) != null);
   if (cands.length === 0) return null;
   const top = cands.reduce((a, b) =>
-    Math.abs(num(b.beta_active_mkt) ?? 0) > Math.abs(num(a.beta_active_mkt) ?? 0) ? b : a,
+    Math.abs(factorBetaHeadline(b) ?? 0) > Math.abs(factorBetaHeadline(a) ?? 0) ? b : a,
   );
   return {
     kind: "theme_beta",
     exposure_name: themeLabelFor(String(top.target_id ?? "")),
-    beta_active_mkt: num(top.beta_active_mkt) as number,
+    beta_active_headline: factorBetaHeadline(top) as number,
+    active_baseline: (top.active_baseline as string | null) ?? null,
     beta_active_tstat: num(top.beta_active_tstat),
     factor_eval_date: (s?.factor_betas?.eval_date as string | null) ?? null,
   };

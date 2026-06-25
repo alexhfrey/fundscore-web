@@ -62,12 +62,19 @@ export function fmtBeta(b: number | null | undefined, digits = 2): string {
 
 // --- Risk & Attribution (spec #13) — divergence state → label + chip. ---
 // NEUTRAL framing: describes the bet, never a buy/sell verdict.
-export function divergenceStateLabel(state: string | null | undefined): string {
+// `activeBaseline` names what the active β is stripped of: "l2_blend" (the
+// fund's passive alternative) or "market_fallback" (the broad market). The
+// "no active bet" chip reflects that baseline so an L2-baseline fund never reads
+// "Market exposure" when its bet is actually measured vs its passive alternative.
+export function divergenceStateLabel(
+  state: string | null | undefined,
+  activeBaseline?: string | null,
+): string {
   switch (state) {
     case "active_bet":
       return "Active bet";
     case "exposure_no_active_bet":
-      return "Market exposure";
+      return activeBaseline === "l2_blend" ? "Passive-alt exposure" : "Market exposure";
     case "active_bet_low_holdings":
       return "Active bet";
     case "minimal":
