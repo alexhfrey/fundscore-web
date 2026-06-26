@@ -23,7 +23,12 @@ Steps:
      `{ webRoot: WEBROOT, fundScoreRoot: FUNDSCORE, specPath: <abs spec path>, slug: <slug> }`.
      This is the reviewed assembly line (EDA → implement → data-reviewer checkpoint after each step
      → commit), which halts on any FAIL.
-5. Report the outcome: what was implemented, the build/lint results (frontend) or checkpoint verdicts
-   (backend), the branch name, the data-scientist HTML report paths (backend), and whether the spec
-   moved to `done/` (success) or stayed in `queue/` (blocked/failed — with the reason and the failing
+5. **Codex sign-off gate (MANDATORY).** After the implementer's own gates pass, run
+   `.claude/scripts/codex-review.sh --uncommitted` (from the repo the change landed in — WEBROOT for
+   frontend, FUNDSCORE for backend). If `CODEX_GATE: blocked`, fix every P0/P1 finding (or hand it back to
+   the implementer), then re-run the gate; repeat until `CODEX_GATE: pass`. The spec may NOT move to `done/`
+   until codex passes. Cap ~3 rounds, then escalate. Surface P2/P3 advisories as warnings.
+6. Report the outcome: what was implemented, the build/lint results (frontend) or checkpoint verdicts
+   (backend), the codex verdict, the branch name, the data-scientist HTML report paths (backend), and whether
+   the spec moved to `done/` (success) or stayed in `queue/` (blocked/failed — with the reason and the failing
    gate). Never report success unless the gates actually passed.
