@@ -10,6 +10,70 @@ created: 2026-06-24
 scope: global
 ---
 
+## ✅ DONE 2026-06-26 (gold rebuilt + in-process serving verified; Postgres activation pending sign-off)
+- **B2** never-priced EQ 123 → 8 (5 genuine no-L2-match + 3 no-filed-ER); the matched-but-unpriced 117 were a
+  `build_l2_blend_fee_history` ticker-collision bug (already fixed in 14420ae); parquet was stale.
+- **B3** FCNTX coherent triple **net 74 / gross 74 / mgmt 73**. The "misparse" suspicion was DISPROVEN against
+  SEC filings: FCNTX uses an all-inclusive performance-adjusted management fee, so mgmt==total ER is real.
+  `management_fee` now sourced primary-class + same-quarter from the ACTIVE `fee_components/` extractor.
+- **B4** build-failing `enforce_fee_coherence` gate; baselines tightened to actuals C1≤280, C2-corruption≤12.
+  Non-waiver incoherent triples 112 → 6 (filed source-data residual, tracked in data_gap_analysis.md).
+- **DECISION 2 / canonical** `active_fee_over_passive_bps` byte-identical across all 3 consumers; FCNTX = 56.
+- **SCOPE EXPANSION (user-approved):** the surfaced FCNTX fee was ~2yr stale (0.39% 2024) vs real **0.74%**
+  (2026 prospectus). Root-caused to MFRR ingestion lag + single-class-prospectus class-null parse; fixed by
+  ingesting 2026Q1 + a `(series,document)→class` backfill (`alpha/expense.py`). So the canonical is **56 bps**
+  (74−18), NOT the spec's original 21 (which was computed on the stale 0.39%).
+- `/check-data` PASS (reports/check_data_canonical_fee.md). NOT activated to Postgres (awaiting sign-off).
+
+---
+
+## ⚠️ REWORK — a prior run FAILED at checkpoint-2 (full build). Fix these FIRST, then satisfy the spec below.
+The data-reviewer rejected the previous attempt and nothing was committed. The partial prior changes are STILL in the
+`fund_score` working tree (uncommitted) — BUILD ON what is already correct, do not redo it, and do not undo it. Verified
+correct already: the single canonical producer exists (`fee_efficiency/scoring.py:466` aliases `active_fee_over_passive_bps`);
+the gold column `active_fee_bps` was renamed to `fair_fee_active_leg_bps` in `fee_efficiency_score.parquet`; VO-panel
+read-through equals the canonical for all 5 spot funds (FCNTX 21 / DODGX 33 / FBGRX 43 / VDIGX 4 / VOO null). Now fix:
+
+**B1 — Serving integration is absent (DECISION 2). Wire all three consumers to the canonical figure:**
+- (a) `fact_assembler.py` (~line 1402) still sets the hot scalar from `(fee).get('gap_bps')` → FCNTX serves
+  `fee_gap_bps = 16.07` (the fair-fee MODEL gap). Re-point it so `serving_facts_staging` FCNTX `fee_gap_bps` ==
+  `active_fee_over_passive_bps` (**~21**, = net 39 − l2_blend 18), NOT 16.07. No second "fee over passive" number may exist.
+- (b) Add `fair_fee.active_fee_over_passive_bps` (+ `active_fee_over_passive_missing_reason`) to `_fees()` in the assembler.
+- (c) REGRESSION: `fact_assembler.py:1114` still emits `fair_fee.active_fee_bps` by reading `f.get('active_fee_bps')` — a
+  now-dropped gold key → the served fair-fee leg silently becomes **null**. Repoint to `fair_fee_active_leg_bps` (or drop the
+  modeled-leg field per the frontend spec's decision), but do NOT leave it reading the dropped key.
+
+**B2 — The "dominant" pricing-gap fix (spec §A.1) was NOT done — `_compute_l2_blend_fee` got only a docstring reformat.**
+Measured: **123 EQ series never price a canonical figure**; **117 of them have a populated `l2_blend_etfs` match**
+(e.g. SPY/IWD/IWF — trivially priceable) yet `l2_blend_fee_bps` is null in every eval row → they emit
+`passive_fee_unavailable` (122 EQ at the latest row). Root-cause the L2-match→blend-fee JOIN so the never-priced count drops
+from 123 toward the **~5** genuine no-L2-match residual (only 6 are true no-match today). Report the HONEST measured
+before/after counts (the prior run reported "30", which both missed the target and understated the real 123).
+
+**B3 — FCNTX still ships an INCOHERENT triple (explicit acceptance criterion).** `fund_metadata`: net 39 / gross 39 /
+management_fee 63 → `net < management_fee` (C2 violation), and net==gross so it is NOT a waiver. Root cause is a
+**commensurability defect**: net traces to `net_er_primary_class` 2024Q1 (class C000016601) while `management_fee` traces to a
+2025Q1 raw-fees row at the **SERIES grain** (class=None) — different quarter AND different class grain.
+`management_fee` was left as a cross-class median (`build_gold_metadata.py:173`); fix it to **primary-class, same as-of as
+net/gross**, like net/gross already are. NOTE (likely the real fix): the surfaced net (39, from 2024Q1) appears ~1yr STALE —
+the latest 2025Q1 primary-class filings read 0.0056/0.0063, which would make the triple coherent on their own; verify whether
+using the latest non-stale primary-class row resolves both the staleness and C2. Also: 2024Q1 per-class `management_fee`
+(0.0039/0.0032) exactly equals `total_expense_ratio` (a likely concept misparse) — confirm the field is real management fee.
+
+**B4 — Wire a BUILD-FAILING fee-coherence invariant (spec §B). `measure_fee_coherence` is diagnostic-only (never raises).**
+The prior partial fix REGRESSED C2 from 1,028 → 1,479 full-universe, because primary-class net was compared against the
+still-cross-class-median `management_fee` (non-commensurable — fixing B3 should resolve most of this). Even-class C1 was NOT
+driven to 0 (126 even-class C1 violations remain). Satisfy ONE of the spec's options and WIRE it to fail the build:
+(a) drive C1/C2 to 0 + raise, (b) reconcile as-of/grain (B3) + raise, or (c) scope the gate to even-class median→0 + file the
+residual. C1 (gross<net) is already much improved (2,215 → 283 via primary-class net) — keep that.
+
+**Also (warnings):** VOO surfaces a null canonical with a NULL `missing_reason` — the spec mandates an explicit reason
+whenever the canonical is null (passive fund → label it, e.g. "passive fund, no active-fee-over-passive"). And: this is a
+data-integrity task — report HONEST measured aggregates (the prior run over-reported and falsely claimed unrelated diffs were
+"pre-existing"). The working tree DOES contain substantial UNRELATED pre-existing uncommitted work (return-attribution,
+risk-model, docs, experimental `alpha_persistence_*` scripts) — do NOT touch, claim, or commit any of it; scope your changes
+and the final commit to ONLY the fee-coherence files (scoring.py, build_gold_metadata.py, fact_assembler.py, and their tests).
+
 ## Goal
 Produce exactly ONE canonical "active fee over the closest passive mix" figure per series, computed
 in one place with one definition, and carry it (plus a coherent net / gross / management-fee triple)
