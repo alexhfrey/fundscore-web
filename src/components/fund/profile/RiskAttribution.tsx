@@ -669,10 +669,12 @@ function ActiveReturnAttribution({
             </div>
           </div>
           <p className="mt-1 text-xs leading-relaxed text-gray-500">
-            What&apos;s left after the factor bets — the only part of this
-            decomposition that reads as stock-selection skill, and even then it
-            should be cross-referenced with the fund&apos;s skill evidence below,
-            not taken on its own.
+            What&apos;s left after the factor and theme bets over this short
+            holdings window. On its own this is <strong>not</strong> a gross-alpha
+            or skill claim — a short-window idiosyncratic residual does not persist
+            and can even disagree in sign with the long-run returns-based read. For
+            whether the manager has an edge, defer to the Selection Evidence skill
+            verdict (P(positive skill) and the gross information ratio).
           </p>
           <Evidence summary="reconciliation">
             <ul className="space-y-0.5">

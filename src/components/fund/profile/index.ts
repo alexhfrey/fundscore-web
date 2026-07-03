@@ -1,5 +1,6 @@
 export { IdentityStrip } from "./IdentityStrip";
-export { ValueOfferingHero } from "./ValueOfferingHero";
+export { ValueScoreHero } from "./ValueScoreHero"; // CURRENT value verdict (the hero)
+export { ValueOfferingHero } from "./ValueOfferingHero"; // legacy badge hero (retired from the page)
 export { Takeaways } from "./Takeaways";
 export { InvestorFit } from "./InvestorFit";
 export { FeeFairness } from "./FeeFairness";

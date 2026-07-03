@@ -50,6 +50,7 @@ interface SkillEvidence {
   p_negative_skill: number | null;
   alpha_ir: number | null;
   se_alpha_ir: number | null;
+  ir_is_gross: boolean | null;
   t_years: number | null;
   peer_group: string | null;
   method_version: string | null;
@@ -148,7 +149,7 @@ function SkillAndMoves({
           <ProofPoint
             label="Returns-based skill evidence"
             value={`${skillBandLabel(pp.label)} · P(skill) ${fmtPct(pp.p_skill, 0)}`}
-            readout={`Over ${pp.t_years != null ? `${pp.t_years.toFixed(1)} years` : "the measurable window"} of return history, the information ratio is ${fmtNum(pp.alpha_ir)} — ${skillBandLabel(pp.label).toLowerCase()} of stock-picking skill after fees.`}
+            readout={`Over ${pp.t_years != null ? `${pp.t_years.toFixed(1)} years` : "the measurable window"} of return history, the ${pp.ir_is_gross === false ? "net information ratio (after fees)" : "gross information ratio (before fees)"} is ${fmtNum(pp.alpha_ir)} — ${skillBandLabel(pp.label).toLowerCase()} of stock-picking skill.`}
             tone={(pp.alpha_ir ?? 0) > 0 ? "positive" : "negative"}
           />
           <UnlockLine tier={managerParent.locked}>
@@ -191,12 +192,15 @@ function SkillAndMoves({
               The evidence, over the
               {se.t_years != null ? ` ${se.t_years.toFixed(1)} years` : ""} of return
               history we can measure, that returns exceeded what its passive
-              exposures explain — after fees. This is the measurable data window,
-              not the fund&apos;s age.
+              exposures explain —{" "}
+              {se.ir_is_gross === false
+                ? "measured after fees (this fund lacks the expense history needed to strip fees)"
+                : "measured before fees, so it isolates stock-picking from cost (the fee is judged separately in Fee Fairness)"}
+              . This is the measurable data window, not the fund&apos;s age.
             </p>
             <Evidence summary="diagnostics">
               <ul className="space-y-0.5">
-                <li>Information ratio: {fmtNum(se.alpha_ir)}{se.se_alpha_ir != null ? ` (± ${fmtNum(se.se_alpha_ir)})` : ""}</li>
+                <li>Information ratio ({se.ir_is_gross === false ? "net, after fees" : "gross, before fees"}): {fmtNum(se.alpha_ir)}{se.se_alpha_ir != null ? ` (± ${fmtNum(se.se_alpha_ir)})` : ""}</li>
                 <li>P(negative skill): {fmtPct(se.p_negative_skill, 1)}</li>
                 <li>Peer group: {se.peer_group ?? EM_DASH}</li>
                 <li className="text-gray-400">method {se.method_version ?? EM_DASH}</li>

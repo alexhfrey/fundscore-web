@@ -122,7 +122,7 @@ export function ValueOfferingHero({
                   vr!.skill?.ir != null
                     ? `Information ratio ${vr!.skill.ir.toFixed(
                         2,
-                      )} — the return the manager added per unit of active risk, after fees${irDirectionAnchor(
+                      )} — the ${vr!.skill.ir_is_gross === false ? "net" : "gross"} return the manager added per unit of active risk, ${vr!.skill.ir_is_gross === false ? "after fees" : "before fees"}${irDirectionAnchor(
                         vr!.skill.ir,
                       )}.`
                     : null

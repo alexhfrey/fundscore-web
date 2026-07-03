@@ -60,6 +60,129 @@ export function fmtBeta(b: number | null | undefined, digits = 2): string {
   return `${sign}${Math.abs(b).toFixed(digits)}`;
 }
 
+// ============================================================================
+// Value Score (CURRENT value verdict, 2026-06-29) — net active value over the
+// passive alternative. RELATIVE / DIAGNOSTIC, never "beats passive".
+// ----------------------------------------------------------------------------
+// FRAMING GUARDRAIL (non-negotiable, gates the UI): this is a backward-looking,
+// mostly-noise read. Copy NEVER implies "high = will outperform". Lead with the
+// breakeven SIGN; the passive alternative is shown alongside the number always.
+// ============================================================================
+
+export type BreakevenState = "above" | "near" | "below";
+
+/**
+ * Single-source 3-state from the anchored score (50 = breakeven). Mirrors the
+ * Python `_value_score` rule exactly so the hero (served `breakeven_state`) and
+ * the screener (derived here from `value_score_100`) can never disagree on which
+ * side of breakeven a fund sits — the coherence fix for the ~9% of funds whose
+ * coarsened score lands on 50 while the raw bps sign is non-zero.
+ */
+export function breakevenState(
+  score100: number | null | undefined,
+): BreakevenState | null {
+  if (score100 == null || !isFinite(score100)) return null;
+  if (score100 > 50) return "above";
+  if (score100 < 50) return "below";
+  return "near";
+}
+
+/** Plain-English label for the breakeven state — always relative to passive. */
+export function breakevenStateLabel(
+  state: BreakevenState | string | null | undefined,
+): string {
+  if (state === "above") return "Added value, net of fees";
+  if (state === "below") return "Trailed the index, net of fees";
+  if (state === "near") return "About breakeven";
+  return "Not scored";
+}
+
+/** Short label for the compact screener chip. */
+export function breakevenStateChipLabel(
+  state: BreakevenState | string | null | undefined,
+): string {
+  if (state === "above") return "Above breakeven";
+  if (state === "below") return "Below breakeven";
+  if (state === "near") return "≈ Breakeven";
+  return "Not scored";
+}
+
+/**
+ * Calm chip classes per state — deliberately restrained. "Above" is a quiet
+ * teal-emerald, NOT a triumphant "go" green; "near" is neutral slate; "below" is
+ * a muted amber caution. No state is styled to read as a buy signal (VOC: the
+ * celebratory green up-arrow was the single sneakiest misread vector).
+ */
+export function breakevenStateChip(
+  state: BreakevenState | string | null | undefined,
+): string {
+  if (state === "above") return "bg-emerald-50 text-emerald-800 border-emerald-200";
+  if (state === "below") return "bg-amber-50 text-amber-800 border-amber-200";
+  if (state === "near") return "bg-slate-50 text-slate-700 border-slate-200";
+  return "bg-gray-50 text-gray-600 border-gray-200";
+}
+
+/** Honest label for a non-scored coverage state — the reason, never a number. */
+export function coverageStateLabel(
+  state: string | null | undefined,
+): string {
+  switch (state) {
+    case "too_new":
+      return "Too new to score";
+    case "not_comparable":
+      return "Not comparable to a passive alternative";
+    case "fee_unavailable":
+      return "Fee data unavailable";
+    default:
+      return "Not scored";
+  }
+}
+
+/** One-line explanation of why a fund could not be scored. */
+export function coverageStateReason(
+  state: string | null | undefined,
+  passiveAlt?: string | null,
+): string {
+  switch (state) {
+    case "too_new":
+      return "Building its track record — it needs about four years of returns before its value over a passive alternative can be measured.";
+    case "not_comparable":
+      return "Its strategy can't be measured against a low-cost index blend, so a value-over-passive read would be misleading.";
+    case "fee_unavailable":
+      return "Its net expense ratio isn't available, so net value over the passive alternative can't be computed.";
+    default:
+      return passiveAlt
+        ? `No value-over-passive read is available against ${passiveAlt}.`
+        : "No value-over-passive read is available.";
+  }
+}
+
+/** bps → percent string, e.g. 61 → "0.61%", -10 → "−0.10%". `signed` adds +/−. */
+export function pctFromBps(
+  bps: number | null | undefined,
+  { signed = false, digits = 2 }: { signed?: boolean; digits?: number } = {},
+): string {
+  if (bps == null || !isFinite(bps)) return EM_DASH;
+  const pct = bps / 100;
+  if (signed) {
+    const sign = pct > 0 ? "+" : pct < 0 ? "−" : "";
+    return `${sign}${Math.abs(pct).toFixed(digits)}%`;
+  }
+  return `${pct.toFixed(digits)}%`;
+}
+
+/** Confidence flag → short label (carries R² for the pro read when present). */
+export function confidenceLabel(
+  confidence: string | null | undefined,
+  replicaR2?: number | null,
+): string {
+  const base = confidence === "limited" ? "limited confidence" : "high confidence";
+  if (replicaR2 != null && isFinite(replicaR2)) {
+    return `${base} · replica R² ${replicaR2.toFixed(2)}`;
+  }
+  return base;
+}
+
 // --- Risk & Attribution (spec #13) — divergence state → label + chip. ---
 // NEUTRAL framing: describes the bet, never a buy/sell verdict.
 // `activeBaseline` names what the active β is stripped of: "l2_blend" (the

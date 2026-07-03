@@ -30,6 +30,12 @@ const QUERY_DIR =
 
 const CATALOG = `${QUERY_DIR}/query_canonical_catalog.parquet`;
 const RESULTS = `${QUERY_DIR}/query_canonical_results.parquet`;
+// Per-fund Value Score attributes (the screener base panel). Joined into the
+// ranked rows on series_id so the card shows the value verdict. Only the
+// QUALITATIVE verdict is selected (coverage + breakeven state + confidence +
+// passive alt) — the precise paid figures (value_score_100/_bps) are never
+// projected onto these public/ISR pages (verdict free, precision paid).
+const SCREENER = `${QUERY_DIR}/screener_funds.parquet`;
 
 // --- Row shapes (1:1 with the T5a parquet columns) -------------------------
 export interface CatalogRow {
@@ -66,6 +72,12 @@ export interface ResultRow {
   canonical_id: string;
   query_slug: string;
   query_type: string;
+  // --- Value Score verdict (joined from screener_funds on series_id) ---
+  // Qualitative only: the precise paid figures are deliberately not selected.
+  value_coverage_state: string | null; // scored | too_new | not_comparable | fee_unavailable
+  value_breakeven_state: string | null; // above | near | below (null when not scored)
+  value_confidence: string | null; // high | limited
+  value_passive_alt: string | null; // the passive alternative's ticker
 }
 
 export interface QueryPage {
@@ -146,8 +158,25 @@ export async function getQueryBySlug(slug: string): Promise<QueryPage | null> {
     );
     if (cat.length === 0) return null;
     const catalog = coerceRow<CatalogRow>(cat[0]);
+    // LEFT JOIN the Value Score verdict on series_id. The 3-state is derived in
+    // SQL from value_score_100 with the SAME rule as the Python `_value_score`
+    // (>50 above / <50 below / else near), so the screener and the fund page can
+    // never disagree on which side of breakeven a fund sits. The precise score is
+    // used only to derive the state here — it is NOT selected into the payload.
     const rows = await run(
-      `SELECT * FROM read_parquet(${lit(RESULTS)}) WHERE query_slug = ? ORDER BY rank`,
+      `SELECT r.*,
+              s.value_coverage_state,
+              s.value_confidence,
+              s.value_passive_alt,
+              CASE
+                WHEN s.value_coverage_state = 'scored' AND s.value_score_100 > 50 THEN 'above'
+                WHEN s.value_coverage_state = 'scored' AND s.value_score_100 < 50 THEN 'below'
+                WHEN s.value_coverage_state = 'scored' THEN 'near'
+                ELSE NULL
+              END AS value_breakeven_state
+       FROM read_parquet(${lit(RESULTS)}) r
+       LEFT JOIN read_parquet(${lit(SCREENER)}) s ON r.series_id = s.series_id
+       WHERE r.query_slug = ? ORDER BY r.rank`,
       [slug],
     );
     return { catalog, rows: rows.map((r) => coerceRow<ResultRow>(r)) };

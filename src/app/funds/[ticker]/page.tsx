@@ -8,7 +8,7 @@ import {
   type Identity,
   type PassiveBaseline,
   type ValueOfferingReframed,
-  type TheTake,
+  type ValueScore,
   type RiskAttribution as RiskAttributionData,
   type SourceStamp,
   type SkillPreview,
@@ -22,7 +22,7 @@ import {
 } from "@/lib/serving/format";
 import {
   IdentityStrip,
-  ValueOfferingHero,
+  ValueScoreHero,
   Takeaways,
   InvestorFit,
   FeeFairness,
@@ -75,11 +75,14 @@ export default async function FundPage({ params }: FundPageProps) {
   const identity = row.identity as Identity;
   const isPassive = identity.management_style === "passive";
 
-  // Hero sections (gates: public; field-level value_index gated to paid).
+  // Hero: the Value Score verdict (CURRENT). Section is public; precise figures
+  // are field-nulled below 'paid' by applyGates (verdict free, precision paid).
+  const valueScore = (row.valueScore ?? null) as ValueScore | null;
+
+  // Legacy reframed badge is retired from the hero, but its bet-profile read
+  // still feeds InvestorFit ("who it suits"), so keep reading it here.
   const vr = section<ValueOfferingReframed>(row.valueOfferingReframed);
   const vrUnlocked = isLocked(vr) ? null : (vr as ValueOfferingReframed | null);
-  const theTake = section<TheTake>(row.theTake);
-  const theTakeUnlocked = isLocked(theTake) ? null : (theTake as TheTake | null);
   const passive = section<PassiveBaseline>(row.passiveBaseline);
   const passiveUnlocked = isLocked(passive) ? null : (passive as PassiveBaseline | null);
   const passiveName = passiveUnlocked?.display_name ?? null;
@@ -169,14 +172,7 @@ export default async function FundPage({ params }: FundPageProps) {
           holdingsAsOf={holdingsAsOf}
           holdingsStale={holdingsStale}
         />
-        <ValueOfferingHero
-          vr={vrUnlocked}
-          passive={passiveUnlocked}
-          theTake={theTakeUnlocked}
-          feeFairnessLabel={
-            (row.feeFairnessLabel as string | null | undefined) ?? null
-          }
-        />
+        <ValueScoreHero vs={valueScore} />
 
         <div className="mt-12 space-y-12">
           {/* =========================================================== */}

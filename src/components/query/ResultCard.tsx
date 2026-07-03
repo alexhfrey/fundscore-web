@@ -6,11 +6,17 @@
 // Every value comes from the T5a canonical result row — nothing fabricated.
 // ============================================================================
 import Link from "next/link";
-import { badgeStyle, fmtBps, fmtDate } from "@/lib/serving/format";
+import {
+  breakevenStateChip,
+  breakevenStateChipLabel,
+  fmtBps,
+  fmtDate,
+} from "@/lib/serving/format";
 import type { ResultRow } from "@/lib/serving/screener";
 
 export function ResultCard({ row }: { row: ResultRow }) {
-  const badge = row.badge ? badgeStyle(row.badge) : null;
+  const value = valueChip(row);
+  const valueScored = row.value_coverage_state === "scored";
   const holdingsDerived = row.query_type === "composition" || row.query_type === "mixed";
 
   return (
@@ -31,18 +37,24 @@ export function ResultCard({ row }: { row: ResultRow }) {
             <span className="truncate text-sm text-gray-600">{row.fund_name}</span>
           </div>
 
-          {/* Tags: wrapper + VO badge */}
+          {/* Tags: wrapper + Value Score verdict (the qualitative, free read —
+              the precise paid figure is never projected onto these public pages). */}
           <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
             <span className="rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-600">
               {row.wrapper_label}
             </span>
-            {badge && (
+            {value && (
               <span
-                className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium ${badge.chip}`}
+                className={`inline-flex items-center rounded-full border px-2 py-0.5 font-medium ${value.chip}`}
               >
-                <span className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} />
-                {row.badge}
+                {value.label}
               </span>
+            )}
+            {valueScored && row.value_passive_alt && (
+              <span className="text-gray-400">vs {row.value_passive_alt}</span>
+            )}
+            {valueScored && row.value_confidence && (
+              <span className="text-gray-400">· {row.value_confidence} confidence</span>
             )}
           </div>
 
@@ -86,6 +98,29 @@ export function ResultCard({ row }: { row: ResultRow }) {
       </div>
     </Link>
   );
+}
+
+// The Value Score chip: the qualitative breakeven verdict for scored funds, or
+// the honest non-scored reason. RELATIVE/DIAGNOSTIC — calm colors, no "go"
+// arrow, never the precise (paid) number. Returns null when the fund carries no
+// value-score row at all.
+function valueChip(row: ResultRow): { chip: string; label: string } | null {
+  if (row.value_coverage_state === "scored" && row.value_breakeven_state) {
+    return {
+      chip: breakevenStateChip(row.value_breakeven_state),
+      label: breakevenStateChipLabel(row.value_breakeven_state),
+    };
+  }
+  const short =
+    row.value_coverage_state === "too_new"
+      ? "Too new to score"
+      : row.value_coverage_state === "not_comparable"
+        ? "Not comparable"
+        : row.value_coverage_state === "fee_unavailable"
+          ? "Fee unavailable"
+          : null;
+  if (short) return { chip: "bg-gray-50 text-gray-500 border-gray-200", label: short };
+  return null;
 }
 
 // Compress the primary-metric label for the right rail (full label is in the

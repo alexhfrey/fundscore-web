@@ -40,6 +40,38 @@ export interface MethodologyArtifact {
 
 export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
   {
+    anchor: "value-score",
+    title: "Value Score",
+    tagline:
+      "How much genuine active value a fund delivered, net of its fee, versus its passive alternative — a backward-looking, relative read.",
+    methodVersion: "value_score_v0.2",
+    asOf: "Computed as of 2026-04-25, from each fund's weekly returns through that date.",
+    measures: [
+      "The Value Score answers one question: of the active options here, did this fund genuinely add value after its fee, versus simply buying its passive alternative (a low-cost index ETF that tracks the same style)? It is shown as net value over the passive alternative, per year, and as a 0–100 score anchored so that 50 = breakeven (the fund exactly earned back its fee).",
+      "Above breakeven means the fund's beta-adjusted edge more than covered its fee in the past; below means the fee exceeded the edge — for most active funds, the honest default is that the passive alternative wins. It is a relative, diagnostic read, not a prediction.",
+    ],
+    method: [
+      "We strip out broad market and style exposure (the fund's return minus β times its passive alternative), so generic market beta earns no credit — only the manager's beta-clean excess counts.",
+      "That beta-clean edge is deliberately shrunk toward zero because it is mostly noise — specifically it is half of the gross information ratio multiplied by the recent tracking error, so the figure shown is roughly half the fund's raw historical excess. The fund's net expense ratio (at full weight) is then subtracted. What remains is net value over the passive alternative, in basis points per year — the headline number. The 0–100 score is a fixed (not percentile) rescaling anchored at 50 = breakeven.",
+      "A fund is only scored when a low-cost passive alternative can fairly stand in for it (sufficient return history and a close enough style match); otherwise it is shown as Too new, Not comparable, or Fee unavailable rather than given a number. Figures are deliberately coarsened because the signal is mostly noise.",
+    ],
+    sources: [
+      "Weekly fund and passive-alternative (L2 blend) returns from passive_alt_daily_nav",
+      "Net expense ratio (named share class) and the passive alternative's own fee from expense history",
+      "Replica quality (l2_replica_quality) gating which funds can be scored",
+    ],
+    notMeaning: [
+      "It is not a forecast or an expected return — historically even the highest-scoring funds tended to trail their passive alternative, net of fees, going forward.",
+      "It is not a buy / sell / hold recommendation, and a high score is not a probability of beating the market.",
+      "It is not a universal quality rating — only about 1 in 5 active funds clears breakeven, and the typical fund scores around 35.",
+    ],
+    limitations: [
+      "The underlying signal is roughly 98% noise and regime-dependent (it can reverse in down markets), so we lead with the breakeven sign and treat the exact magnitude as soft.",
+      "A single beta adjustment removes broad style but not concentrated theme bets — a growth fund's AI tilt, for example, can still show as positive value.",
+      "Coverage is equity funds only for now, and a fund whose strategy has no fair passive stand-in is shown as Not comparable rather than scored.",
+    ],
+  },
+  {
     anchor: "value-offering",
     title: "Value Offering",
     tagline:
@@ -52,7 +84,7 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
       "It is shown as a small set of plain badges (for example, Stock-picking edge, Mostly a sector or theme bet, Selection unproven, Costs more, Index, Building track record) — always next to the named passive alternative the fund is being read against.",
     ],
     method: [
-      "Axis A (judged selection) uses a hierarchical Bayesian skill posterior — the probability the fund's manager has added value through selection, after accounting for fees and how much can be explained by passive exposures.",
+      "Axis A (judged selection) uses a hierarchical Bayesian skill posterior — the probability the fund's manager has added value through selection, measured before fees (gross-of-fee, so the signal isn't conflated with cost) and after removing what passive exposures explain.",
       "Axis B (bet profile) uses a risk decomposition that splits the fund's tracking risk versus its passive alternative into idiosyncratic stock-picking risk versus shared sector or theme risk. A fund whose active risk is mostly a sector or theme tilt is labelled as such, even when its returns look strong.",
       "A theme-ride override softens a selection badge to a bet badge when nearly all of a fund's edge is explained by one concentrated theme — so a strong number doesn't read as proven skill when it's really one bet.",
     ],

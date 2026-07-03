@@ -152,7 +152,7 @@ export interface ValueOfferingReframed {
   } | null;
   skill: {
     ir: number | null;
-    idio_alpha_bps: number | null;
+    ir_is_gross: boolean | null;
     gross_alpha_bps: number | null;
     p_positive_skill: number | null;
     p_negative_skill: number | null;
@@ -178,6 +178,32 @@ export interface TheTake {
   confidence_state: string | null;
   method_version: string | null;
   as_of_dates: { field_id: string; as_of_date: string | null }[] | null;
+}
+
+// --- value_score (CURRENT value verdict, 2026-06-29) — the hero ----------------
+// Net active value over the passive alternative. RELATIVE/DIAGNOSTIC, never
+// "beats passive". The verdict (coverage_state, breakeven_state, passive alt,
+// confidence) is public/free; the precise figures + the gross/fee receipt are
+// paid (verdict free, precision paid — nulled by applyGates below the paid tier).
+export interface ValueScore {
+  coverage_state: string | null; // scored | too_new | not_comparable | fee_unavailable
+  scored: boolean | null;
+  breakeven_state: "above" | "near" | "below" | null; // single-source 3-state (from score100)
+  above_breakeven: boolean | null; // raw bps sign (internal; UI uses breakeven_state)
+  confidence: string | null; // high | limited
+  value_bps: number | null; // net active value over passive, bps/yr (paid)
+  score100: number | null; // anchored 0-100, 50 = breakeven (paid)
+  gross_alpha_bps: number | null; // gross excess vs the style index, before fee (paid)
+  fee_bps: number | null; // the fund's net ER subtracted (paid)
+  passive_alt_label: string | null; // ALWAYS shown beside the verdict
+  passive_alt_fee_bps: number | null; // the index's OWN fee — symmetric comparison (paid)
+  beta: number | null; // (paid)
+  replica_r2: number | null; // replica quality (paid — confidence detail)
+  n_weeks: number | null; // track-record length (paid — window detail)
+  framing: string | null; // 'relative_diagnostic'
+  method_version: string | null;
+  as_of_date: string | null;
+  locked_fields?: string[];
 }
 
 // --- risk_attribution (spec #13) — factor/theme betas + divergence + bias/timing/idio ---
@@ -292,6 +318,10 @@ export interface FactRow {
   identity: Identity;
   valueOffering: ValueOffering | null;
   valueOfferingReframed: ValueOfferingReframed | null;
+  valueScore: ValueScore | null; // CURRENT value verdict (the hero)
+  valueScoreBps: number | null; // denormalized scalar (paid)
+  valueScore100: number | null; // denormalized scalar (paid)
+  valueCoverageState: string | null; // denormalized scalar (public verdict)
   theTake: TheTake | null;
   fees: Record<string, unknown> | null;
   passiveBaseline: PassiveBaseline | null;
@@ -374,6 +404,7 @@ export interface SkillPreview {
   label: string | null;
   p_skill: number | null;
   alpha_ir: number | null;
+  ir_is_gross: boolean | null;
   t_years: number | null;
 }
 export interface DetractorPreview {
@@ -572,6 +603,7 @@ function pickSkillProofPoint(s: AnyObj): SkillPreview | null {
     label: (se.label as string | null) ?? null,
     p_skill: num(se.p_skill),
     alpha_ir: num(se.alpha_ir),
+    ir_is_gross: typeof se.ir_is_gross === "boolean" ? se.ir_is_gross : null,
     t_years: num(se.t_years),
   };
 }
@@ -728,6 +760,40 @@ export function applyGates(row: FactRow, userState: UserState): FactRow {
       value_index: null,
       locked_fields: ["value_index"],
     };
+  }
+
+  // Field-level: the Value Score VERDICT is public/free — coverage_state,
+  // breakeven_state (above/≈/below the passive alternative), the passive alt
+  // label, confidence, and framing. The PRECISE figures (exact 0-100, net bps,
+  // the gross/fee receipt, the index's own fee, replica R²/window/beta) are
+  // paid/pro: withhold the noisiest digits from the least-sophisticated tier
+  // (verdict free, precision paid). Mirrors the legacy value_index paid-gate.
+  if (out.valueScore && !isLocked(out.valueScore) && rank < TIER_RANK.paid) {
+    const vs = out.valueScore as ValueScore;
+    out.valueScore = {
+      ...vs,
+      value_bps: null,
+      score100: null,
+      gross_alpha_bps: null,
+      fee_bps: null,
+      passive_alt_fee_bps: null,
+      replica_r2: null,
+      n_weeks: null,
+      beta: null,
+      locked_fields: [
+        "value_bps",
+        "score100",
+        "gross_alpha_bps",
+        "fee_bps",
+        "passive_alt_fee_bps",
+        "replica_r2",
+        "n_weeks",
+        "beta",
+      ],
+    };
+    // Denormalized scalars carry the same precise figures — strip them too.
+    out.valueScoreBps = null;
+    out.valueScore100 = null;
   }
 
   // Field-level: Manager Moves direction-of-impact label is public, but the

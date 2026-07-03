@@ -560,6 +560,10 @@ CREATE TABLE fund_profile_facts (
   takeaways               jsonb,                         -- spec #8 (3b)
   the_take                jsonb,                          -- spec #8 (3a)
   risk_attribution        jsonb,                         -- spec #13 — factor/theme betas + divergence + bias/timing/idio
+  value_score             jsonb,                         -- CURRENT value verdict (the hero, 2026-06-29)
+  value_score_bps         real,                          -- net active value over passive, bps/yr (paid)
+  value_score_100         integer,                       -- anchored 0-100, 50 = breakeven (paid)
+  value_coverage_state    text,                          -- scored | too_new | not_comparable | fee_unavailable
   updated_at              timestamptz NOT NULL DEFAULT now()
 );
 

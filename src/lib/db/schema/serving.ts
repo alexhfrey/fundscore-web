@@ -105,6 +105,16 @@ export const fundProfileFacts = pgTable(
     theTake: jsonb("the_take"), // spec #8 (3a) — synthesis block
     riskAttribution: jsonb("risk_attribution"), // spec #13 — factor/theme betas + divergence + bias/timing/idio
 
+    // --- Value Score (CURRENT value verdict, 2026-06-29) — the hero ---
+    // Net active value over the passive alternative; replaces old FundScore AND
+    // the value_offering_reframed badge. The JSONB section carries coverage_state
+    // + breakeven_state (public verdict) and the precise figures + gross/fee
+    // receipt (paid). Scalars denormalized for list/index reads.
+    valueScore: jsonb("value_score"),
+    valueScoreBps: real("value_score_bps"),
+    valueScore100: integer("value_score_100"),
+    valueCoverageState: text("value_coverage_state"),
+
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
