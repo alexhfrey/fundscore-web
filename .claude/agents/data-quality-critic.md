@@ -43,12 +43,24 @@ audit them anyway.
 3. **External sanity** — use WebSearch to verify public, checkable facts: ticker ↔ fund name,
    fund family, AUM order-of-magnitude, net expense ratio, inception date. (Cross-check against
    the fund company or a reputable source.) Flag anything materially off.
-4. **Internal coherence** — do the numbers tell a consistent story? (e.g. fee_gap_bps sign vs the
-   "Strong/Weak" fee label; a "Strong" value verdict vs a near-zero P(skill); a passive fund
-   carrying an active-skill claim.) Flag contradictions — this is where real bugs hide.
+4. **Internal coherence & commensurability** — do the numbers tell a consistent story, AND are any two
+   quantities that get compared measured on the same footing? Flag: (a) sign/label contradictions
+   (fee_gap_bps sign vs the "Strong/Weak" label; a "Strong" verdict vs near-zero P(skill); a passive
+   fund with an active-skill claim); (b) **two readings of the SAME thing that point opposite ways** —
+   e.g. a fund shown underweight an exposure by one measure but overweight it by another. When you see
+   this, do NOT assume it's a legitimate divergence: check whether the two are even on the same
+   **baseline / reference / as-of / population**, and flag the mismatch. A number can trace perfectly to
+   source and still be a false signal because it is compared against the wrong baseline. This is where
+   real bugs hide.
 5. **Staleness** — check as-of dates (holdings, pricing, NAV). Flag data old enough to mislead.
 6. **Fabrication smell** — suspiciously round numbers, identical values across unrelated funds,
    placeholders rendered as real, or impossible ranges. Investigate and flag.
+7. **Things that look off** — beyond exact-match checks, flag anything SURPRISING given what's knowable
+   about the fund: a fund famous for a holding shown as underweight it; a "tech" fund that reads
+   underweight tech; a manager/strategy reading that contradicts the fund's reputation; a number an
+   expert would do a double-take at. "Traces to source" is necessary, not sufficient — the source
+   itself, or the comparison, can still be wrong. Surface these as questions even when you can't fully
+   resolve them; a flagged surprise that turns out fine is cheap, the missed one is the bug that ships.
 
 ## Output
 Return findings (severity, the specific number/claim, the discrepancy with both values shown,

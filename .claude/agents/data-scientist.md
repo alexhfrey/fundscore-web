@@ -19,7 +19,18 @@ from real data, and what does the raw distribution look like?**
 - Locate the real source tables (consult `docs/agent_context_map.md` for the data map).
 - Plot the relevant distributions, coverage/fill rate, time span, and any obvious data hazards
   (gaps, outliers, unit ambiguity, look-ahead risk).
-- Give an explicit **go / caution / no-go** with the reason, and what data is missing if no-go.
+- **Quantify the coverage ceiling — REQUIRED headline number.** From a real sample, estimate the
+  fraction of the TARGET UNIVERSE this approach will actually populate (entities that will get a
+  value ÷ universe size), with a confidence interval. Then split the non-covered remainder into
+  **honest-missing** (no source data exists — e.g. committee-managed funds, index funds with no
+  named PM) vs **recoverable-missing** (the data IS in the source but a naive extractor would miss
+  it — confirm by spot-checking the raw records of the misses, e.g. grep the filing for the
+  signal). A low coverage rate OR a large recoverable-missing fraction is a **caution/no-go** — say
+  so explicitly and prominently. Do NOT wave it through as "partial coverage is expected and
+  acceptable" without the number and the honest-vs-recoverable split; that hides a buildable-but-
+  low-yield feature until after it ships.
+- Give an explicit **go / caution / no-go** with the reason, what data is missing if no-go, and the
+  coverage-ceiling number as a lead finding.
 
 ### Mode 2 — Post-build output review
 After a feature parquet is built, visualize the OUTPUT for sign-off:

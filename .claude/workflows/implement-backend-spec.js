@@ -11,11 +11,16 @@ export const meta = {
   ],
 }
 
-// args = { webRoot, fundScoreRoot, specPath, slug }
+// args = { webRoot, fundScoreRoot, specPath, slug, model?, effort? }
+// model/effort come from the spec's frontmatter (`model: fable|opus|sonnet`, `effort:
+// low|medium|high|xhigh`) and apply to the IMPLEMENTER segments only — the data-reviewer /
+// data-scientist gate agents stay on the session default so review quality never drops with a
+// cheaper implementer.
 const A = typeof args === 'string' ? JSON.parse(args) : (args || {})
-const { webRoot, fundScoreRoot, specPath, slug } = A
+const { webRoot, fundScoreRoot, specPath, slug, model, effort } = A
 if (!webRoot || !fundScoreRoot || !specPath || !slug)
   throw new Error('args requires webRoot, fundScoreRoot, specPath, slug')
+const implOpts = { ...(model ? { model } : {}), ...(effort ? { effort } : {}) }
 
 const persona = (name) => `${webRoot}/.claude/agents/${name}.md`
 const common = `
@@ -56,6 +61,7 @@ const DS_SCHEMA = {
     report_path: { type: 'string' },
     key_stats: { type: 'string' },
     verdict: { type: 'string', description: 'go|caution|no-go (EDA) or pass|concern (output review)' },
+    coverage_estimate: { type: 'string', description: 'REQUIRED for EDA: the coverage ceiling — what fraction of the target universe will get a value, split honest-missing vs recoverable-missing (spot-checked). Lead finding.' },
     hazards: { type: 'array', items: { type: 'string' } },
   },
   required: ['report_path', 'verdict'],
@@ -65,13 +71,15 @@ const impl = (segment, extra = '') =>
   agent(
     common.replace('PERSONA', 'backend-implementer') +
       `\n\nDo ONLY the **${segment}** segment, then stop for review.${extra}`,
-    { label: `impl:${segment}`, schema: SEGMENT_SCHEMA, phase: phaseOf(segment) }
+    { label: `impl:${segment}`, schema: SEGMENT_SCHEMA, phase: phaseOf(segment), ...implOpts }
   )
 const review = (step, payload) =>
   agent(
     common.replace('PERSONA', 'data-reviewer') +
       `\n\nReview the **${step}** output below. Run the full verification gate (atomic spot checks vs raw\n` +
-      `source, aggregate sanity vs baseline, statistical coherence, no-leakage, naming, fabrication scan).\n` +
+      `source, aggregate sanity vs baseline, COVERAGE/RECALL gate [realized coverage % + honest-missing vs\n` +
+      `recoverable-missing split, spot-checked on the raw source — a large recoverable miss is BLOCKING, not\n` +
+      `acceptable "partial coverage"], statistical coherence, no-leakage, naming, fabrication scan).\n` +
       `Return verdict pass/fail — any blocking issue is a fail.\n\nIMPLEMENTER OUTPUT (JSON):\n${JSON.stringify(payload, null, 2)}`,
     { label: `review:${step}`, schema: REVIEW_SCHEMA, phase: phaseOf(step) }
   )
@@ -88,10 +96,19 @@ phase('EDA')
 const eda = await agent(
   common.replace('PERSONA', 'data-scientist') +
     `\n\nMode 1 (pre-build EDA): explore the candidate inputs for this spec, emit a self-contained HTML\n` +
-    `plot report to ${fundScoreRoot}/reports/feature_pipeline/${slug}_eda.html, and give a go/caution/no-go.`,
+    `plot report to ${fundScoreRoot}/reports/feature_pipeline/${slug}_eda.html, and give a go/caution/no-go.\n` +
+    `REQUIRED lead finding: quantify the COVERAGE CEILING — from a real sample, what fraction of the\n` +
+    `target universe will actually get a value, with the non-covered remainder split into honest-missing\n` +
+    `(no source data) vs recoverable-missing (data IS in the source but a naive extractor misses it —\n` +
+    `confirm by spot-checking raw records). Return it in coverage_estimate. A low rate or large\n` +
+    `recoverable-missing fraction is a caution/no-go — do not wave it through as "partial coverage".`,
   { label: 'eda', schema: DS_SCHEMA, phase: 'EDA' }
 )
 if (eda && eda.verdict === 'no-go') return stopped('EDA', eda)
+if (eda?.coverage_estimate) log(`EDA coverage ceiling: ${eda.coverage_estimate}`)
+// Coverage is a first-class gate: every data-reviewer checkpoint below must verify the realized
+// coverage and split honest-missing vs recoverable-missing (a large recoverable miss is BLOCKING),
+// not just precision/fabrication. (See data-reviewer.md check 2a.)
 
 // ---- Sample + checkpoint 1 -------------------------------------------------
 phase('Sample')

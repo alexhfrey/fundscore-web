@@ -45,8 +45,14 @@ depends_on: <slug or "">      # frontend part of a full-stack feature depends_on
 source_proposal: feature-pipeline/proposals/approved/<slug>.md
 created: <YYYY-MM-DD>
 scope: page | global
+model: fable | opus | sonnet   # optional routing hints — /implement-next passes them
+effort: xhigh | high | ...     # to the implementer agents (reviewers stay on default)
 ---
 ```
+Model rule of thumb: **omit** (session default) for mechanical/well-pinned work; `opus` for
+standard specs; add `effort: xhigh` where EDA/root-cause ambiguity is real; `fable` ONLY where
+plausible-but-wrong could survive the review gates (methodology/basis design, statistical
+judgment, prompt+gate engineering).
 Body — **frontend** specs: Goal · Context (with critic evidence) · Solution (components, data flow,
 loading/empty/locked states, tier gating) · Files to touch · Data dependencies (exact
 `fund_profile_facts` fields; mark any missing field a blocker) · Acceptance criteria (incl.
