@@ -1,88 +1,108 @@
-# Feature-critique pipeline
+# Feature-improvement pipeline (fundscore-web)
 
-A standing system that critiques fundscore-web pages, turns the critiques into reviewable feature
-proposals, and — once you approve them — specs and implements them. It spans two repos:
-**fundscore-web** (this repo: UI + serving table) and **fund_score** (the data backend).
+A multi-agent assembly line that turns "look at the website" → reviewed feature ideas → specs →
+shipped code, with **human gates** and **data-integrity guardrails** at every step. Built across this
+repo's `.claude/` (agents, workflows, commands), `feature-pipeline/` (artifacts), and
+`scripts/critique/` (tooling). The data-quality / backend agents reach into the `fund_score` repo
+(`/Users/alexfrey/Projects/fund_score`) by absolute path for ground truth.
 
-Run the pipeline from a Claude Code session rooted in **this repo** (fundscore-web): the custom
-agents and slash-commands resolve from `.claude/` here, and the implementers need this repo as the
-working dir. The data-quality / backend agents reach into fund_score by absolute path.
+## Run it from a fundscore-web session
 
-## The flow
+Open Claude Code rooted in **this repo** — custom agents and slash-commands resolve from `.claude/`
+here, and the implementers need it as cwd for `npm`. Have the **dev server** (`npm run dev`, :3000) and
+**local Postgres** up — pages and captures read `fund_profile_facts`.
+
+## The flow — 3 phases + a human gate
 
 ```
-Phase 1  CRITIQUE & PROPOSE  (automated)
-  capture page  →  5 critics  →  product-strategist  →  proposals/pending/*.md
-                                                          │
-Phase 2  HUMAN GATE  (you)  ◄─────────────────────────────┘
-  /review-proposals  →  approved/  or  rejected/
-                          │
-Phase 3  SPEC & IMPLEMENT  (automated)
-  spec-writer  →  specs/queue/*.md  →  /implement-next routes by track:
-        track: frontend → feature-implementer  → build+lint → branch → done/
-        track: backend  → implement-backend-spec workflow (reviewed assembly line) → done/
+/critique-funds     5 critics + product-strategist   → proposals/pending/      (Phase 1, automated)
+   ▼ you: /review-proposals          → approved/                               (the human gate)
+/spec-approved      spec-writer                       → specs/queue/  (track-tagged)
+   ▼ you: /review-specs   (decision-altitude dashboard; revise loop auto-fixes the rest)
+/implement-next     routes by track:                                           (Phase 3)
+        frontend → feature-implementer → npm build+lint → branch
+        backend  → implement-backend-spec assembly line
+                   (EDA → implement → data-reviewer ✋ each step → /check-data → commit; halts on FAIL)
 ```
 
-## Commands (run in order)
+## Commands (`.claude/commands/`)
 
-| Command | What it does |
-|---|---|
-| `/critique-funds [TICKER ...]` | Capture the fund pages + run the critic panel → writes `proposals/pending/`. Defaults to the tickers in `config/page-types.json`. |
-| `/review-proposals` | Walk through pending proposals; keep → `approved/`, reject → `rejected/`. (Or just move files yourself.) |
-| `/spec-approved` | Turn approved proposals into specs in `specs/queue/` (classified frontend / backend / full-stack). |
-| `/implement-next` | Implement the next ready spec, routing by track. `/loop /implement-next` drains the queue. |
+| Command | Phase | What it does |
+|---|---|---|
+| `/critique-funds [tickers]` | 1 | Capture the pages + run the critic panel → writes `proposals/pending/`. |
+| `/review-proposals` | gate | Triage pending proposals: keep → `approved/`, reject → `rejected/`. |
+| `/spec-approved` | 2 | Turn approved proposals into specs in `specs/queue/`, classified by track. |
+| `/review-specs` | 2 | Decision-altitude review dashboard: auto-fix mechanical+engineering, surface only product decisions. |
+| `/implement-next` | 3 | Implement the next ready spec, routing frontend vs backend. `/loop /implement-next` drains the queue. |
+| `/review-prompts` | meta | Audit the machinery itself (agent/workflow/command prompts) at decision altitude. |
 
 ## Agents (`.claude/agents/`)
 
-**Critics** (Phase 1) — each returns structured findings + feature ideas:
-- `marketing-critic` — does the page deliver the fee-vs-passive promise, differentiated, retail-first?
-- `design-critic` — visual craft, hierarchy, mobile, a11y (reads desktop + mobile screenshots).
-- `engineering-critic` — source review: correctness, tier-gating integrity, perf, states.
-- `data-quality-critic` — diffs every displayed number across the provenance chain (page → Postgres
-  → staging parquet → gold panels in fund_score) + external web sanity checks.
-- `narrative-critic` — "what did I actually learn, is it true, what's missing?" — the feature-idea engine.
+- **Critics** (Phase 1, return structured findings + feature ideas): `marketing-critic` · `design-critic`
+  · `engineering-critic` · `data-quality-critic` (cross-repo provenance audit) · `narrative-critic`.
+- **Pipeline**: `product-strategist` (critiques → deduped proposals) · `spec-writer` (frontend / backend /
+  full-stack, grounded in real code) · `feature-implementer` (frontend; gates on build+lint, commits on a branch).
+- **Backend reviewed track**: `backend-implementer` (data work in fund_score, segmented) · `data-reviewer`
+  (adversarial gate after every step) · `data-scientist` (EDA + self-contained HTML plot reports).
+- **Reviewers** (decision altitude): `spec-reviewer` · `prompt-reviewer`.
 
-**Pipeline:**
-- `product-strategist` — synthesizes critiques → a small deduped set of proposals; writes the inbox.
-- `spec-writer` — approved proposal → implementation spec(s), classified by track.
-- `feature-implementer` — implements a **frontend** spec; gates on `npm run build` + `lint`; commits on a branch.
+## Workflows (`.claude/workflows/`)
 
-**Backend data track** (for `track: backend` specs, in fund_score):
-- `backend-implementer` — implements one segment of a data spec (sample → full → serving → commit).
-- `data-reviewer` — adversarially verifies the output **after every intermediate step** (atomic spot
-  checks vs raw source, aggregate sanity, statistical coherence, no synthetic data). Any blocking
-  issue = FAIL = the assembly line stops.
-- `data-scientist` — emits self-contained **HTML plot reports** to `fund_score/reports/feature_pipeline/`
-  for human review: pre-build EDA (feasibility) and post-build output verification.
+- `critique-and-propose.js` — fan out critics per page → PM synthesis → dedup → write proposals.
+- `spec-out-approved.js` — approved proposals → specs.
+- `revise-specs.js` — revise flagged specs + re-review.
+- `review-artifacts.js` — **decision altitude**: review specs or prompts, auto-resolve mechanical +
+  engineering issues, surface only product **decisions** (+ a plain-English brief and the artifact inline).
+- `implement-backend-spec.js` — the **reviewed assembly line** for backend data specs; halts on any FAIL.
 
-The backend workflow `implement-backend-spec.js` runs these as a reviewed assembly line:
-`EDA plots → implement-sample → review ✋ → full build → review ✋ + output plots → serving rebuild →
-review ✋ (served == gold) → /check-data → commit`. It is **fully autonomous but halts on any FAIL**.
+## Tooling (`scripts/critique/`)
 
-## Directory layout
+- `capture.mjs` — Playwright: a page → desktop + mobile screenshots, visible text, source list, served facts.
+- `render-review.mjs` — review result → decision-brief HTML dashboard.
+- `render-md.mjs` — any markdown (specs, design docs) → self-contained HTML.
+
+## Directory layout (`feature-pipeline/`)
 
 ```
-config/page-types.json     page-type → route, critics, default tickers, source files, ground-truth paths
-captures/<slug>/           per-page capture bundle (gitignored): screenshot[-mobile].png, text.txt,
-                           served_facts.json, sources.json, meta.json
-proposals/{pending,approved,rejected}/   narrative feature proposals (the review inbox)
-specs/{queue,done}/        implementation specs (the build queue)
+config/page-types.json     page-type → route, critics, default targets, source files, ground-truth paths
+captures/<slug>/           per-page capture bundle (gitignored)
+proposals/{pending,approved,rejected}/   the review inbox
+specs/{queue,done}/        the build queue
+reviews/                   review/decision HTML reports (gitignored)
 ```
 
-## Extending to other page types
+## How reviews work — "decision altitude"
+
+Reviewers sort every finding into **mechanical** (auto-fixed), **engineering** (the loop auto-resolves),
+or **decision** (the only thing surfaced to you — a product/framing/scope/data-truth call, in plain
+language with a recommendation). You review a brief + your decisions + the artifact inline, rendered to a
+browser dashboard — **not** a finding dump. Reports are always **opened in the browser + served at a
+localhost URL**, never handed over as a bare file path.
+
+## Data-integrity guardrails
+
+- **No synthetic data, ever.** Missing reads as missing; the verification gate (sample → atomic +
+  aggregate checks) runs before any scale build; `/check-data` after rebuilds.
+- **Commensurability + fault-first + "things that look off"** — baked into `data-reviewer`,
+  `data-quality-critic`, and the global `/check-data` skill: any two compared quantities must share
+  baseline / as-of / window / population / units; treat contradictions and surprises as defects to
+  root-cause, not puzzles to reconcile. ("Traces to source" is necessary, not sufficient.)
+- The **reviewed backend assembly line halts on any data-reviewer FAIL**.
+- **Verify "done" independently** — the assembly line can over-report a passing status; trust the data,
+  not the headline.
+
+## Conventions & gotchas (for maintainers)
+
+- **Personas are read from the `.md` files by absolute path** at runtime (not bound to a custom
+  `agentType`) — so workflows are portable and the `.md` is the single source of truth.
+- **Workflow `args` arrive as a JSON string** — every script does
+  `const A = typeof args === 'string' ? JSON.parse(args) : (args || {})`.
+- **Frontend** work happens in fundscore-web; **backend data** work in fund_score (the assembly line,
+  autonomous with hard gates). Custom `agentType` only resolves in its own repo's session — that's why
+  the workflows read personas by path instead.
+- **Hybrid autonomy** — auto-apply obvious/mechanical fixes; flag nuanced/judgment calls.
+
+## Extending to new page types
 
 Add an entry to `config/page-types.json` `page_types` (route template, which critics apply, default
-targets, source files, ground-truth paths). v0 ships `fund_profile` only. Everything else (capture,
-workflow, commands) is page-type-generic and reads the config.
-
-## Maintainer notes
-
-- **Capture needs the dev server + local Postgres up.** `npm run dev` (:3000); the page reads the
-  `fund_profile_facts` table.
-- **Workflow `args` arrive as a JSON string**, not a parsed object — every workflow script does
-  `const A = typeof args === 'string' ? JSON.parse(args) : (args || {})`. Keep that when editing.
-- **Personas are read from the `.md` files by absolute path** at runtime (not bound to a custom
-  `agentType`), so the workflows are portable and the `.md` files are the single source of truth —
-  edit one file, both the workflow and interactive `/agents` use pick it up.
-- **Data integrity is sacred.** The backend track never synthesizes/imputes data; missing reads as
-  missing; every intermediate output is reviewed before it propagates.
+targets, source files, ground-truth paths). The capture, workflows, and commands are page-type-generic.

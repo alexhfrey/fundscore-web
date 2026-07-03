@@ -8,6 +8,7 @@ depends_on: ""
 source_proposal: feature-pipeline/proposals/approved/fund-identity-manager-freshness.md
 created: 2026-06-24
 scope: global
+model: opus
 ---
 
 ## Goal
@@ -178,3 +179,56 @@ Per the project extraction gate — verify on a small sample BEFORE batch:
   batch; require `source_accession` + verbatim `manager_name_raw` for traceability.
 - Staleness: a "managed since 1990 / retiring 2026" fact is only as good as the latest filing —
   carry the `manager_as_of` stamp so the UI shows the as-of and the serving layer flags staleness.
+
+## Implementation addendum — validated hybrid (regex fix + qwen3-8b), 2026-06-29
+The v1 sample build failed data-review checkpoint-1 (Regents Park: honorific captured as name,
+fabricated `lead` role, 3 of 4 co-PMs silently dropped). Two evidence-based validations resolved the
+regex-vs-LLM question (read both before implementing):
+- `reports/feature_pipeline/manager-extract-regex-validation.md` — regex is **fixable, not too brittle**:
+  ~100% recall/precision on prose-singular + clean tables (the dominant classes); failures are an
+  enumerable bounded set; fixed-regex ceiling ~95–98% recall / ~100% precision. A genuine long tail
+  remains (free-form prose, multi-sub-adviser tables, combined-book attribution).
+- `reports/feature_pipeline/manager-extract-qwen-headtohead.md` — **qwen3-8b** recovers the prose long
+  tail at 100% recall / 0 fabrications (Potomac "helped manage", Regents Park surname-only plural,
+  Cohen&Steers decoy), matches FCNTX incl. the retirement event, and — critically — returns honest-empty
+  on the DODGX committee trap where **qwen3-32b fabricated 6 committee members**. Cost ≈ **$1–2** for the
+  whole long-tail batch. Use **qwen3-8b** (identical recall to 32b, safer on committee funds).
+
+**Build this hybrid:**
+1. **Repair the deterministic regex (`manager_extract.py`) — keep it for prose-singular + clean tables.**
+   Bounded fixes, each enumerated in the regex-validation report §4: (a) reject honorific tokens
+   (Mr./Ms./Mrs./Messrs./Dr.) as name tokens; (b) delete the `n_pm_in_block==1 → "lead"` inference —
+   only label explicitly-stated roles, else `unknown`; (c) match plural shared tenure ("Messrs. X and Y
+   **have** managed … since YYYY", "commenced operations in YYYY") and split to each PM; (d) accept
+   "Month YYYY" since-cells in `parse_table_block`; (e) strip leading "Since" in table cells;
+   (f) whitelist name suffixes (Jr./Sr./II/III/IV); (g) backward name-scan from the tenure verb (not the
+   first name-like token in the segment) to kill the lead-in decoy; (h) broaden retirement templates
+   ("has announced his intention to retire effective …"). Target ~95–98% recall / ~100% precision.
+2. **Add a qwen3-8b LLM leg for the prose long tail.** Reuse `trend-swing/llm_features/providers.py`
+   `call_llm(system, user, provider="qwen3-8b")` (OpenRouter; load `OPENROUTER_API_KEY` from
+   `trend-swing/.env`) — or vendor a minimal OpenAI-compatible client into fund_score so the build owns
+   its dependency. **Route to the LLM** only blocks the regex can't confidently parse: non-standard
+   tenure verbs ("helped manage", "is responsible for…"), standalone bios lacking the "the Fund since"
+   anchor, surname-only plural where names stay unresolved, and any summary block that yields 0 regex
+   rows but contains PM-like content. Prompt = the head-to-head's structured-extraction prompt
+   (name without honorific; role only if stated; integer `since_year`; verbatim `evidence`; never emit an
+   adviser/sub-adviser FIRM as a person; include EVERY named PM; also retirement/succession events);
+   `temperature=0`, strip `<think>…</think>`, parse strict JSON.
+3. **Committee hard-guard (MANDATORY, in code — do not trust the model).** Detect committee-managed funds
+   (e.g. "Investment Committee" with no individual "managed since" tenure) and force `managers=[]`
+   regardless of LLM output. 8b passed DODGX but 32b did not — enforce the honest-0 in code. This is a
+   data-integrity invariant, not a model setting.
+4. **Provenance for LLM rows.** `source_system = 'llm_extraction'`; carry `source_accession` +
+   verbatim `manager_name_raw` + the evidence snippet for traceability. `confidence_state = 'high'` only
+   with a verbatim "since YYYY" + clean name, else `'medium'` — do NOT blanket `'high'` (the failed v1
+   shipped `high` on a corrupted row). Regex rows keep their existing provenance; placeholder rows keep
+   `source_system = 'fundscore_method'` (invariant 12).
+5. **Out of v1 scope — honest gap, do NOT fake it.** Multi-manager sub-adviser **sleeve tables**
+   (Destinations-class) are NOT closed: qwen3-8b extracted only the 4 overlay PMs and dropped all 16
+   sleeve PMs even with the full Item-5 in-window (validated — a comprehension ceiling, not truncation).
+   These funds keep honest overlay-only / `unavailable` rows; the validation report MUST state the
+   multi-sleeve coverage gap. Follow-up (separate task): structured sleeve-table parsing or prompt
+   iteration + re-test before claiming that tail is closed.
+6. **Re-clear the gates.** Re-run the atomic spot-checks (FCNTX, DODGX→0, Regents Park→4 real names,
+   Potomac→Russo, Cohen&Steers→Yablon) on the sample BEFORE batch, then proceed through the reviewed
+   assembly line (data-reviewer checkpoint after each step) + the codex sign-off gate.

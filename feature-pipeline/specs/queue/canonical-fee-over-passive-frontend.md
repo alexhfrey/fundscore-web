@@ -8,6 +8,7 @@ depends_on: canonical-fee-over-passive-backend
 source_proposal: feature-pipeline/proposals/approved/canonical-fee-over-passive-figure.md
 created: 2026-06-24
 scope: global
+model: opus
 ---
 
 ## Goal
