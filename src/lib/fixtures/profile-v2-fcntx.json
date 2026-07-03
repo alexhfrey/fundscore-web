@@ -1,0 +1,3017 @@
+{
+ "nav_series": {
+  "passive_label": "IWF",
+  "series_start": "2008-05",
+  "as_of": "2026-04",
+  "points": [
+   {
+    "t": "2008-05",
+    "fund": 1011.3,
+    "passive": 999.2,
+    "beta_adj_passive": 999.2
+   },
+   {
+    "t": "2008-06",
+    "fund": 961.7,
+    "passive": 915.8,
+    "beta_adj_passive": 923.8
+   },
+   {
+    "t": "2008-07",
+    "fund": 921.9,
+    "passive": 907.6,
+    "beta_adj_passive": 916.3
+   },
+   {
+    "t": "2008-08",
+    "fund": 914.8,
+    "passive": 921.6,
+    "beta_adj_passive": 929.1
+   },
+   {
+    "t": "2008-09",
+    "fund": 826.8,
+    "passive": 834.6,
+    "beta_adj_passive": 849.8
+   },
+   {
+    "t": "2008-10",
+    "fund": 695.9,
+    "passive": 696.7,
+    "beta_adj_passive": 722.8
+   },
+   {
+    "t": "2008-11",
+    "fund": 647.3,
+    "passive": 648.2,
+    "beta_adj_passive": 677.3
+   },
+   {
+    "t": "2008-12",
+    "fund": 657.9,
+    "passive": 654.2,
+    "beta_adj_passive": 682.9
+   },
+   {
+    "t": "2009-01",
+    "fund": 620.7,
+    "passive": 620.7,
+    "beta_adj_passive": 651.3
+   },
+   {
+    "t": "2009-02",
+    "fund": 575.4,
+    "passive": 574.1,
+    "beta_adj_passive": 607.1
+   },
+   {
+    "t": "2009-03",
+    "fund": 615.6,
+    "passive": 622.0,
+    "beta_adj_passive": 652.9
+   },
+   {
+    "t": "2009-04",
+    "fund": 653.9,
+    "passive": 685.1,
+    "beta_adj_passive": 712.8
+   },
+   {
+    "t": "2009-05",
+    "fund": 695.1,
+    "passive": 720.8,
+    "beta_adj_passive": 746.4
+   },
+   {
+    "t": "2009-06",
+    "fund": 695.2,
+    "passive": 727.5,
+    "beta_adj_passive": 752.6
+   },
+   {
+    "t": "2009-07",
+    "fund": 737.1,
+    "passive": 780.3,
+    "beta_adj_passive": 802.1
+   },
+   {
+    "t": "2009-08",
+    "fund": 750.2,
+    "passive": 795.4,
+    "beta_adj_passive": 816.1
+   },
+   {
+    "t": "2009-09",
+    "fund": 791.9,
+    "passive": 827.6,
+    "beta_adj_passive": 846.0
+   },
+   {
+    "t": "2009-10",
+    "fund": 782.8,
+    "passive": 817.0,
+    "beta_adj_passive": 836.2
+   },
+   {
+    "t": "2009-11",
+    "fund": 825.7,
+    "passive": 867.9,
+    "beta_adj_passive": 883.3
+   },
+   {
+    "t": "2009-12",
+    "fund": 850.2,
+    "passive": 894.4,
+    "beta_adj_passive": 907.7
+   },
+   {
+    "t": "2010-01",
+    "fund": 811.3,
+    "passive": 854.2,
+    "beta_adj_passive": 870.8
+   },
+   {
+    "t": "2010-02",
+    "fund": 834.4,
+    "passive": 883.9,
+    "beta_adj_passive": 898.2
+   },
+   {
+    "t": "2010-03",
+    "fund": 880.8,
+    "passive": 934.9,
+    "beta_adj_passive": 945.0
+   },
+   {
+    "t": "2010-04",
+    "fund": 895.4,
+    "passive": 945.0,
+    "beta_adj_passive": 954.3
+   },
+   {
+    "t": "2010-05",
+    "fund": 836.6,
+    "passive": 872.4,
+    "beta_adj_passive": 888.0
+   },
+   {
+    "t": "2010-06",
+    "fund": 809.4,
+    "passive": 824.7,
+    "beta_adj_passive": 844.1
+   },
+   {
+    "t": "2010-07",
+    "fund": 849.0,
+    "passive": 883.9,
+    "beta_adj_passive": 898.9
+   },
+   {
+    "t": "2010-08",
+    "fund": 825.0,
+    "passive": 842.5,
+    "beta_adj_passive": 860.8
+   },
+   {
+    "t": "2010-09",
+    "fund": 908.3,
+    "passive": 931.5,
+    "beta_adj_passive": 943.0
+   },
+   {
+    "t": "2010-10",
+    "fund": 946.0,
+    "passive": 977.2,
+    "beta_adj_passive": 984.9
+   },
+   {
+    "t": "2010-11",
+    "fund": 956.4,
+    "passive": 988.3,
+    "beta_adj_passive": 995.0
+   },
+   {
+    "t": "2010-12",
+    "fund": 994.2,
+    "passive": 1042.1,
+    "beta_adj_passive": 1044.0
+   },
+   {
+    "t": "2011-01",
+    "fund": 1000.0,
+    "passive": 1067.3,
+    "beta_adj_passive": 1066.8
+   },
+   {
+    "t": "2011-02",
+    "fund": 1041.2,
+    "passive": 1103.9,
+    "beta_adj_passive": 1099.9
+   },
+   {
+    "t": "2011-03",
+    "fund": 1043.3,
+    "passive": 1103.9,
+    "beta_adj_passive": 1099.9
+   },
+   {
+    "t": "2011-04",
+    "fund": 1071.5,
+    "passive": 1140.3,
+    "beta_adj_passive": 1132.7
+   },
+   {
+    "t": "2011-05",
+    "fund": 1054.3,
+    "passive": 1127.7,
+    "beta_adj_passive": 1121.4
+   },
+   {
+    "t": "2011-06",
+    "fund": 1037.7,
+    "passive": 1111.4,
+    "beta_adj_passive": 1106.7
+   },
+   {
+    "t": "2011-07",
+    "fund": 1041.7,
+    "passive": 1100.9,
+    "beta_adj_passive": 1097.3
+   },
+   {
+    "t": "2011-08",
+    "fund": 990.5,
+    "passive": 1041.9,
+    "beta_adj_passive": 1044.1
+   },
+   {
+    "t": "2011-09",
+    "fund": 916.9,
+    "passive": 966.2,
+    "beta_adj_passive": 975.5
+   },
+   {
+    "t": "2011-10",
+    "fund": 1010.4,
+    "passive": 1070.6,
+    "beta_adj_passive": 1070.8
+   },
+   {
+    "t": "2011-11",
+    "fund": 1003.6,
+    "passive": 1069.4,
+    "beta_adj_passive": 1069.7
+   },
+   {
+    "t": "2011-12",
+    "fund": 992.9,
+    "passive": 1066.3,
+    "beta_adj_passive": 1066.9
+   },
+   {
+    "t": "2012-01",
+    "fund": 1042.7,
+    "passive": 1130.7,
+    "beta_adj_passive": 1125.2
+   },
+   {
+    "t": "2012-02",
+    "fund": 1099.9,
+    "passive": 1184.1,
+    "beta_adj_passive": 1173.2
+   },
+   {
+    "t": "2012-03",
+    "fund": 1141.3,
+    "passive": 1222.9,
+    "beta_adj_passive": 1208.0
+   },
+   {
+    "t": "2012-04",
+    "fund": 1140.0,
+    "passive": 1221.4,
+    "beta_adj_passive": 1206.7
+   },
+   {
+    "t": "2012-05",
+    "fund": 1075.9,
+    "passive": 1142.9,
+    "beta_adj_passive": 1136.5
+   },
+   {
+    "t": "2012-06",
+    "fund": 1101.1,
+    "passive": 1174.4,
+    "beta_adj_passive": 1164.9
+   },
+   {
+    "t": "2012-07",
+    "fund": 1109.9,
+    "passive": 1187.4,
+    "beta_adj_passive": 1176.5
+   },
+   {
+    "t": "2012-08",
+    "fund": 1137.5,
+    "passive": 1226.0,
+    "beta_adj_passive": 1211.1
+   },
+   {
+    "t": "2012-09",
+    "fund": 1172.8,
+    "passive": 1243.5,
+    "beta_adj_passive": 1226.8
+   },
+   {
+    "t": "2012-10",
+    "fund": 1130.7,
+    "passive": 1207.2,
+    "beta_adj_passive": 1194.4
+   },
+   {
+    "t": "2012-11",
+    "fund": 1152.0,
+    "passive": 1228.2,
+    "beta_adj_passive": 1213.2
+   },
+   {
+    "t": "2012-12",
+    "fund": 1151.1,
+    "passive": 1228.6,
+    "beta_adj_passive": 1213.5
+   },
+   {
+    "t": "2013-01",
+    "fund": 1196.0,
+    "passive": 1280.6,
+    "beta_adj_passive": 1260.0
+   },
+   {
+    "t": "2013-02",
+    "fund": 1211.9,
+    "passive": 1294.5,
+    "beta_adj_passive": 1272.3
+   },
+   {
+    "t": "2013-03",
+    "fund": 1256.7,
+    "passive": 1343.3,
+    "beta_adj_passive": 1315.7
+   },
+   {
+    "t": "2013-04",
+    "fund": 1279.6,
+    "passive": 1371.7,
+    "beta_adj_passive": 1340.9
+   },
+   {
+    "t": "2013-05",
+    "fund": 1304.9,
+    "passive": 1398.2,
+    "beta_adj_passive": 1364.3
+   },
+   {
+    "t": "2013-06",
+    "fund": 1282.5,
+    "passive": 1369.1,
+    "beta_adj_passive": 1338.6
+   },
+   {
+    "t": "2013-07",
+    "fund": 1348.8,
+    "passive": 1445.0,
+    "beta_adj_passive": 1405.7
+   },
+   {
+    "t": "2013-08",
+    "fund": 1328.3,
+    "passive": 1419.7,
+    "beta_adj_passive": 1383.5
+   },
+   {
+    "t": "2013-09",
+    "fund": 1397.2,
+    "passive": 1482.7,
+    "beta_adj_passive": 1439.0
+   },
+   {
+    "t": "2013-10",
+    "fund": 1465.0,
+    "passive": 1548.0,
+    "beta_adj_passive": 1496.3
+   },
+   {
+    "t": "2013-11",
+    "fund": 1506.8,
+    "passive": 1590.5,
+    "beta_adj_passive": 1533.5
+   },
+   {
+    "t": "2013-12",
+    "fund": 1544.1,
+    "passive": 1635.8,
+    "beta_adj_passive": 1573.0
+   },
+   {
+    "t": "2014-01",
+    "fund": 1509.6,
+    "passive": 1588.2,
+    "beta_adj_passive": 1531.6
+   },
+   {
+    "t": "2014-02",
+    "fund": 1593.5,
+    "passive": 1669.7,
+    "beta_adj_passive": 1602.7
+   },
+   {
+    "t": "2014-03",
+    "fund": 1551.4,
+    "passive": 1652.5,
+    "beta_adj_passive": 1587.7
+   },
+   {
+    "t": "2014-04",
+    "fund": 1523.7,
+    "passive": 1653.6,
+    "beta_adj_passive": 1588.7
+   },
+   {
+    "t": "2014-05",
+    "fund": 1574.0,
+    "passive": 1703.8,
+    "beta_adj_passive": 1632.3
+   },
+   {
+    "t": "2014-06",
+    "fund": 1612.0,
+    "passive": 1736.3,
+    "beta_adj_passive": 1660.5
+   },
+   {
+    "t": "2014-07",
+    "fund": 1588.8,
+    "passive": 1710.2,
+    "beta_adj_passive": 1637.9
+   },
+   {
+    "t": "2014-08",
+    "fund": 1659.3,
+    "passive": 1787.2,
+    "beta_adj_passive": 1704.6
+   },
+   {
+    "t": "2014-09",
+    "fund": 1640.5,
+    "passive": 1761.4,
+    "beta_adj_passive": 1682.3
+   },
+   {
+    "t": "2014-10",
+    "fund": 1664.9,
+    "passive": 1806.2,
+    "beta_adj_passive": 1721.0
+   },
+   {
+    "t": "2014-11",
+    "fund": 1700.7,
+    "passive": 1865.6,
+    "beta_adj_passive": 1772.2
+   },
+   {
+    "t": "2014-12",
+    "fund": 1691.7,
+    "passive": 1844.9,
+    "beta_adj_passive": 1754.5
+   },
+   {
+    "t": "2015-01",
+    "fund": 1669.1,
+    "passive": 1817.8,
+    "beta_adj_passive": 1731.1
+   },
+   {
+    "t": "2015-02",
+    "fund": 1769.0,
+    "passive": 1937.7,
+    "beta_adj_passive": 1834.4
+   },
+   {
+    "t": "2015-03",
+    "fund": 1760.3,
+    "passive": 1915.0,
+    "beta_adj_passive": 1815.0
+   },
+   {
+    "t": "2015-04",
+    "fund": 1745.4,
+    "passive": 1925.5,
+    "beta_adj_passive": 1824.0
+   },
+   {
+    "t": "2015-05",
+    "fund": 1783.1,
+    "passive": 1950.8,
+    "beta_adj_passive": 1845.7
+   },
+   {
+    "t": "2015-06",
+    "fund": 1777.9,
+    "passive": 1916.8,
+    "beta_adj_passive": 1816.6
+   },
+   {
+    "t": "2015-07",
+    "fund": 1839.4,
+    "passive": 1982.1,
+    "beta_adj_passive": 1872.5
+   },
+   {
+    "t": "2015-08",
+    "fund": 1729.7,
+    "passive": 1861.1,
+    "beta_adj_passive": 1769.1
+   },
+   {
+    "t": "2015-09",
+    "fund": 1694.2,
+    "passive": 1812.6,
+    "beta_adj_passive": 1727.5
+   },
+   {
+    "t": "2015-10",
+    "fund": 1814.1,
+    "passive": 1970.3,
+    "beta_adj_passive": 1863.4
+   },
+   {
+    "t": "2015-11",
+    "fund": 1825.8,
+    "passive": 1976.3,
+    "beta_adj_passive": 1868.5
+   },
+   {
+    "t": "2015-12",
+    "fund": 1801.6,
+    "passive": 1946.3,
+    "beta_adj_passive": 1842.8
+   },
+   {
+    "t": "2016-01",
+    "fund": 1698.7,
+    "passive": 1835.8,
+    "beta_adj_passive": 1748.2
+   },
+   {
+    "t": "2016-02",
+    "fund": 1678.7,
+    "passive": 1835.8,
+    "beta_adj_passive": 1748.2
+   },
+   {
+    "t": "2016-03",
+    "fund": 1772.6,
+    "passive": 1959.5,
+    "beta_adj_passive": 1854.8
+   },
+   {
+    "t": "2016-04",
+    "fund": 1777.0,
+    "passive": 1941.4,
+    "beta_adj_passive": 1839.3
+   },
+   {
+    "t": "2016-05",
+    "fund": 1806.7,
+    "passive": 1979.5,
+    "beta_adj_passive": 1871.9
+   },
+   {
+    "t": "2016-06",
+    "fund": 1779.4,
+    "passive": 1970.8,
+    "beta_adj_passive": 1864.5
+   },
+   {
+    "t": "2016-07",
+    "fund": 1859.1,
+    "passive": 2064.6,
+    "beta_adj_passive": 1944.7
+   },
+   {
+    "t": "2016-08",
+    "fund": 1864.1,
+    "passive": 2053.9,
+    "beta_adj_passive": 1935.6
+   },
+   {
+    "t": "2016-09",
+    "fund": 1872.2,
+    "passive": 2060.0,
+    "beta_adj_passive": 1940.8
+   },
+   {
+    "t": "2016-10",
+    "fund": 1840.8,
+    "passive": 2012.0,
+    "beta_adj_passive": 1899.9
+   },
+   {
+    "t": "2016-11",
+    "fund": 1851.8,
+    "passive": 2056.1,
+    "beta_adj_passive": 1937.6
+   },
+   {
+    "t": "2016-12",
+    "fund": 1861.8,
+    "passive": 2082.8,
+    "beta_adj_passive": 1960.3
+   },
+   {
+    "t": "2017-01",
+    "fund": 1943.1,
+    "passive": 2151.3,
+    "beta_adj_passive": 2018.7
+   },
+   {
+    "t": "2017-02",
+    "fund": 2017.9,
+    "passive": 2239.0,
+    "beta_adj_passive": 2093.1
+   },
+   {
+    "t": "2017-03",
+    "fund": 2049.3,
+    "passive": 2266.1,
+    "beta_adj_passive": 2116.0
+   },
+   {
+    "t": "2017-04",
+    "fund": 2107.1,
+    "passive": 2316.5,
+    "beta_adj_passive": 2158.6
+   },
+   {
+    "t": "2017-05",
+    "fund": 2182.9,
+    "passive": 2376.4,
+    "beta_adj_passive": 2209.0
+   },
+   {
+    "t": "2017-06",
+    "fund": 2174.1,
+    "passive": 2370.0,
+    "beta_adj_passive": 2203.7
+   },
+   {
+    "t": "2017-07",
+    "fund": 2251.0,
+    "passive": 2432.2,
+    "beta_adj_passive": 2256.0
+   },
+   {
+    "t": "2017-08",
+    "fund": 2287.2,
+    "passive": 2476.3,
+    "beta_adj_passive": 2293.0
+   },
+   {
+    "t": "2017-09",
+    "fund": 2306.6,
+    "passive": 2506.7,
+    "beta_adj_passive": 2318.4
+   },
+   {
+    "t": "2017-10",
+    "fund": 2415.6,
+    "passive": 2604.9,
+    "beta_adj_passive": 2400.6
+   },
+   {
+    "t": "2017-11",
+    "fund": 2454.1,
+    "passive": 2681.7,
+    "beta_adj_passive": 2464.6
+   },
+   {
+    "t": "2017-12",
+    "fund": 2460.2,
+    "passive": 2706.6,
+    "beta_adj_passive": 2485.3
+   },
+   {
+    "t": "2018-01",
+    "fund": 2688.4,
+    "passive": 2894.7,
+    "beta_adj_passive": 2641.5
+   },
+   {
+    "t": "2018-02",
+    "fund": 2587.4,
+    "passive": 2774.5,
+    "beta_adj_passive": 2542.3
+   },
+   {
+    "t": "2018-03",
+    "fund": 2496.4,
+    "passive": 2699.3,
+    "beta_adj_passive": 2480.0
+   },
+   {
+    "t": "2018-04",
+    "fund": 2526.3,
+    "passive": 2706.5,
+    "beta_adj_passive": 2485.9
+   },
+   {
+    "t": "2018-05",
+    "fund": 2628.8,
+    "passive": 2825.1,
+    "beta_adj_passive": 2584.5
+   },
+   {
+    "t": "2018-06",
+    "fund": 2653.1,
+    "passive": 2852.2,
+    "beta_adj_passive": 2606.9
+   },
+   {
+    "t": "2018-07",
+    "fund": 2704.5,
+    "passive": 2934.6,
+    "beta_adj_passive": 2675.0
+   },
+   {
+    "t": "2018-08",
+    "fund": 2826.5,
+    "passive": 3093.7,
+    "beta_adj_passive": 2806.2
+   },
+   {
+    "t": "2018-09",
+    "fund": 2830.5,
+    "passive": 3111.8,
+    "beta_adj_passive": 2821.0
+   },
+   {
+    "t": "2018-10",
+    "fund": 2555.3,
+    "passive": 2834.5,
+    "beta_adj_passive": 2593.7
+   },
+   {
+    "t": "2018-11",
+    "fund": 2573.3,
+    "passive": 2859.2,
+    "beta_adj_passive": 2614.1
+   },
+   {
+    "t": "2018-12",
+    "fund": 2370.9,
+    "passive": 2619.5,
+    "beta_adj_passive": 2415.9
+   },
+   {
+    "t": "2019-01",
+    "fund": 2594.8,
+    "passive": 2851.6,
+    "beta_adj_passive": 2609.5
+   },
+   {
+    "t": "2019-02",
+    "fund": 2657.0,
+    "passive": 2954.0,
+    "beta_adj_passive": 2694.2
+   },
+   {
+    "t": "2019-03",
+    "fund": 2715.6,
+    "passive": 3037.3,
+    "beta_adj_passive": 2763.0
+   },
+   {
+    "t": "2019-04",
+    "fund": 2848.2,
+    "passive": 3172.2,
+    "beta_adj_passive": 2873.9
+   },
+   {
+    "t": "2019-05",
+    "fund": 2685.2,
+    "passive": 2973.9,
+    "beta_adj_passive": 2711.5
+   },
+   {
+    "t": "2019-06",
+    "fund": 2863.4,
+    "passive": 3166.2,
+    "beta_adj_passive": 2870.0
+   },
+   {
+    "t": "2019-07",
+    "fund": 2889.4,
+    "passive": 3246.3,
+    "beta_adj_passive": 2935.7
+   },
+   {
+    "t": "2019-08",
+    "fund": 2837.3,
+    "passive": 3218.3,
+    "beta_adj_passive": 2912.8
+   },
+   {
+    "t": "2019-09",
+    "fund": 2793.9,
+    "passive": 3220.9,
+    "beta_adj_passive": 2914.9
+   },
+   {
+    "t": "2019-10",
+    "fund": 2872.1,
+    "passive": 3311.9,
+    "beta_adj_passive": 2989.4
+   },
+   {
+    "t": "2019-11",
+    "fund": 2995.9,
+    "passive": 3459.0,
+    "beta_adj_passive": 3109.5
+   },
+   {
+    "t": "2019-12",
+    "fund": 3081.7,
+    "passive": 3558.8,
+    "beta_adj_passive": 3190.7
+   },
+   {
+    "t": "2020-01",
+    "fund": 3146.9,
+    "passive": 3639.4,
+    "beta_adj_passive": 3256.0
+   },
+   {
+    "t": "2020-02",
+    "fund": 2959.9,
+    "passive": 3398.0,
+    "beta_adj_passive": 3060.7
+   },
+   {
+    "t": "2020-03",
+    "fund": 2661.2,
+    "passive": 3056.6,
+    "beta_adj_passive": 2782.6
+   },
+   {
+    "t": "2020-04",
+    "fund": 3048.2,
+    "passive": 3505.6,
+    "beta_adj_passive": 3152.2
+   },
+   {
+    "t": "2020-05",
+    "fund": 3245.1,
+    "passive": 3739.8,
+    "beta_adj_passive": 3342.7
+   },
+   {
+    "t": "2020-06",
+    "fund": 3376.3,
+    "passive": 3902.1,
+    "beta_adj_passive": 3473.9
+   },
+   {
+    "t": "2020-07",
+    "fund": 3618.4,
+    "passive": 4205.7,
+    "beta_adj_passive": 3718.4
+   },
+   {
+    "t": "2020-08",
+    "fund": 3966.9,
+    "passive": 4633.4,
+    "beta_adj_passive": 4060.4
+   },
+   {
+    "t": "2020-09",
+    "fund": 3774.6,
+    "passive": 4418.4,
+    "beta_adj_passive": 3890.0
+   },
+   {
+    "t": "2020-10",
+    "fund": 3654.6,
+    "passive": 4269.5,
+    "beta_adj_passive": 3771.4
+   },
+   {
+    "t": "2020-11",
+    "fund": 3960.1,
+    "passive": 4710.7,
+    "beta_adj_passive": 4123.9
+   },
+   {
+    "t": "2020-12",
+    "fund": 4083.3,
+    "passive": 4920.3,
+    "beta_adj_passive": 4289.9
+   },
+   {
+    "t": "2021-01",
+    "fund": 4039.5,
+    "passive": 4881.5,
+    "beta_adj_passive": 4259.2
+   },
+   {
+    "t": "2021-02",
+    "fund": 4102.7,
+    "passive": 4880.1,
+    "beta_adj_passive": 4258.1
+   },
+   {
+    "t": "2021-03",
+    "fund": 4187.5,
+    "passive": 4966.4,
+    "beta_adj_passive": 4326.2
+   },
+   {
+    "t": "2021-04",
+    "fund": 4481.6,
+    "passive": 5307.6,
+    "beta_adj_passive": 4595.1
+   },
+   {
+    "t": "2021-05",
+    "fund": 4491.6,
+    "passive": 5234.1,
+    "beta_adj_passive": 4537.5
+   },
+   {
+    "t": "2021-06",
+    "fund": 4676.0,
+    "passive": 5554.0,
+    "beta_adj_passive": 4788.3
+   },
+   {
+    "t": "2021-07",
+    "fund": 4775.7,
+    "passive": 5741.8,
+    "beta_adj_passive": 4934.8
+   },
+   {
+    "t": "2021-08",
+    "fund": 4992.6,
+    "passive": 5951.3,
+    "beta_adj_passive": 5097.6
+   },
+   {
+    "t": "2021-09",
+    "fund": 4693.5,
+    "passive": 5615.3,
+    "beta_adj_passive": 4837.3
+   },
+   {
+    "t": "2021-10",
+    "fund": 5020.0,
+    "passive": 6106.2,
+    "beta_adj_passive": 5219.8
+   },
+   {
+    "t": "2021-11",
+    "fund": 5015.0,
+    "passive": 6144.8,
+    "beta_adj_passive": 5249.6
+   },
+   {
+    "t": "2021-12",
+    "fund": 5081.1,
+    "passive": 6270.1,
+    "beta_adj_passive": 5346.5
+   },
+   {
+    "t": "2022-01",
+    "fund": 4664.0,
+    "passive": 5725.8,
+    "beta_adj_passive": 4926.7
+   },
+   {
+    "t": "2022-02",
+    "fund": 4436.0,
+    "passive": 5487.3,
+    "beta_adj_passive": 4741.1
+   },
+   {
+    "t": "2022-03",
+    "fund": 4581.4,
+    "passive": 5704.7,
+    "beta_adj_passive": 4911.0
+   },
+   {
+    "t": "2022-04",
+    "fund": 4051.9,
+    "passive": 5008.6,
+    "beta_adj_passive": 4369.0
+   },
+   {
+    "t": "2022-05",
+    "fund": 3999.8,
+    "passive": 4894.1,
+    "beta_adj_passive": 4278.7
+   },
+   {
+    "t": "2022-06",
+    "fund": 3648.6,
+    "passive": 4501.4,
+    "beta_adj_passive": 3968.2
+   },
+   {
+    "t": "2022-07",
+    "fund": 3980.6,
+    "passive": 5046.2,
+    "beta_adj_passive": 4402.5
+   },
+   {
+    "t": "2022-08",
+    "fund": 3821.5,
+    "passive": 4810.4,
+    "beta_adj_passive": 4216.5
+   },
+   {
+    "t": "2022-09",
+    "fund": 3508.7,
+    "passive": 4342.3,
+    "beta_adj_passive": 3845.4
+   },
+   {
+    "t": "2022-10",
+    "fund": 3673.3,
+    "passive": 4593.7,
+    "beta_adj_passive": 4046.7
+   },
+   {
+    "t": "2022-11",
+    "fund": 3865.4,
+    "passive": 4800.7,
+    "beta_adj_passive": 4211.6
+   },
+   {
+    "t": "2022-12",
+    "fund": 3645.1,
+    "passive": 4432.6,
+    "beta_adj_passive": 3919.6
+   },
+   {
+    "t": "2023-01",
+    "fund": 3910.5,
+    "passive": 4801.7,
+    "beta_adj_passive": 4214.8
+   },
+   {
+    "t": "2023-02",
+    "fund": 3838.4,
+    "passive": 4744.6,
+    "beta_adj_passive": 4169.4
+   },
+   {
+    "t": "2023-03",
+    "fund": 4064.8,
+    "passive": 5066.3,
+    "beta_adj_passive": 4425.1
+   },
+   {
+    "t": "2023-04",
+    "fund": 4196.3,
+    "passive": 5118.1,
+    "beta_adj_passive": 4466.0
+   },
+   {
+    "t": "2023-05",
+    "fund": 4303.3,
+    "passive": 5358.0,
+    "beta_adj_passive": 4655.4
+   },
+   {
+    "t": "2023-06",
+    "fund": 4563.3,
+    "passive": 5714.5,
+    "beta_adj_passive": 4935.5
+   },
+   {
+    "t": "2023-07",
+    "fund": 4752.9,
+    "passive": 5911.0,
+    "beta_adj_passive": 5089.0
+   },
+   {
+    "t": "2023-08",
+    "fund": 4707.0,
+    "passive": 5854.3,
+    "beta_adj_passive": 5044.9
+   },
+   {
+    "t": "2023-09",
+    "fund": 4557.2,
+    "passive": 5534.4,
+    "beta_adj_passive": 4795.5
+   },
+   {
+    "t": "2023-10",
+    "fund": 4514.4,
+    "passive": 5453.7,
+    "beta_adj_passive": 4732.3
+   },
+   {
+    "t": "2023-11",
+    "fund": 4884.4,
+    "passive": 6051.9,
+    "beta_adj_passive": 5201.8
+   },
+   {
+    "t": "2023-12",
+    "fund": 5054.5,
+    "passive": 6311.5,
+    "beta_adj_passive": 5403.6
+   },
+   {
+    "t": "2024-01",
+    "fund": 5299.5,
+    "passive": 6465.3,
+    "beta_adj_passive": 5522.7
+   },
+   {
+    "t": "2024-02",
+    "fund": 5796.9,
+    "passive": 6893.7,
+    "beta_adj_passive": 5853.6
+   },
+   {
+    "t": "2024-03",
+    "fund": 5963.5,
+    "passive": 7026.0,
+    "beta_adj_passive": 5955.2
+   },
+   {
+    "t": "2024-04",
+    "fund": 5686.9,
+    "passive": 6729.8,
+    "beta_adj_passive": 5728.2
+   },
+   {
+    "t": "2024-05",
+    "fund": 6079.8,
+    "passive": 7135.2,
+    "beta_adj_passive": 6040.3
+   },
+   {
+    "t": "2024-06",
+    "fund": 6350.2,
+    "passive": 7607.2,
+    "beta_adj_passive": 6401.6
+   },
+   {
+    "t": "2024-07",
+    "fund": 6255.9,
+    "passive": 7475.3,
+    "beta_adj_passive": 6301.3
+   },
+   {
+    "t": "2024-08",
+    "fund": 6501.1,
+    "passive": 7627.0,
+    "beta_adj_passive": 6416.9
+   },
+   {
+    "t": "2024-09",
+    "fund": 6636.3,
+    "passive": 7845.7,
+    "beta_adj_passive": 6583.3
+   },
+   {
+    "t": "2024-10",
+    "fund": 6614.3,
+    "passive": 7816.0,
+    "beta_adj_passive": 6560.8
+   },
+   {
+    "t": "2024-11",
+    "fund": 6938.1,
+    "passive": 8326.4,
+    "beta_adj_passive": 6948.3
+   },
+   {
+    "t": "2024-12",
+    "fund": 6872.7,
+    "passive": 8401.9,
+    "beta_adj_passive": 7005.3
+   },
+   {
+    "t": "2025-01",
+    "fund": 7245.2,
+    "passive": 8563.7,
+    "beta_adj_passive": 7127.3
+   },
+   {
+    "t": "2025-02",
+    "fund": 7059.0,
+    "passive": 8255.9,
+    "beta_adj_passive": 6895.6
+   },
+   {
+    "t": "2025-03",
+    "fund": 6542.6,
+    "passive": 7563.0,
+    "beta_adj_passive": 6372.2
+   },
+   {
+    "t": "2025-04",
+    "fund": 6594.9,
+    "passive": 7682.4,
+    "beta_adj_passive": 6463.1
+   },
+   {
+    "t": "2025-05",
+    "fund": 7140.7,
+    "passive": 8366.1,
+    "beta_adj_passive": 6983.4
+   },
+   {
+    "t": "2025-06",
+    "fund": 7624.3,
+    "passive": 8901.4,
+    "beta_adj_passive": 7387.5
+   },
+   {
+    "t": "2025-07",
+    "fund": 7866.2,
+    "passive": 9233.2,
+    "beta_adj_passive": 7636.6
+   },
+   {
+    "t": "2025-08",
+    "fund": 7885.8,
+    "passive": 9341.9,
+    "beta_adj_passive": 7717.9
+   },
+   {
+    "t": "2025-09",
+    "fund": 8091.7,
+    "passive": 9829.4,
+    "beta_adj_passive": 8082.1
+   },
+   {
+    "t": "2025-10",
+    "fund": 8173.4,
+    "passive": 10189.7,
+    "beta_adj_passive": 8350.1
+   },
+   {
+    "t": "2025-11",
+    "fund": 8166.8,
+    "passive": 9998.1,
+    "beta_adj_passive": 8208.1
+   },
+   {
+    "t": "2025-12",
+    "fund": 8302.4,
+    "passive": 9942.0,
+    "beta_adj_passive": 8166.4
+   },
+   {
+    "t": "2026-01",
+    "fund": 8463.0,
+    "passive": 9787.7,
+    "beta_adj_passive": 8051.8
+   },
+   {
+    "t": "2026-02",
+    "fund": 8378.3,
+    "passive": 9456.6,
+    "beta_adj_passive": 7805.4
+   },
+   {
+    "t": "2026-03",
+    "fund": 7858.0,
+    "passive": 8964.7,
+    "beta_adj_passive": 7438.2
+   },
+   {
+    "t": "2026-04",
+    "fund": 8669.2,
+    "passive": 10016.2,
+    "beta_adj_passive": 8227.3
+   }
+  ],
+  "period_table": [
+   {
+    "period": "YTD",
+    "fund_ann_pct": 4.4,
+    "passive_ann_pct": 0.7,
+    "beta_adj_passive_ann_pct": 0.7,
+    "diff_bps": 367,
+    "beta_adj_diff_bps": 367
+   },
+   {
+    "period": "1Y",
+    "fund_ann_pct": 31.5,
+    "passive_ann_pct": 30.4,
+    "beta_adj_passive_ann_pct": 27.3,
+    "diff_bps": 107,
+    "beta_adj_diff_bps": 416
+   },
+   {
+    "period": "3Y",
+    "fund_ann_pct": 27.4,
+    "passive_ann_pct": 25.1,
+    "beta_adj_passive_ann_pct": 22.6,
+    "diff_bps": 228,
+    "beta_adj_diff_bps": 477
+   },
+   {
+    "period": "5Y",
+    "fund_ann_pct": 14.1,
+    "passive_ann_pct": 13.5,
+    "beta_adj_passive_ann_pct": 12.4,
+    "diff_bps": 56,
+    "beta_adj_diff_bps": 175
+   },
+   {
+    "period": "10Y",
+    "fund_ann_pct": 17.2,
+    "passive_ann_pct": 17.8,
+    "beta_adj_passive_ann_pct": 16.2,
+    "diff_bps": -66,
+    "beta_adj_diff_bps": 101
+   },
+   {
+    "period": "SI",
+    "fund_ann_pct": 12.7,
+    "passive_ann_pct": 13.7,
+    "beta_adj_passive_ann_pct": 12.5,
+    "diff_bps": -99,
+    "beta_adj_diff_bps": 25
+   }
+  ],
+  "method_version": "fixture_from_mock_v5.1_monthly_basis",
+  "beta": 0.90444,
+  "hover_copy": {
+   "excess": "Excess return = the fund minus IWF, both after fees. Raw scoreboard vs simply holding the index.",
+   "alpha": "Alpha (beta-adjusted) = the fund minus a beta-scaled IWF position (beta 0.90). FCNTX runs less market risk than the index, so raw excess understates the manager; alpha compares against a passive position with the SAME market risk."
+  }
+ },
+ "positioning_context": {
+  "as_of": "2026-05-09",
+  "cohort": {
+   "kind": "same_passive_alt",
+   "label": "funds benchmarked to IWF",
+   "n_funds": 158,
+   "note": "scored funds sharing FCNTX's closest passive alternative (IWF)"
+  },
+  "beta": {
+   "value": 0.9,
+   "percentile": 2,
+   "cohort_median": 1.01,
+   "readout": "lower market sensitivity than 98% of the 158 IWF-benchmarked funds"
+  },
+  "tracking_error": {
+   "value_pct": 4.8,
+   "percentile": 67,
+   "cohort_median_pct": 4.0,
+   "readout": "takes more benchmark-relative risk than 67% of the cohort"
+  },
+  "source": "value_score.parquet, scored funds with passive_alt_label='IWF'"
+ },
+ "te_decomposition": {
+  "label": "PROTOTYPE \u2014 real inputs, ad-hoc method; production spec (te-decomposition-by-bet) is queued",
+  "basis_note": "bet betas measured on the market/FF6 basis (canonical_v1); the shipped feature will decompose tracking error vs the named passive alternative (IWF) \u2014 magnitudes/order may shift",
+  "total_te_bps": 481,
+  "factor_sleeve_te_bps": 340,
+  "stock_selection_te_bps": 340,
+  "idio_risk_share_pct": 50.1,
+  "sleeve_note": "roughly half of FCNTX's benchmark-relative risk is stock-specific (stock selection); half is factor/theme tilts",
+  "bets": [
+   {
+    "label": "Technology sector tilt",
+    "bet_type": "sector",
+    "beta": 0.72,
+    "t_stat": 5.4,
+    "confidence": "high",
+    "var_share_pct": 52.2,
+    "te_alloc_bps": 177
+   },
+   {
+    "label": "Magnificent 7",
+    "bet_type": "theme",
+    "beta": 0.37,
+    "t_stat": 3.1,
+    "confidence": "high",
+    "var_share_pct": 27.2,
+    "te_alloc_bps": 92
+   },
+   {
+    "label": "Semiconductors",
+    "bet_type": "theme",
+    "beta": 0.19,
+    "t_stat": 3.1,
+    "confidence": "high",
+    "var_share_pct": 17.3,
+    "te_alloc_bps": 59
+   },
+   {
+    "label": "Communication Services sector tilt",
+    "bet_type": "sector",
+    "beta": 0.35,
+    "t_stat": 2.5,
+    "confidence": "high",
+    "var_share_pct": 14.1,
+    "te_alloc_bps": 48
+   },
+   {
+    "label": "High-yield credit sensitivity",
+    "bet_type": "macro",
+    "beta": -1.71,
+    "t_stat": -6.3,
+    "confidence": "high",
+    "var_share_pct": -7.9,
+    "te_alloc_bps": -27,
+    "diversifying": true
+   },
+   {
+    "label": "EVs & Battery Supply",
+    "bet_type": "theme",
+    "beta": -0.07,
+    "t_stat": -1.7,
+    "confidence": "medium",
+    "var_share_pct": -2.9,
+    "te_alloc_bps": -10,
+    "diversifying": true
+   }
+  ],
+  "diversifying_note": "negative allocation = the bet moves against the rest of the book and REDUCES total tracking error"
+ },
+ "recent_changes": {
+  "window": {
+   "prior": "2024-09-30",
+   "current": "2025-09-30",
+   "eval_date": "2025-10-31",
+   "note": "year-over-year holdings comparison from N-PORT filings; filings lag (~7 months stale at mock time) \u2014 always show both as-of dates"
+  },
+  "ranking_note": "ordered by size of change (pp); ranking by tracking-error impact is pending the recent-changes-te-ranked backend spec",
+  "filter_types": [
+   "sector",
+   "theme",
+   "concentration",
+   "cash"
+  ],
+  "rows": [
+   {
+    "name": "Healthcare",
+    "type": "sector",
+    "direction": "cut",
+    "prior_pp": 11.6,
+    "current_pp": 6.0,
+    "change_pp": -5.5
+   },
+   {
+    "name": "Communication Services",
+    "type": "sector",
+    "direction": "added",
+    "prior_pp": 23.9,
+    "current_pp": 26.2,
+    "change_pp": 2.3
+   },
+   {
+    "name": "Semiconductors",
+    "type": "theme",
+    "direction": "added",
+    "prior_pp": 10.7,
+    "current_pp": 12.9,
+    "change_pp": 2.3
+   },
+   {
+    "name": "Top 10 concentration",
+    "type": "concentration",
+    "direction": "cut",
+    "prior_pp": 61.4,
+    "current_pp": 59.3,
+    "change_pp": -2.1
+   },
+   {
+    "name": "Diabetes & Obesity Chain (GLP-1)",
+    "type": "theme",
+    "direction": "cut",
+    "prior_pp": 4.5,
+    "current_pp": 2.5,
+    "change_pp": -2.0
+   },
+   {
+    "name": "Large-Cap Biotech",
+    "type": "theme",
+    "direction": "cut",
+    "prior_pp": 3.4,
+    "current_pp": 1.6,
+    "change_pp": -1.8
+   },
+   {
+    "name": "Technology",
+    "type": "sector",
+    "direction": "added",
+    "prior_pp": 26.0,
+    "current_pp": 27.4,
+    "change_pp": 1.4
+   },
+   {
+    "name": "Active Share",
+    "type": "concentration",
+    "direction": "up",
+    "prior_pp": 48.4,
+    "current_pp": 49.7,
+    "change_pp": 1.3
+   },
+   {
+    "name": "Utilities",
+    "type": "sector",
+    "direction": "added",
+    "prior_pp": 1.4,
+    "current_pp": 2.3,
+    "change_pp": 0.9
+   },
+   {
+    "name": "US Onshoring",
+    "type": "theme",
+    "direction": "cut",
+    "prior_pp": 0.8,
+    "current_pp": 0.2,
+    "change_pp": -0.6
+   },
+   {
+    "name": "Cloud Hyperscalers",
+    "type": "theme",
+    "direction": "trimmed",
+    "prior_pp": 32.3,
+    "current_pp": 31.8,
+    "change_pp": -0.5
+   },
+   {
+    "name": "Discount & Value Retail",
+    "type": "theme",
+    "direction": "cut",
+    "prior_pp": 2.0,
+    "current_pp": 1.4,
+    "change_pp": -0.5
+   }
+  ],
+  "no_stock_rows_note": "no qualifying single-position changes for FCNTX in this window; the stock filter tab should show an honest empty state"
+ },
+ "fund_family": {
+  "as_of": "2026-05-09",
+  "family": "Fidelity Management & Research Company LLC",
+  "family_display": "Fidelity",
+  "grouping_note": "family = fund adviser (N-CEN); SEC trust names are too granular (Fidelity spans ~45 trusts)",
+  "n_funds_scored": 115,
+  "total_scored_aum_bn": 698.6,
+  "avg_value_bps": 8.5,
+  "aum_weighted_value_bps": 37.0,
+  "family_rank": 4,
+  "n_families_ranked": 116,
+  "rank_basis": "AUM-weighted net value (bps/yr vs each fund's own closest passive alternative), since-inception basis, families with >=5 scored funds",
+  "three_year_note": "3-year columns pending the profile-nav-series backend spec; do NOT invent 3y figures",
+  "leaders": [
+   {
+    "rank": 1,
+    "family": "PRIMECAP Management Company",
+    "n_funds": 6,
+    "aum_weighted_bps": 95.7,
+    "avg_bps": 106.7
+   },
+   {
+    "rank": 2,
+    "family": "Fuller & Thaler Asset Management",
+    "n_funds": 5,
+    "aum_weighted_bps": 61.2,
+    "avg_bps": -92.0
+   },
+   {
+    "rank": 3,
+    "family": "Thornburg Investment Management",
+    "n_funds": 7,
+    "aum_weighted_bps": 45.3,
+    "avg_bps": -130.0
+   },
+   {
+    "rank": 4,
+    "family": "Fidelity Management & Research Company LLC",
+    "n_funds": 115,
+    "aum_weighted_bps": 37.0,
+    "avg_bps": 8.5
+   },
+   {
+    "rank": 5,
+    "family": "Hennessy Advisors Inc.",
+    "n_funds": 7,
+    "aum_weighted_bps": 33.5,
+    "avg_bps": -95.7
+   }
+  ],
+  "fidelity_top_funds_by_aum": [
+   {
+    "ticker": "FCNTX",
+    "name": "Fidelity Contrafund",
+    "value_bps": 10,
+    "aum_bn": 140.6,
+    "passive_alt": "IWF",
+    "is_this_fund": true
+   },
+   {
+    "ticker": "FBGRX",
+    "name": "Fidelity Blue Chip Growth Fund",
+    "value_bps": 30,
+    "aum_bn": 70.3,
+    "passive_alt": "IWF"
+   },
+   {
+    "ticker": "FDGRX",
+    "name": "Fidelity Growth Company Fund",
+    "value_bps": 90,
+    "aum_bn": 61.7,
+    "passive_alt": "IWF"
+   },
+   {
+    "ticker": "FLCNX",
+    "name": "Fidelity Contrafund K6",
+    "value_bps": 40,
+    "aum_bn": 34.0,
+    "passive_alt": "IWF"
+   },
+   {
+    "ticker": "FOCKX",
+    "name": "Fidelity OTC Portfolio",
+    "value_bps": 130,
+    "aum_bn": 30.7,
+    "passive_alt": "IWF"
+   },
+   {
+    "ticker": "FLPSX",
+    "name": "Fidelity Low-Priced Stock Fund",
+    "value_bps": -50,
+    "aum_bn": 24.4,
+    "passive_alt": "IWD"
+   },
+   {
+    "ticker": "FAGCX",
+    "name": "Fidelity Advisor Growth Opportunities",
+    "value_bps": 240,
+    "aum_bn": 21.3,
+    "passive_alt": "IWF"
+   },
+   {
+    "ticker": "FNITX",
+    "name": "Fidelity Advisor New Insights",
+    "value_bps": 0,
+    "aum_bn": 20.7,
+    "passive_alt": "SPY"
+   },
+   {
+    "ticker": "FSELX",
+    "name": "Select Semiconductors Portfolio",
+    "value_bps": 140,
+    "aum_bn": 19.5,
+    "passive_alt": "SMH"
+   },
+   {
+    "ticker": "FGKFX",
+    "name": "Fidelity Growth Company K6",
+    "value_bps": 100,
+    "aum_bn": 19.3,
+    "passive_alt": "IWF"
+   }
+  ]
+ },
+ "ai_summary": {
+  "label": "SAMPLE AI COPY \u2014 v5.3 (fee corrected to canonical 0.74%/56 bps); production copy is LLM-generated with an in-code fact gate",
+  "rule": "every number cited here MUST reappear in the page's visible evidence sections",
+  "paragraphs": [
+   "Fidelity Contrafund is one of the largest actively managed US equity funds ($140.6B). Read against its closest passive alternative \u2014 the iShares Russell 1000 Growth ETF (IWF, 0.18% fee) \u2014 we estimate its net value at +10 bps/yr after fees: roughly breakeven. The fund's active management has historically earned back its fee, but not meaningfully more. Fees are middling: the 0.74% expense ratio works out to 56 bps/yr above simply holding IWF, slightly above the ~52 bps our fair-fee model estimates for its level of active work. A cheaper K share class (FCNKX, 0.32%) exists for eligible retirement accounts. Fidelity as a family ranks 4th of 116 fund families on AUM-weighted after-fee value added.",
+   "About half the portfolio behaves like the index; the other half is active bets. The defining ones today: a large underweight to Technology (25.9% held vs IWF's 53.8%), overweights to Communication Services (+13.0 pp) and Financial Services (+10.6 pp), and an outsized Meta position (15.7% vs 3.8% in IWF). Over the holdings era (2021\u20132025) the Communication Services tilt added +472 bps/yr of active return while the Technology underweight cost \u2212355 bps/yr; over the last three years Meta alone contributed +3,098 bps vs IWF \u2014 the single biggest winner. The stock-picking record overall is statistically unproven: P(skill) 4%, information ratio \u22120.12 net of fees across 17 years \u2014 a positive gross selection estimate (+110 bps/yr) that cannot be distinguished from zero.",
+   "On risk: beta of 0.90 vs its passive baseline is lower than 98% of the 158 IWF-benchmarked funds, while tracking error of 4.8%/yr is higher than 67% of them. Over the year to September 2025 the manager cut Healthcare (\u22125.5 pp) and GLP-1/biotech exposure while adding to Semiconductors (+2.3 pp) and Communication Services (+2.3 pp). The main risk to the read is the structural Technology underweight: over the 2021\u20132025 window it cost \u2212355 bps/yr as large-cap tech led. Manager names and tenure are not yet part of our sourced data; they will appear here once they are."
+  ]
+ },
+ "attribution_explorer": {
+  "quarter_grid": [
+   "2020-12-31",
+   "2021-03-31",
+   "2021-06-30",
+   "2021-09-30",
+   "2021-12-31",
+   "2022-03-31",
+   "2022-06-30",
+   "2022-09-30",
+   "2022-12-31",
+   "2023-03-31",
+   "2023-06-30",
+   "2023-09-30",
+   "2023-12-31",
+   "2024-03-31",
+   "2024-06-30",
+   "2024-09-30",
+   "2024-12-31",
+   "2025-03-31",
+   "2025-06-30",
+   "2025-09-30"
+  ],
+  "note": "date-range control = two quarter-end selects over this grid + a 'since inception' button (returns-based read with an 'attribution covers the holdings era only' note). Full-window decomposition data = combined_decomposition key (real); member drill-down rows = attribution_full key (real 1Y/3Y/5Y). Custom sub-window recomputation is a FRONTEND INTERACTION MOCK ONLY \u2014 show the default full-window numbers, do not invent sub-window figures.",
+  "default_window": {
+   "start": "2020-12-31",
+   "end": "2025-09-30"
+  },
+  "beta_tilt": {
+   "label": "Beta tilt (context bar \u2014 NOT part of the bet decomposition)",
+   "beta": 0.90444,
+   "est_bps_per_year": -150,
+   "window": "2020-12-31 to 2025-09-30",
+   "note": "PROTOTYPE estimate: (beta - 1) x IWF annualized return over the window. The bet decomposition below is measured AFTER beta adjustment (frozen active = fund - beta*baseline), so this bar must be shown separately and never summed into the bets+selection chain. Per-quarter integrated beta effect ships with spec attribution-factor-path-serving."
+  },
+  "residual_explainer": "Within the decomposition there is NO residual: bias+timing sum to each factor total by construction, and stock selection (idio) is defined as frozen active minus factor bets \u2014 so bets + selection = +93 bps/yr exactly. The separate +165 bps/yr reconciliation gap is frozen-vs-NAV: the decomposition is computed on quarterly FROZEN filed holdings GROSS of fees, while real NAV is NET and includes intra-quarter trading. Label it \"fees + trading (not visible to holdings-based analysis)\", never force it to zero.",
+  "basis_migration_note": "The bets listed in Current Positioning and the factors attributed here currently come from two model generations \u2014 we are unifying them on one standardized factor set. Until then, several Positioning bets are attributed inside an overlapping factor here rather than on their own line."
+ },
+ "combined_decomposition": {
+  "window": "2020-12-31 to 2025-09-30",
+  "factor_contributions": [
+   {
+    "factor": "sector::communication_services",
+    "type": "sector",
+    "total_bps": 472,
+    "bias_bps": 364,
+    "timing_bps": 108,
+    "avg_active_beta": 0.25
+   },
+   {
+    "factor": "sector::technology",
+    "type": "sector",
+    "total_bps": -355,
+    "bias_bps": -375,
+    "timing_bps": 20,
+    "avg_active_beta": -0.18
+   },
+   {
+    "factor": "theme::mag_7",
+    "type": "theme",
+    "total_bps": 171,
+    "bias_bps": 204,
+    "timing_bps": -33,
+    "avg_active_beta": 0.06
+   },
+   {
+    "factor": "theme::semiconductors_broad",
+    "type": "theme",
+    "total_bps": 87,
+    "bias_bps": 123,
+    "timing_bps": -36,
+    "avg_active_beta": 0.06
+   },
+   {
+    "factor": "macro::credit_hy",
+    "type": "macro",
+    "total_bps": 80,
+    "bias_bps": -7,
+    "timing_bps": 87,
+    "avg_active_beta": -0.02
+   },
+   {
+    "factor": "theme::ev_battery_chain",
+    "type": "theme",
+    "total_bps": -64,
+    "bias_bps": -19,
+    "timing_bps": -45,
+    "avg_active_beta": -0.02
+   }
+  ],
+  "stock_selection_idio_bps": -298,
+  "residual_reconciliation_bps": 165,
+  "realised_active_bps": 93,
+  "n_quarters": 19
+ },
+ "risk_explainers": {
+  "beta": "Beta measures how much the fund moves when its index (IWF) moves. Beta 1.00 = moves one-for-one. FCNTX's 0.90 means a 10% IWF move typically moves the fund about 9% \u2014 it holds LESS market risk than the index.",
+  "tracking_error": "Tracking error measures how differently the fund behaves from its index, in %/yr. Zero = an index hugger. FCNTX's 4.8%/yr means its returns typically land within \u00b14.8 points of the (beta-adjusted) index in a normal year \u2014 that spread is what active management buys you, for better or worse.",
+  "beta_tilt_plain": "The fund holds less market risk than its index (beta 0.90 vs 1.00). In a market that rose ~16%/yr over this window, holding 10% less of it cost about 150 bps/yr of raw relative return. This is a POSITIONING choice, not a stock-picking result \u2014 so we measure all the bets AFTER removing it, and show it here as its own line."
+ },
+ "holdings_full": {
+  "as_of": "2025-09-30",
+  "basis": "classified US-equity positions from the N-PORT filing (280 rows; the fund also holds cash and unclassified/non-US sleeves)",
+  "n_positions": 280,
+  "rows": [
+   {
+    "stock_ticker": "META",
+    "weight_pct": 16.59
+   },
+   {
+    "stock_ticker": "NVDA",
+    "weight_pct": 10.33
+   },
+   {
+    "stock_ticker": "BRK.A",
+    "weight_pct": 7.33
+   },
+   {
+    "stock_ticker": "AMZN",
+    "weight_pct": 6.32
+   },
+   {
+    "stock_ticker": "MSFT",
+    "weight_pct": 5.51
+   },
+   {
+    "stock_ticker": "GOOGL",
+    "weight_pct": 3.31
+   },
+   {
+    "stock_ticker": "APH",
+    "weight_pct": 2.65
+   },
+   {
+    "stock_ticker": "AAPL",
+    "weight_pct": 2.58
+   },
+   {
+    "stock_ticker": "NFLX",
+    "weight_pct": 2.56
+   },
+   {
+    "stock_ticker": "GOOG",
+    "weight_pct": 2.08
+   },
+   {
+    "stock_ticker": "JPM",
+    "weight_pct": 1.83
+   },
+   {
+    "stock_ticker": "AVGO",
+    "weight_pct": 1.6
+   },
+   {
+    "stock_ticker": "LLY",
+    "weight_pct": 1.52
+   },
+   {
+    "stock_ticker": "V",
+    "weight_pct": 1.38
+   },
+   {
+    "stock_ticker": "GE",
+    "weight_pct": 1.38
+   },
+   {
+    "stock_ticker": "GEV",
+    "weight_pct": 1.18
+   },
+   {
+    "stock_ticker": "TSM",
+    "weight_pct": 0.84
+   },
+   {
+    "stock_ticker": "COST",
+    "weight_pct": 0.74
+   },
+   {
+    "stock_ticker": "XOM",
+    "weight_pct": 0.64
+   },
+   {
+    "stock_ticker": "MA",
+    "weight_pct": 0.62
+   },
+   {
+    "stock_ticker": "KO",
+    "weight_pct": 0.61
+   },
+   {
+    "stock_ticker": "BSX",
+    "weight_pct": 0.6
+   },
+   {
+    "stock_ticker": "AXP",
+    "weight_pct": 0.59
+   },
+   {
+    "stock_ticker": "MS",
+    "weight_pct": 0.59
+   },
+   {
+    "stock_ticker": "SHOP",
+    "weight_pct": 0.58
+   },
+   {
+    "stock_ticker": "CEG",
+    "weight_pct": 0.56
+   },
+   {
+    "stock_ticker": "WFC",
+    "weight_pct": 0.55
+   },
+   {
+    "stock_ticker": "GILD",
+    "weight_pct": 0.52
+   },
+   {
+    "stock_ticker": "PGR",
+    "weight_pct": 0.49
+   },
+   {
+    "stock_ticker": "PM",
+    "weight_pct": 0.49
+   },
+   {
+    "stock_ticker": "COF",
+    "weight_pct": 0.46
+   },
+   {
+    "stock_ticker": "TJX",
+    "weight_pct": 0.44
+   },
+   {
+    "stock_ticker": "ANET",
+    "weight_pct": 0.43
+   },
+   {
+    "stock_ticker": "GS",
+    "weight_pct": 0.42
+   },
+   {
+    "stock_ticker": "DE",
+    "weight_pct": 0.4
+   },
+   {
+    "stock_ticker": "BK",
+    "weight_pct": 0.4
+   },
+   {
+    "stock_ticker": "C",
+    "weight_pct": 0.39
+   },
+   {
+    "stock_ticker": "LOW",
+    "weight_pct": 0.38
+   },
+   {
+    "stock_ticker": "FNV",
+    "weight_pct": 0.37
+   },
+   {
+    "stock_ticker": "ALNY",
+    "weight_pct": 0.36
+   },
+   {
+    "stock_ticker": "MELI",
+    "weight_pct": 0.35
+   },
+   {
+    "stock_ticker": "BKNG",
+    "weight_pct": 0.34
+   },
+   {
+    "stock_ticker": "VRTX",
+    "weight_pct": 0.34
+   },
+   {
+    "stock_ticker": "REGN",
+    "weight_pct": 0.33
+   },
+   {
+    "stock_ticker": "AXON",
+    "weight_pct": 0.3
+   },
+   {
+    "stock_ticker": "CPNG",
+    "weight_pct": 0.3
+   },
+   {
+    "stock_ticker": "DIS",
+    "weight_pct": 0.29
+   },
+   {
+    "stock_ticker": "ORLY",
+    "weight_pct": 0.28
+   },
+   {
+    "stock_ticker": "MMM",
+    "weight_pct": 0.28
+   },
+   {
+    "stock_ticker": "VST",
+    "weight_pct": 0.27
+   },
+   {
+    "stock_ticker": "RY",
+    "weight_pct": 0.25
+   },
+   {
+    "stock_ticker": "HWM",
+    "weight_pct": 0.25
+   },
+   {
+    "stock_ticker": "IVPAF",
+    "weight_pct": 0.24
+   },
+   {
+    "stock_ticker": "KLAC",
+    "weight_pct": 0.24
+   },
+   {
+    "stock_ticker": "RBLX",
+    "weight_pct": 0.23
+   },
+   {
+    "stock_ticker": "THC",
+    "weight_pct": 0.23
+   },
+   {
+    "stock_ticker": "SBUX",
+    "weight_pct": 0.22
+   },
+   {
+    "stock_ticker": "RDDT",
+    "weight_pct": 0.22
+   },
+   {
+    "stock_ticker": "TMO",
+    "weight_pct": 0.21
+   },
+   {
+    "stock_ticker": "NET",
+    "weight_pct": 0.21
+   },
+   {
+    "stock_ticker": "RSG",
+    "weight_pct": 0.2
+   },
+   {
+    "stock_ticker": "BRK.B",
+    "weight_pct": 0.2
+   },
+   {
+    "stock_ticker": "FRFHF",
+    "weight_pct": 0.2
+   },
+   {
+    "stock_ticker": "TMUS",
+    "weight_pct": 0.2
+   },
+   {
+    "stock_ticker": "SYK",
+    "weight_pct": 0.19
+   },
+   {
+    "stock_ticker": "AEM",
+    "weight_pct": 0.19
+   },
+   {
+    "stock_ticker": "HD",
+    "weight_pct": 0.19
+   },
+   {
+    "stock_ticker": "ABNB",
+    "weight_pct": 0.19
+   },
+   {
+    "stock_ticker": "GFL",
+    "weight_pct": 0.19
+   },
+   {
+    "stock_ticker": "ISRG",
+    "weight_pct": 0.19
+   },
+   {
+    "stock_ticker": "DUOL",
+    "weight_pct": 0.19
+   },
+   {
+    "stock_ticker": "LYV",
+    "weight_pct": 0.19
+   },
+   {
+    "stock_ticker": "TRV",
+    "weight_pct": 0.18
+   },
+   {
+    "stock_ticker": "NRG",
+    "weight_pct": 0.18
+   },
+   {
+    "stock_ticker": "PH",
+    "weight_pct": 0.17
+   },
+   {
+    "stock_ticker": "FWONK",
+    "weight_pct": 0.17
+   },
+   {
+    "stock_ticker": "TDG",
+    "weight_pct": 0.17
+   },
+   {
+    "stock_ticker": "CDNS",
+    "weight_pct": 0.17
+   },
+   {
+    "stock_ticker": "UBER",
+    "weight_pct": 0.16
+   },
+   {
+    "stock_ticker": "HLT",
+    "weight_pct": 0.16
+   },
+   {
+    "stock_ticker": "COIN",
+    "weight_pct": 0.16
+   },
+   {
+    "stock_ticker": "IFCZF",
+    "weight_pct": 0.15
+   },
+   {
+    "stock_ticker": "BAC",
+    "weight_pct": 0.15
+   },
+   {
+    "stock_ticker": "ONC",
+    "weight_pct": 0.15
+   },
+   {
+    "stock_ticker": "SCHW",
+    "weight_pct": 0.15
+   },
+   {
+    "stock_ticker": "AJG",
+    "weight_pct": 0.15
+   },
+   {
+    "stock_ticker": "TSLA",
+    "weight_pct": 0.14
+   },
+   {
+    "stock_ticker": "MCO",
+    "weight_pct": 0.14
+   },
+   {
+    "stock_ticker": "BA",
+    "weight_pct": 0.14
+   },
+   {
+    "stock_ticker": "SHW",
+    "weight_pct": 0.14
+   },
+   {
+    "stock_ticker": "SNOW",
+    "weight_pct": 0.14
+   },
+   {
+    "stock_ticker": "EFX",
+    "weight_pct": 0.14
+   },
+   {
+    "stock_ticker": "ABBV",
+    "weight_pct": 0.13
+   },
+   {
+    "stock_ticker": "CBRE",
+    "weight_pct": 0.13
+   },
+   {
+    "stock_ticker": "HCA",
+    "weight_pct": 0.13
+   },
+   {
+    "stock_ticker": "DLTR",
+    "weight_pct": 0.13
+   },
+   {
+    "stock_ticker": "CTVA",
+    "weight_pct": 0.13
+   },
+   {
+    "stock_ticker": "VEEV",
+    "weight_pct": 0.13
+   },
+   {
+    "stock_ticker": "CLS",
+    "weight_pct": 0.12
+   },
+   {
+    "stock_ticker": "DHI",
+    "weight_pct": 0.12
+   },
+   {
+    "stock_ticker": "LUG",
+    "weight_pct": 0.12
+   },
+   {
+    "stock_ticker": "ARGX",
+    "weight_pct": 0.12
+   },
+   {
+    "stock_ticker": "SE",
+    "weight_pct": 0.12
+   },
+   {
+    "stock_ticker": "IMO",
+    "weight_pct": 0.12
+   },
+   {
+    "stock_ticker": "CAT",
+    "weight_pct": 0.12
+   },
+   {
+    "stock_ticker": "CASY",
+    "weight_pct": 0.11
+   },
+   {
+    "stock_ticker": "PANW",
+    "weight_pct": 0.11
+   },
+   {
+    "stock_ticker": "APP",
+    "weight_pct": 0.11
+   },
+   {
+    "stock_ticker": "ALAB",
+    "weight_pct": 0.11
+   },
+   {
+    "stock_ticker": "WELL",
+    "weight_pct": 0.11
+   },
+   {
+    "stock_ticker": "CCL",
+    "weight_pct": 0.1
+   },
+   {
+    "stock_ticker": "ZS",
+    "weight_pct": 0.1
+   },
+   {
+    "stock_ticker": "DASH",
+    "weight_pct": 0.1
+   },
+   {
+    "stock_ticker": "WMT",
+    "weight_pct": 0.1
+   },
+   {
+    "stock_ticker": "BX",
+    "weight_pct": 0.1
+   },
+   {
+    "stock_ticker": "CTAS",
+    "weight_pct": 0.1
+   },
+   {
+    "stock_ticker": "INSM",
+    "weight_pct": 0.1
+   },
+   {
+    "stock_ticker": "WAB",
+    "weight_pct": 0.1
+   },
+   {
+    "stock_ticker": "RL",
+    "weight_pct": 0.1
+   },
+   {
+    "stock_ticker": "LRCX",
+    "weight_pct": 0.09
+   },
+   {
+    "stock_ticker": "IBKR",
+    "weight_pct": 0.09
+   },
+   {
+    "stock_ticker": "BAM",
+    "weight_pct": 0.09
+   },
+   {
+    "stock_ticker": "DHR",
+    "weight_pct": 0.09
+   },
+   {
+    "stock_ticker": "BTG",
+    "weight_pct": 0.09
+   },
+   {
+    "stock_ticker": "KKR",
+    "weight_pct": 0.08
+   },
+   {
+    "stock_ticker": "SHEL",
+    "weight_pct": 0.08
+   },
+   {
+    "stock_ticker": "VLO",
+    "weight_pct": 0.08
+   },
+   {
+    "stock_ticker": "EL",
+    "weight_pct": 0.08
+   },
+   {
+    "stock_ticker": "FTNT",
+    "weight_pct": 0.08
+   },
+   {
+    "stock_ticker": "PODD",
+    "weight_pct": 0.08
+   },
+   {
+    "stock_ticker": "TOST",
+    "weight_pct": 0.08
+   },
+   {
+    "stock_ticker": "WBD",
+    "weight_pct": 0.08
+   },
+   {
+    "stock_ticker": "DOL",
+    "weight_pct": 0.08
+   },
+   {
+    "stock_ticker": "CNQ",
+    "weight_pct": 0.07
+   },
+   {
+    "stock_ticker": "FERG",
+    "weight_pct": 0.07
+   },
+   {
+    "stock_ticker": "CBOE",
+    "weight_pct": 0.07
+   },
+   {
+    "stock_ticker": "CRS",
+    "weight_pct": 0.07
+   },
+   {
+    "stock_ticker": "GWW",
+    "weight_pct": 0.07
+   },
+   {
+    "stock_ticker": "TEVA",
+    "weight_pct": 0.07
+   },
+   {
+    "stock_ticker": "WPM",
+    "weight_pct": 0.07
+   },
+   {
+    "stock_ticker": "KRMN",
+    "weight_pct": 0.07
+   },
+   {
+    "stock_ticker": "AEP",
+    "weight_pct": 0.06
+   },
+   {
+    "stock_ticker": "BUD",
+    "weight_pct": 0.06
+   },
+   {
+    "stock_ticker": "DELL",
+    "weight_pct": 0.06
+   },
+   {
+    "stock_ticker": "RKT",
+    "weight_pct": 0.06
+   },
+   {
+    "stock_ticker": "WCN",
+    "weight_pct": 0.06
+   },
+   {
+    "stock_ticker": "CRWV",
+    "weight_pct": 0.06
+   },
+   {
+    "stock_ticker": "HSY",
+    "weight_pct": 0.06
+   },
+   {
+    "stock_ticker": "WSM",
+    "weight_pct": 0.06
+   },
+   {
+    "stock_ticker": "RMD",
+    "weight_pct": 0.06
+   },
+   {
+    "stock_ticker": "ARM",
+    "weight_pct": 0.05
+   },
+   {
+    "stock_ticker": "FAST",
+    "weight_pct": 0.05
+   },
+   {
+    "stock_ticker": "TD",
+    "weight_pct": 0.05
+   },
+   {
+    "stock_ticker": "MSI",
+    "weight_pct": 0.05
+   },
+   {
+    "stock_ticker": "NOC",
+    "weight_pct": 0.05
+   },
+   {
+    "stock_ticker": "AGI",
+    "weight_pct": 0.05
+   },
+   {
+    "stock_ticker": "EVR",
+    "weight_pct": 0.05
+   },
+   {
+    "stock_ticker": "RYAAY",
+    "weight_pct": 0.05
+   },
+   {
+    "stock_ticker": "MPWR",
+    "weight_pct": 0.05
+   },
+   {
+    "stock_ticker": "NOW",
+    "weight_pct": 0.05
+   },
+   {
+    "stock_ticker": "HQY",
+    "weight_pct": 0.05
+   },
+   {
+    "stock_ticker": "IR",
+    "weight_pct": 0.05
+   },
+   {
+    "stock_ticker": "JBL",
+    "weight_pct": 0.05
+   },
+   {
+    "stock_ticker": "ECL",
+    "weight_pct": 0.05
+   },
+   {
+    "stock_ticker": "BNTX",
+    "weight_pct": 0.05
+   },
+   {
+    "stock_ticker": "DDOG",
+    "weight_pct": 0.05
+   },
+   {
+    "stock_ticker": "RBC",
+    "weight_pct": 0.05
+   },
+   {
+    "stock_ticker": "COHR",
+    "weight_pct": 0.04
+   },
+   {
+    "stock_ticker": "MRK",
+    "weight_pct": 0.04
+   },
+   {
+    "stock_ticker": "ABT",
+    "weight_pct": 0.04
+   },
+   {
+    "stock_ticker": "ORCL",
+    "weight_pct": 0.04
+   },
+   {
+    "stock_ticker": "ZG",
+    "weight_pct": 0.04
+   },
+   {
+    "stock_ticker": "ITUB",
+    "weight_pct": 0.04
+   },
+   {
+    "stock_ticker": "IE",
+    "weight_pct": 0.04
+   },
+   {
+    "stock_ticker": "PAYC",
+    "weight_pct": 0.04
+   },
+   {
+    "stock_ticker": "EA",
+    "weight_pct": 0.04
+   },
+   {
+    "stock_ticker": "COR",
+    "weight_pct": 0.04
+   },
+   {
+    "stock_ticker": "MCK",
+    "weight_pct": 0.04
+   },
+   {
+    "stock_ticker": "CCJ",
+    "weight_pct": 0.04
+   },
+   {
+    "stock_ticker": "Z",
+    "weight_pct": 0.04
+   },
+   {
+    "stock_ticker": "LNG",
+    "weight_pct": 0.04
+   },
+   {
+    "stock_ticker": "UNH",
+    "weight_pct": 0.04
+   },
+   {
+    "stock_ticker": "ALGN",
+    "weight_pct": 0.04
+   },
+   {
+    "stock_ticker": "ETR",
+    "weight_pct": 0.04
+   },
+   {
+    "stock_ticker": "RJF",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "IOT",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "DOCS",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "FIG",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "ADI",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "ORLA",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "ULS",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "CAVA",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "NKE",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "OLLI",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "BROS",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "GWRE",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "HOOD",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "URBN",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "OMC",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "CORT",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "AMD",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "WWD",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "RBA",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "AMAT",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "ZLAB",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "TCOM",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "RKLB",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "CRWD",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "DKS",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "RBRK",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "MPC",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "BLD",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "CVX",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "ZM",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "TPR",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "MOS",
+    "weight_pct": 0.03
+   },
+   {
+    "stock_ticker": "URI",
+    "weight_pct": 0.02
+   },
+   {
+    "stock_ticker": "GMIN",
+    "weight_pct": 0.02
+   },
+   {
+    "stock_ticker": "DRS",
+    "weight_pct": 0.02
+   },
+   {
+    "stock_ticker": "U",
+    "weight_pct": 0.02
+   },
+   {
+    "stock_ticker": "PLTR",
+    "weight_pct": 0.02
+   },
+   {
+    "stock_ticker": "BIIB",
+    "weight_pct": 0.02
+   },
+   {
+    "stock_ticker": "LGN",
+    "weight_pct": 0.02
+   },
+   {
+    "stock_ticker": "MU",
+    "weight_pct": 0.02
+   },
+   {
+    "stock_ticker": "QXO",
+    "weight_pct": 0.02
+   },
+   {
+    "stock_ticker": "KD",
+    "weight_pct": 0.02
+   },
+   {
+    "stock_ticker": "NG",
+    "weight_pct": 0.02
+   },
+   {
+    "stock_ticker": "SSD",
+    "weight_pct": 0.02
+   },
+   {
+    "stock_ticker": "KGC",
+    "weight_pct": 0.02
+   },
+   {
+    "stock_ticker": "TTAN",
+    "weight_pct": 0.02
+   },
+   {
+    "stock_ticker": "EWBC",
+    "weight_pct": 0.02
+   },
+   {
+    "stock_ticker": "PEN",
+    "weight_pct": 0.02
+   },
+   {
+    "stock_ticker": "BMNR",
+    "weight_pct": 0.02
+   },
+   {
+    "stock_ticker": "APG",
+    "weight_pct": 0.02
+   },
+   {
+    "stock_ticker": "XOMA",
+    "weight_pct": 0.02
+   },
+   {
+    "stock_ticker": "IAG",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "ATI",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "LOAR",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "SGI",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "INTC",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "BIDU",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "TLN",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "INTU",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "MLM",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "SOFI",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "FIX",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "RTX",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "AFRM",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "PHM",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "ALK",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "SRE",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "CVNA",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "FICO",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "MDB",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "LEN",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "HEI.A",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "DAL",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "SYF",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "EW",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "NDAQ",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "MO",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "RGLD",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "HTFL",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "NTSK",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "IBM",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "ARX",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "VIA",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "STUB",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "ZVRA",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "SNX",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "PCAR",
+    "weight_pct": 0.01
+   },
+   {
+    "stock_ticker": "TRI",
+    "weight_pct": 0.0
+   },
+   {
+    "stock_ticker": "PSK",
+    "weight_pct": 0.0
+   },
+   {
+    "stock_ticker": "XEL",
+    "weight_pct": 0.0
+   },
+   {
+    "stock_ticker": "GM",
+    "weight_pct": 0.0
+   },
+   {
+    "stock_ticker": "DKNG",
+    "weight_pct": 0.0
+   },
+   {
+    "stock_ticker": "FLY",
+    "weight_pct": 0.0
+   },
+   {
+    "stock_ticker": "CAI",
+    "weight_pct": 0.0
+   },
+   {
+    "stock_ticker": "AVAV",
+    "weight_pct": 0.0
+   },
+   {
+    "stock_ticker": "FIGR",
+    "weight_pct": 0.0
+   }
+  ]
+ },
+ "top10_vs_iwf": {
+  "as_of": "2025-09-30",
+  "basis_note": "fund and IWF weights from the same-date holdings snapshots (same source family) \u2014 may differ ~1pp from the Exposure X-Ray classification",
+  "rows": [
+   {
+    "ticker": "META",
+    "fund_pct": 16.59,
+    "iwf_pct": 3.76,
+    "diff_pp": 12.8
+   },
+   {
+    "ticker": "NVDA",
+    "fund_pct": 10.33,
+    "iwf_pct": 13.11,
+    "diff_pp": -2.8
+   },
+   {
+    "ticker": "BRK.A",
+    "fund_pct": 7.33,
+    "iwf_pct": 0.0,
+    "diff_pp": 7.3,
+    "note": "not held by IWF (Russell 1000 Growth excludes it)"
+   },
+   {
+    "ticker": "AMZN",
+    "fund_pct": 6.32,
+    "iwf_pct": 4.17,
+    "diff_pp": 2.2
+   },
+   {
+    "ticker": "MSFT",
+    "fund_pct": 5.51,
+    "iwf_pct": 11.55,
+    "diff_pp": -6.0
+   },
+   {
+    "ticker": "GOOGL",
+    "fund_pct": 3.31,
+    "iwf_pct": 2.79,
+    "diff_pp": 0.5
+   },
+   {
+    "ticker": "APH",
+    "fund_pct": 2.65,
+    "iwf_pct": 0.48,
+    "diff_pp": 2.2
+   },
+   {
+    "ticker": "AAPL",
+    "fund_pct": 2.58,
+    "iwf_pct": 11.18,
+    "diff_pp": -8.6
+   },
+   {
+    "ticker": "NFLX",
+    "fund_pct": 2.56,
+    "iwf_pct": 1.63,
+    "diff_pp": 0.9
+   },
+   {
+    "ticker": "GOOG",
+    "fund_pct": 2.08,
+    "iwf_pct": 2.28,
+    "diff_pp": -0.2
+   }
+  ]
+ },
+ "positioning_bet_bridges": {
+  "note": "real cluster mapping from the risk model (holdings_exposure_path cluster_id)",
+  "bridges": [
+   {
+    "bet": "Cloud Hyperscalers",
+    "bridge": "attributed within Magnificent 7 (overlapping basket)"
+   },
+   {
+    "bet": "AI Infrastructure",
+    "bridge": "attributed within Semiconductors (overlapping basket)"
+   },
+   {
+    "bet": "Dividend Aristocrats",
+    "bridge": "not separately attributed today \u2014 folds into stock selection"
+   },
+   {
+    "bet": "US Mega Banks",
+    "bridge": "not separately attributed today \u2014 folds into stock selection"
+   },
+   {
+    "bet": "US Housing",
+    "bridge": "not separately attributed today \u2014 folds into stock selection"
+   }
+  ]
+ }
+}
