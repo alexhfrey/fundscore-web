@@ -1,7 +1,7 @@
 ---
 id: retire-legacy-value-offering-serving
 title: Retire the legacy 5-leg Value Offering from the serving layer (stop emitting score/label/section)
-status: queued
+status: done
 track: backend
 repo: fund_score
 depends_on: ""
