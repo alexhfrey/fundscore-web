@@ -77,24 +77,36 @@ export function FeeFairness({
       <Card>
         {/* Fairness band (active funds with a fair-fee read) */}
         {!isPassive && ff?.fee_fairness_label && (
-          <div className="mb-4 flex flex-wrap items-center gap-3">
-            <span
-              className={`rounded-md border px-3 py-1 text-sm font-bold ${fairnessChip(
-                ff.fee_fairness_label,
-              )}`}
-            >
-              {ff.fee_fairness_label}
-            </span>
-            <span className="text-sm text-gray-600">
-              Fair-fee band <strong>{fmtBps(ff.fair_fee_bps)}</strong>; this fund
-              is{" "}
-              {ff.gap_bps != null
-                ? ff.gap_bps > 0
-                  ? `${fmtBps(Math.abs(ff.gap_bps))} below the band`
-                  : `${fmtBps(Math.abs(ff.gap_bps))} above the band`
-                : EM_DASH}
-              .
-            </span>
+          <div className="mb-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <span
+                className={`rounded-md border px-3 py-1 text-sm font-bold ${fairnessChip(
+                  ff.fee_fairness_label,
+                )}`}
+              >
+                {ff.fee_fairness_label}
+              </span>
+              <span className="text-sm text-gray-600">
+                Fair-fee band <strong>{fmtBps(ff.fair_fee_bps)}</strong>; this fund
+                is{" "}
+                {ff.gap_bps != null
+                  ? ff.gap_bps > 0
+                    ? `${fmtBps(Math.abs(ff.gap_bps))} below the band`
+                    : `${fmtBps(Math.abs(ff.gap_bps))} above the band`
+                  : EM_DASH}
+                .
+              </span>
+            </div>
+            {/* Reconcile the two verdicts a reader sees: Fee Fairness judges the
+                fee in isolation; the value verdict up top nets that fee against
+                how well selection has been evidenced. They are allowed to differ.
+                References only already-shown labels — no gated number here. */}
+            <p className="mt-2 text-sm text-gray-500">
+              Fee Fairness judges only whether this fund&apos;s fee is reasonable
+              for what it charges. The value verdict at the top of this page also
+              weighs how well its stock-picking has been evidenced — so a fund can
+              be fairly priced yet still land lower there.
+            </p>
           </div>
         )}
 

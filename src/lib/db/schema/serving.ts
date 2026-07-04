@@ -72,20 +72,21 @@ export const fundProfileFacts = pgTable(
     managementStyle: varchar("management_style", { length: 24 }),
     vehicleType: varchar("vehicle_type", { length: 32 }),
 
-    valueOfferingScore: integer("value_offering_score"), // null when unavailable
-    valueOfferingLabel: tierLabelEnum("value_offering_label"), // null when unavailable
+    // Legacy 5-leg Value Offering artifacts — the 0-100 score + label scalars,
+    // the fee-gap scalar, and the value_offering JSONB section — were dropped
+    // 2026-06; the reframed value_offering_reframed badge + value_score are the
+    // canonical verdicts now (see drizzle/retire_legacy_value_offering.sql). The
+    // states/labels below are kept: backend still populates them.
     valueOfferingStatus: valueOfferingStatusEnum("value_offering_status").notNull(),
     confidenceState: valueOfferingStatusEnum("confidence_state").notNull(),
 
     feeFairnessLabel: tierLabelEnum("fee_fairness_label"), // null when fair_fee null
-    feeGapBps: real("fee_gap_bps"),
     netExpenseRatioBps: real("net_expense_ratio_bps"),
 
     dataCompletenessState: dataCompletenessEnum("data_completeness_state").notNull(),
 
     // --- nested payload sections (assembled by the loader) ---
     identity: jsonb("identity").notNull(),
-    valueOffering: jsonb("value_offering"), // legacy 5-leg + provenance (spec #7 v0.1); null when unavailable
     valueOfferingReframed: jsonb("value_offering_reframed"), // spec #7 v0.3 badge typology — the hero
     fees: jsonb("fees"),
     passiveBaseline: jsonb("passive_baseline"),
