@@ -1,7 +1,7 @@
 ---
 id: canonical-fee-over-passive-frontend
 title: Render ONE canonical fee-over-passive figure across hero, Fee Fairness, and the dollar gap
-status: queued
+status: rejected
 track: frontend
 repo: fundscore-web
 depends_on: canonical-fee-over-passive-backend
@@ -9,6 +9,18 @@ source_proposal: feature-pipeline/proposals/approved/canonical-fee-over-passive-
 created: 2026-06-24
 scope: global
 model: opus
+rejected_on: 2026-07-04
+rejected_reason: >
+  SUPERSEDED by the v2 redesign. Both edit targets are stale: ValueOfferingHero.tsx
+  is dead code (production renders ValueScoreHero), and FeeFairness.tsx is slated for
+  retirement by profile-v2-production-cutover. The v2 replacement FeeFairnessV2.tsx
+  already consumes the canonical `active_fee_over_passive_bps` field and renders a
+  single "fee above passive" figure with null-suppression — so this spec's core intent
+  is already met on the go-forward page.
+  Residual intent still open (fold into v2 work if wanted, not this spec): FeeFairnessV2
+  still surfaces a "True active fee" stat off `active_fee_bps`, and the legacy
+  FeeFairness.tsx (used as the v2 fallback + in production's "More detail") retains the
+  incoherent recomputed dollar-gap.
 ---
 
 ## Goal
