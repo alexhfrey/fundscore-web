@@ -35,8 +35,9 @@ at render time), sample/prototype states labeled until real data ships.
 1. `profile-nav-series` — serve monthly growth-of-$1000 series (fund + passive blend, matched
    windows) + per-period after-fee table + beta-adjusted variant. Computation exists in gold; this is
    serving integration.
-2. `attribution-quarter-blocks` — materialize the quarterly Brinson member blocks the engine already
-   computes internally, so the web can compose custom windows and drill into members.
+2. `attribution-quarter-blocks` — **V2, not a production-cutover blocker**: materialize the quarterly
+   Brinson member blocks the engine already computes internally, so the web can compose custom
+   windows and drill into members after the first dynamic page ships.
 3. `attribution-factor-path-serving` — extend the exposure-path build with per-quarter forward factor
    returns, market beta + effect, idio and fund/passive quarter returns (the beta/sector/macro/
    selection top split for any window).

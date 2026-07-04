@@ -1,10 +1,10 @@
 ---
 id: attribution-quarter-blocks
-title: Materialize quarterly Brinson member blocks so the web can compose custom attribution windows
+title: V2: materialize quarterly Brinson member blocks for custom-window attribution drill-downs
 status: queued
 track: backend
 repo: fund_score
-depends_on: ""
+depends_on: attribution-factor-path-serving, profile-v2-production-cutover
 source_proposal: feature-pipeline/proposals/approved/profile-redesign-eight-sections.md
 created: 2026-07-01
 scope: global
@@ -12,13 +12,38 @@ model: opus
 ---
 
 ## Goal
-Serve the **member drill-down layer** of the Attribution Explorer: per-quarter Brinson-Fachler
-member contributions (stock / sector / theme), so the web can compose ANY quarter-aligned window by
-summation and answer "sector allocation drove X bps of this window; half of that was the Technology
-tilt." Today only fixed 1Y/3Y/5Y trailing aggregates are served (`return_attribution` JSONB); the
+V2 enhancement for the Attribution Explorer: serve the **member drill-down layer** as per-quarter
+Brinson-Fachler member contributions (stock / sector / theme), so a paid user can compose custom
+quarter-aligned windows by summation and drill from a category into the members behind it.
+
+This is **not required for the first production cutover of the current fund page design**. V1 can
+ship with:
+- the top waterfall / factor-path story served by `attribution-factor-path-serving`;
+- the existing fixed-window `return_attribution` rows (`1Y` / `3Y` / `5Y`) as the related Brinson
+  member lens;
+- custom range controls disabled or removed until this V2 grid exists.
+
+Today only fixed `1Y` / `3Y` / `5Y` trailing aggregates are served (`return_attribution` JSONB). The
 quarterly sub-period effects are computed internally by `src/fundscore/product/return_attribution.py`
-(v0.2) and then discarded when summing. This spec materializes the quarter grid instead of
+(v0.2) and then discarded when summing. This V2 spec materializes that quarter grid instead of
 discarding it.
+
+## V2 framing decision (2026-07-04)
+
+The current `/preview/funds/[ticker]` Attribution Explorer intentionally pins the window and labels
+custom sub-windows as unavailable. The production v2 page should not block on this member-block grid
+unless the launch scope explicitly includes arbitrary attribution windows.
+
+Launch sequencing:
+1. **V1 production cutover:** ship the fund page dynamically with the existing fixed Brinson windows
+   and the factor-path/top-split layer. No custom Brinson member windows.
+2. **V2 Attribution Explorer:** add this spec's quarter blocks, turn on custom quarter-window member
+   drill-downs, and replace the fixed `1Y` / `3Y` / `5Y` Brinson selector where appropriate.
+
+Non-goals for V1:
+- no fake sub-window recomputation from fixed-window aggregates;
+- no client-side interpolation between `1Y` / `3Y` / `5Y`;
+- no claim that Brinson members decompose the factor-path idiosyncratic row.
 
 ## Context
 - `data/gold/return_attribution.parquet` is ~7.08M rows (~817/fund) of fixed-window aggregates.
@@ -84,7 +109,9 @@ For each (series_id, quarter, dimension ∈ {stock, sector, theme}):
 - The factor/beta/macro top-split layer (separate spec `attribution-factor-path-serving`).
 - GRAP/Carino linking (possible v2 server-side normalization; per-quarter returns kept so no
   re-ingest would be needed).
-- The Explorer UI (frontend; composes windows client-side over the served grid).
+- The V1 production profile cutover. That cutover can keep fixed Brinson windows and leave custom
+  member-window controls disabled/absent.
+- The Explorer UI implementation (frontend; composes windows client-side over the served grid).
 
 ## Risks
 - Serving size — bounded by top-K + "other" and the separate table.

@@ -4,7 +4,7 @@ title: Promote the v2 profile from /preview to production /funds/[ticker] — se
 status: queued
 track: frontend
 repo: fundscore-web
-depends_on: profile-nav-series, positioning-context-percentiles, fund-family-panel, attribution-quarter-blocks, attribution-factor-path-serving, te-decomposition-by-bet, recent-changes-te-ranked, ai-summary-generation
+depends_on: profile-nav-series, positioning-context-percentiles, fund-family-panel, attribution-factor-path-serving, te-decomposition-by-bet, recent-changes-te-ranked, ai-summary-generation
 source_proposal: feature-pipeline/proposals/approved/profile-redesign-eight-sections.md
 created: 2026-07-02
 scope: page
@@ -28,8 +28,8 @@ A v2 section may switch from fixture to served data ONLY when ALL of:
    product — anchor, method_version, sources, notMeaning, limitations — copied from the real
    shipped artifact (never invented). Only then does the section gain its `/methodology#anchor`
    link and lose its "sample" chip. The registry is a trust surface: NO live section without its
-   artifact. (This requirement binds ALL eight backend specs — treating it as part of each flip
-   rather than each backend spec keeps it in one place.)
+   artifact. (This requirement binds every backend section promoted in V1 — treating it as part of
+   each flip rather than each backend spec keeps it in one place.)
 4. The fixture export for that section is DELETED from `src/lib/fixtures/profile-v2-fcntx.ts`
    (the types stay). A fixture never coexists with a served section.
 5. `/critique-funds` capture + data-quality-critic pass on the newly live section (served == gold
@@ -38,6 +38,9 @@ A v2 section may switch from fixture to served data ONLY when ALL of:
 ## Known frontend work at flip time (from the preview build's honest-gap list)
 - Bets table: join served `exposureXray` rows for per-bet held/active weights (the preview shows
   em-dashes; the served X-ray has them) + t-stats/ETF proxies from the te-decomposition payload.
+- Attribution member drill-down: keep the existing fixed `1Y` / `3Y` / `5Y` Brinson rows at cutover.
+  Custom quarter-window Brinson member drill-downs are V2 (`attribution-quarter-blocks`), not a
+  production-cutover blocker.
 - Skill histograms return only after the beta-adjusted Bayesian rerun (backlog) restores the
   P(skill) headline.
 - "Why IWF" candidate table lands with `serve-l2-passive-candidate-fit`.
