@@ -242,3 +242,15 @@ framework for this spec. Verify `composeVerdictLine` through render-captures, no
   test the strong-edge and expensive cases so the verdict stays true across funds.
 - **Gating slip**: the peer anchor reads a `free`-gated section — guard against rendering it for anon
   (would leak `exposure_xray` values). Keep it out of the public hero path.
+
+---
+
+## RETIRED — superseded (2026-07-03)
+
+Implemented in commit `000878b` (composeVerdictLine + two jargon anchors + Exposure X-Ray peer
+anchor), then **orphaned** by commit `99ac335` which replaced `ValueOfferingHero` (the host of the
+verdict line + jargon anchors) with `ValueScoreHero` (breakeven_state / value_bps framing).
+`src/components/fund/profile/index.ts` marks `ValueOfferingHero` as `// legacy badge hero (retired
+from the page)` and `page.tsx` no longer imports it — so the verdict-line/jargon-anchor deliverables
+are dead code on the production render path. Owner decision: **retire as superseded** by ValueScoreHero.
+The Exposure X-Ray peer-anchor readout (the 3rd deliverable) survived the swap and remains live.
