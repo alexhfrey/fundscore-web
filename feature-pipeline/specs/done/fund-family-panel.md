@@ -1,12 +1,13 @@
 ---
 id: fund-family-panel
 title: Serve fund-family (adviser-level) value aggregation — avg + AUM-weighted bps, family rank
-status: queued
+status: done
 track: backend
 repo: fund_score
 depends_on: profile-nav-series
 source_proposal: feature-pipeline/proposals/approved/profile-redesign-eight-sections.md
 created: 2026-07-01
+completed: 2026-07-04
 scope: global
 model: opus
 ---
@@ -38,7 +39,8 @@ Over scored funds (`value_score.value_bps IS NOT NULL`) joined to `fund_metadata
 2. Per family with ≥ N_MIN (5) scored funds: `n_funds`, `avg_value_bps`,
    `aum_weighted_value_bps`, `total_scored_aum`.
 3. 3-year variants (`avg_value_bps_3y`, `aum_weighted_value_bps_3y`): per-fund 3Y after-fee active
-   return from the `profile-nav-series` period table (`diff_bps`, 3Y row) — hence the dependency.
+   return from the `profile-nav-series` period table (`beta_adj_diff_bps`, 3Y row — beta-adjusted so
+   it is commensurate with the SI `value_score.value_bps` basis; NOT raw `diff_bps`) — hence the dependency.
    Funds lacking a 3Y matched window are excluded from the 3Y aggregates (count reported), not
    imputed.
 4. `family_rank` + `n_families_ranked` on the AUM-weighted SI figure (document the rank basis in
@@ -50,6 +52,27 @@ Over scored funds (`value_score.value_bps IS NOT NULL`) joined to `fund_metadata
 - Serving: new `fund_family` JSONB section per fund in `fact_assembler.py` (the fund's own family
   card: rank, aggregates, member top-list with the fund's own row flagged); `fundFamily` column in
   `fundscore-web/src/lib/db/schema/serving.ts`. Proposed gate: free (drives cross-fund navigation).
+
+## Implementation notes (2026-07-04)
+- Backend shipped in `fund_score`:
+  - `src/fundscore/product/fund_family.py`
+  - `scripts/pipeline/build_fund_family_panel.py`
+  - `scripts/reports/check_fund_family_panel.py`
+  - `data/gold/fund_family_panel.parquet`
+  - `data/gold/fund_family_members.parquet`
+  - `reports/product/fund_family_panel_check_data.md`
+- Serving shipped as `fund_family_panel` JSONB, not `fund_family`, because `fund_profile_facts`
+  already had a text `fund_family` scalar carrying the SEC trust/registrant name. Keeping the new
+  JSONB under `fund_family_panel` avoids overwriting that existing scalar. The web schema maps this
+  to `fundFamilyPanel` and the v2 preview projector prefers it over the old fixture.
+- Repeatable command: `make build-fund-family-panel`.
+- Current measured build: 2,080 scored member rows, 412 adviser-family rows, 115 ranked families
+  (N_MIN=5), 1,554 members in ranked families, 99.9% member coverage for 3Y matched windows.
+- Fidelity current-data spot-check: 115 scored funds, $698.6B scored AUM, rank 4 of 115, +35.5 bps
+  AUM-weighted SI value, +8.3 bps simple average. This is a documented refresh delta versus the
+  mock-prep note above (+37.0 bps, 116 families).
+- Validation: family aggregates/ranks recompute exactly from `fund_family_members.parquet`; serving
+  tests assert the served FCNTX panel matches gold and includes FCNTX in the member list.
 
 ## Data-integrity guardrails
 - Every fund's `value_bps` is vs its OWN passive alternative — the family aggregate is an average
@@ -86,3 +109,13 @@ Over scored funds (`value_score.value_bps IS NOT NULL`) joined to `fund_metadata
   AUM" eyeball check in the validation report).
 - Survivorship framing: scored funds only — the payload should carry `n_funds_scored` (not claim
   "all Fidelity funds").
+
+## Finalization (2026-07-04)
+Built out-of-band alongside serve-l2-passive-candidate-fit in a shared checkout, then properly gated:
+committed clean on branch `feat/fund-family-panel` (fund_score `5c82907`), **isolated from L2** (which
+FAILED review and is filed for rework). Gates: data-reviewer PASS (aggregates recompute exactly from
+raw, served==gold, 99.86% coverage / 0 recoverable-missing), 34 serving+family tests pass, codex
+CODEX_GATE pass (2 trivial P3s). 3Y basis switched to `beta_adj_diff_bps` for commensurability with SI.
+Web-side (`fundFamilyPanel` Drizzle column + v2 projector + gate) remains uncommitted/held pending the
+web integration pass. codex advisory P3: `build_fund_family_panel.py:48` crashes on an output path
+outside the repo (cosmetic).

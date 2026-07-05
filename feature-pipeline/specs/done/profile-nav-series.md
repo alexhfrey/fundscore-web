@@ -1,7 +1,7 @@
 ---
 id: profile-nav-series
 title: Serve monthly growth-of-$1000 series (fund vs passive blend, matched windows) + after-fee period table
-status: queued
+status: done
 track: backend
 repo: fund_score
 depends_on: ""
@@ -65,9 +65,20 @@ For each series_id with a passive blend (join key exists in `passive_alt_daily_n
   suppression).
 - No synthetic backfill: months missing in either leg truncate the common window; funds with no
   passive blend serve `nav_series: null` (honest absence), not a market-index substitute.
-- Coverage is a headline metric: report the fraction of the ~8,656-fund serving universe with a
-  non-null `nav_series`, split honest-missing (no passive blend / too-short history) vs
-  recoverable-missing, BEFORE the full build (pre-build EDA on a sample).
+- Coverage is a headline metric: report the fraction of the real EQ serving universe (5,799 series
+  in `serving_facts_staging.parquet` — the spec's earlier ~8,656 figure was stale) with a non-null
+  `nav_series`, split honest-missing (no passive blend / too-short history) vs recoverable-missing,
+  BEFORE the full build (pre-build EDA on a sample). REALIZED (2026-07-04): gold panel serves 9,044
+  series (of the with-blend, ≥13mo population); served EQ coverage 3,189/5,799 = 55.0% overall
+  (78.0% of active funds; passive 1.3%, null by design). A codex [P2] flagged 123 funds nulled by
+  the keep-last-run trim. Root-caused (not a trim bug): 122/123 are LIVE funds whose paired
+  fund+passive series ends stale because of an UPSTREAM data gap — the NAV feed cuts off a cohort at
+  ~2025-04-30 and the passive blend has 1–2mo micro-gaps before the end (evidence: LSLTX paired
+  2002-12..2025-01, gap, 2025-04 stub). A keep-longest-run recovery was tried (`233e370`) and
+  REVERTED — codex correctly showed it serves charts ending 1–5yr ago for funds that look current.
+  These 123 serve `nav_series:null` for v1 (honest); the real recovery is upstream, filed as two
+  `(data)` backlog items (NAV-feed 2025-04-30 cutoff + passive-blend micro-gaps). v1 backend =
+  `90c9f11` (codex CODEX_GATE pass).
 
 ## EDA questions
 1. **Is `benchmark_nav` derived from ETF adjusted closes (i.e., already net of the ETF's expense
@@ -77,12 +88,16 @@ For each series_id with a passive blend (join key exists in `passive_alt_daily_n
 3. Frequency decision: monthly is the default; confirm payload sizes at p99 history length.
 
 ## Acceptance criteria (relational)
-- For 5 spot-check funds (FCNTX, DODGX, FBGRX, VOO, FXAIX): endpoint growth values recompute from
-  the raw daily NAV parquets within rounding tolerance; both legs share an identical month grid;
-  the series' SI `diff_bps` sign is consistent with the fund's `value_bps` sign where confidence is
-  high.
-- For index funds tracking their own baseline (e.g. VOO), fund vs passive lines track within known
-  replication error — a large divergence fails the build.
+- For 5 active spot-check funds that have a passive blend (e.g. FCNTX, DODGX, FBGRX): endpoint
+  growth values recompute from the raw daily NAV parquets within rounding tolerance; both legs share
+  an identical month grid; the series' SI `diff_bps` sign is consistent with the fund's `value_bps`
+  sign where confidence is high.
+- Plain passive vehicles (e.g. VOO, FXAIX) have no cheaper passive alternative, so they serve
+  `nav_series: null` (RATIFIED 2026-07-04 — honest absence per the no-substitute guardrail, not a
+  degenerate fund-vs-itself line). The index-tracking-within-replication-error check therefore uses
+  an index-tracking fund that DOES carry a passive blend (e.g. DFUSX, an S&P 500 tracker,
+  replica_r2 ≈ 0.996) — fund vs passive lines track within known replication error, a large
+  divergence fails the build.
 - Served `nav_series` == gold panel rows (spot-check 5 funds); `/check-data` passes on
   `profile_nav_series.parquet` (entity = series_id, date = month_end).
 - Coverage number reported in the validation report with the honest/recoverable split.
