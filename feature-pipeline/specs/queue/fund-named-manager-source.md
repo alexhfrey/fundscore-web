@@ -232,3 +232,38 @@ regex-vs-LLM question (read both before implementing):
 6. **Re-clear the gates.** Re-run the atomic spot-checks (FCNTX, DODGX→0, Regents Park→4 real names,
    Potomac→Russo, Cohen&Steers→Yablon) on the sample BEFORE batch, then proceed through the reviewed
    assembly line (data-reviewer checkpoint after each step) + the codex sign-off gate.
+
+## Implementation addendum 2 — extraction engine SHIPPED; remaining scope (2026-07-04)
+
+The hybrid extractor above is **built, certified, independently reviewed, and review-hardened** on
+`fund_score` branch `feat/manager-extract-r3` (HEAD `d76cfd8`; r4 fixes + regression in
+`reports/feature_pipeline/manager-extract-r4-fixes.md`; certification + honest re-adjudication in
+`manager-extract-r3-REVIEW-BRIEF.md` — holdout3 ship precision 96.0% raw / ~98.8% adjudicated,
+auto-served 92.2% point estimate, burned-set range 78–87%). A full-universe build (4,048 EQ-active
+series) is running to `data/gold/manager_build_20260704/` (assignments + change events + per-series
+review verdicts). **Do NOT re-derive extraction logic — consume its output.** What remains of this
+spec:
+
+1. **Builder wiring**: map the build output (`manager_assignments_full.parquet`,
+   `manager_change_events_full.parquet`) into the canonical `ASSIGNMENT_SCHEMA` /
+   change-event outputs at `data/gold/manager_assignments.parquet` + `manager_change_events.parquet`
+   via `manager_people.py` (bump `method_version`), preserving placeholder rows for uncovered funds
+   exactly as specified above.
+2. **Review gate is a serving invariant (NEW, from the r4 review).** The build emits per-series
+   `review_status ∈ {confident, needs_review}` + `review_reason`
+   (`manager_review_full.parquet`). ONLY `confident` series may serve real rosters; a
+   `needs_review` series keeps its honest placeholder row (no names served) until promoted. Never
+   ship a queued roster — the queue exists because those rosters are the residual error mass
+   (sibling-attribution bleed, silent-empty, sleeve-incomplete).
+3. **Web-verify pass before load (NEW).** Run `scripts/pipeline/verify_managers_web.py` (branch r4;
+   flag-not-fix, CURRENT-as-of only, ~$0.012/fund) over the build — at minimum the queue, ideally
+   all confident funds — and apply its promotions/demotions to the review parquet BEFORE the
+   Postgres load. It catches the two residual confident-bucket error classes (sibling bleed,
+   partial roster) that the in-filing gates cannot see. Web data must never source a name or touch
+   historical as-of extraction.
+4. **Serving integration** exactly as the "Serving integration" section above specifies
+   (`managers[]`, `manager_transition`, `manager_as_of`, no firm fallback), then staging rebuild +
+   Postgres load + the acceptance criteria unchanged.
+5. **Open product decision for the UI spec (`fund-named-manager-ui`)**: what a `needs_review` fund
+   shows (hide the module vs "manager data under review"). Recommended default: hide, with no
+   claim — a wrong roster is worse than a missing module.
