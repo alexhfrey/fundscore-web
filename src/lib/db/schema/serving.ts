@@ -11,6 +11,9 @@ import {
   timestamp,
   uuid,
   index,
+  date,
+  doublePrecision,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { assetClassCodeEnum } from "./enums";
@@ -123,6 +126,46 @@ export const fundProfileFacts = pgTable(
     index("fpf_peer_group_idx").on(t.peerGroup),
     index("fpf_asset_class_idx").on(t.assetClass),
     index("fpf_vo_status_idx").on(t.valueOfferingStatus),
+  ],
+);
+
+// ============================================================================
+// fund_holdings_full — the filed full-holdings list (serve-full-holdings)
+// ----------------------------------------------------------------------------
+// First LONG-format serving table: one row per (series_id, filed position
+// line) at the fund's latest canonical N-PORT accession. As-filed fidelity:
+// multi-line issuers stay multiple rows; weight_pct is the filed pctVal (% of
+// net assets — per-fund sums cluster near 100 but are NEVER rescaled); float8
+// for byte-equal copy fidelity vs the filing. Loaded by fund_score's serving
+// loader via TRUNCATE+COPY in the SAME transaction as fund_profile_facts, so
+// the free teaser on the facts row (holdings.holdings_full.{n_positions,
+// as_of}) always equals this table's per-fund row count. Full rows are paid:
+// gates.holdings_full = "paid" (present on the facts row iff rows exist here).
+// ============================================================================
+
+export const fundHoldingsFull = pgTable(
+  "fund_holdings_full",
+  {
+    seriesId: text("series_id").notNull(),
+    canonicalTicker: varchar("canonical_ticker", { length: 12 }),
+    asOf: date("as_of").notNull(), // filed report_period_end
+    accNo: text("acc_no").notNull(), // canonical accession (lexmax per period)
+    positionRank: integer("position_rank").notNull(), // filed-weight desc, 1-based
+    securityName: text("security_name"),
+    securityTitle: text("security_title"),
+    securityTicker: text("security_ticker"), // resolved US ticker — display metadata, nullable
+    cusip: varchar("cusip", { length: 9 }),
+    isin: varchar("isin", { length: 12 }),
+    weightPct: doublePrecision("weight_pct"), // filed pctVal, EXACTLY as filed
+    valueUsd: doublePrecision("value_usd"), // filed valUSD
+    country: text("country"), // filed invCountry
+    sector: text("sector"), // cusip_reference join; null where unresolved
+    assetCat: varchar("asset_cat", { length: 16 }), // filed assetCat raw code (display labeling is frontend)
+  },
+  (t) => [
+    primaryKey({ columns: [t.seriesId, t.positionRank] }),
+    // per-fund fetch key for the profile drawer ("View all N holdings")
+    index("fhf_ticker_idx").on(t.canonicalTicker),
   ],
 );
 
