@@ -6,8 +6,8 @@ One list of everything to do. `/triage` drains it: picks the top **Open** item, 
 **Format:** `- [ ] (type) Title — one-line context [area]`
 **Optional model tag:** `[model: fable|opus|sonnet, effort: xhigh|high|...]` — a routing hint for judgment-heavy items. Fix loops run in the MAIN session, so the dispatcher should surface the tag ("this item recommends X — /model to switch, or proceed") rather than silently ignore it. Specs carry the same hint as `model:`/`effort:` frontmatter, which `/implement-next` passes to the implementer agents automatically.
 **Types & routing:**
-- `(bug)` → `/fix-bug` — lean loop: reproduce → fix → verify → review (Claude + codex) → commit.
-- `(data)` → `/fix-data` — lean loop: root-cause at source → fix → rebuild → /check-data + data-reviewer → review (Claude + codex) → commit. (No synthetic data; fix upstream.)
+- `(bug)` → `fundscore-data:fix-bug` (fundscore-harness plugin) — lean loop: reproduce → fix → verify → review (Claude + codex) → commit.
+- `(data)` → `fundscore-data:fix-data` (fundscore-harness plugin) — lean loop: root-cause at source → fix → rebuild → /check-data + data-reviewer → review (Claude + codex) → commit. (No synthetic data; fix upstream.)
 - `(story)` → existing feature pipeline: `/critique-funds` → review-proposals → `/spec-approved` → `/implement-next`.
 
 Keep items small and single-purpose. Put the type first so the dispatcher can route without reading the whole line.

@@ -24,8 +24,10 @@ if (!webRoot || !fundScoreRoot || !specPath || !slug)
 const implOpts = { model: model || 'opus', ...(effort ? { effort } : {}) }
 
 // Shared backend personas live in the fundscore-harness plugin checkout (single source of
-// truth; also registered as `fundscore-data:<name>` plugin agents in both repos).
-const harnessRoot = A.harnessRoot || '/Users/alexfrey/Projects/fundscore-harness'
+// truth; also registered as `fundscore-data:<name>` plugin agents in both repos). Derive the
+// checkout as a sibling of webRoot so this is portable across machines (no Node fs API in the
+// workflow sandbox); callers may override with A.harnessRoot.
+const harnessRoot = A.harnessRoot || webRoot.replace(/fundscore-web\/?$/, 'fundscore-harness')
 const persona = (name) => `${harnessRoot}/plugins/fundscore-data/agents/${name}.md`
 const common = `
 Persona/instructions: read ${persona('PERSONA')}

@@ -42,8 +42,12 @@ just competence?" Only the former is a decision.
 ## 3. Field-existence check (always, for any spec that names data)
 For every data field / column / table / panel the spec references (gold panels, serving schema, raw
 filings), verify it exists NOW — Grep the schemas and builders in both repos, or read a sample record.
-A spec that assumes a field into existence without an explicit backend-prerequisite section is a
-`high` `engineering` finding (or a `decision` if whether to build that field is a real scope call).
+Split on whether the field EXISTS: if Grep confirms it exists but the spec omitted it from its
+backend-prerequisite section, that is a `high` `engineering` finding (the fix is a one-line spec
+edit). If the field does **not exist anywhere** in either repo, that is a **`decision`** — the owner
+must decide whether to scope building it. Never classify an absent field as `engineering`: the
+reviser loop auto-resolves engineering findings and the owner would never learn the spec depends on
+unbuilt data.
 
 ## Output (structured)
 - `brief`: `{ what, why, user_impact }`.
