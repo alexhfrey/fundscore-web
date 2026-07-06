@@ -52,6 +52,7 @@ const FCNTX_ROW = {
     return_attribution: "paid",
     positioning_changes: "free",
     value_offering_reframed: "public",
+    nav_series: "public",
   },
   identity: {
     ticker: "FCNTX",
@@ -158,6 +159,27 @@ const FCNTX_ROW = {
     eval_date: "2025-09-30",
     method_version: "alternatives_v1",
   },
+  // nav_series gate=public (the fund-only growth chart is free), but the
+  // vs-passive legs + full period table are paid: applyGates nulls the passive /
+  // beta-adjusted point legs + the β, and collapses the period table to ONE free
+  // proof-point row (beta-adjusted diff still nulled). Values here exercise the
+  // strip mechanics — this is a gating test, not a served-data check.
+  navSeries: {
+    passive_label: "IWF",
+    series_start: "2008-05",
+    as_of: "2026-05",
+    beta: 0.90444, // PAID scalar — must not survive anon
+    points: [
+      { t: "2008-05", fund: 1000.0, passive: 1000.0, beta_adj_passive: 1000.0 },
+      { t: "2026-05", fund: 3421.0, passive: 4102.5, beta_adj_passive: 3550.1 },
+    ],
+    period_table: [
+      { period: "1Y", fund_ann_pct: 10.2, passive_ann_pct: 12.5, diff_bps: -230, beta_adj_diff_bps: -180 },
+      { period: "3Y", fund_ann_pct: 8.1, passive_ann_pct: 9.5, diff_bps: -140, beta_adj_diff_bps: -90 },
+      { period: "SI", fund_ann_pct: 7.0, passive_ann_pct: 8.1, diff_bps: -111, beta_adj_diff_bps: 14 },
+    ],
+    method_version: "profile_nav_series_v1",
+  },
   sourceInventory: { source_stamps: [] },
 } as unknown as FactRow;
 
@@ -253,6 +275,37 @@ check("manager_parent (free) is {locked} for anon", isLocked(anon.managerParent)
 const anonVr = anon.valueOfferingReframed as { badge?: string } | null;
 check("public reframed badge still present for anon", anonVr?.badge === "Selection unproven");
 
+// nav_series: the fund-only growth chart is public (section NOT locked, fund line
+// survives), but the vs-passive comparison is paid — passive/beta-adjusted point
+// legs + β must be nulled, and the period table collapsed to ONE free proof-point
+// row (its beta-adjusted diff also nulled). passive_label stays to name the proof.
+const anonNav = anon.navSeries as {
+  passive_label?: string;
+  beta?: number | null;
+  period_table?: { period: string; diff_bps: number | null; beta_adj_diff_bps: number | null }[];
+} | null;
+check("nav_series (public) NOT locked for anon", !isLocked(anon.navSeries));
+check("nav_series fund line survives for anon", hasLiveNumber(anon.navSeries, "fund"));
+check("nav_series passive leg nulled for anon", !hasLiveNumber(anon.navSeries, "passive"));
+check(
+  "nav_series beta_adj_passive leg nulled for anon",
+  !hasLiveNumber(anon.navSeries, "beta_adj_passive"),
+);
+check("nav_series β nulled for anon", !hasLiveNumber(anon.navSeries, "beta"));
+check("nav_series passive_label kept for anon", anonNav?.passive_label === "IWF");
+check(
+  "nav_series period table collapsed to one proof-point row for anon",
+  (anonNav?.period_table?.length ?? 0) === 1,
+);
+check(
+  "nav_series proof-point keeps diff_bps for anon",
+  hasLiveNumber(anon.navSeries, "diff_bps"),
+);
+check(
+  "nav_series beta_adj_diff_bps nulled even on proof-point for anon",
+  !hasLiveNumber(anon.navSeries, "beta_adj_diff_bps"),
+);
+
 // ============================================================================
 // 2. Paid payload — positive control: gating opens at the right tier.
 // ============================================================================
@@ -278,6 +331,16 @@ check(
     !isLocked((paidRa as { active_return_attribution?: unknown }).active_return_attribution),
 );
 check("bias_bps present for paid (positive control)", hasLiveNumber(paid, "bias_bps"));
+
+// nav_series: the paid tier sees the full vs-passive comparison.
+const paidNav = paid.navSeries as { period_table?: unknown[] } | null;
+check("nav_series passive leg present for paid", hasLiveNumber(paid.navSeries, "passive"));
+check("nav_series β present for paid", hasLiveNumber(paid.navSeries, "beta"));
+check("nav_series full period table present for paid", (paidNav?.period_table?.length ?? 0) === 3);
+check(
+  "nav_series beta_adj_diff_bps present for paid (positive control)",
+  hasLiveNumber(paid.navSeries, "beta_adj_diff_bps"),
+);
 
 // Even the full paid payload carries no retired legacy key (schema is clean).
 for (const k of LEGACY_KEYS) {

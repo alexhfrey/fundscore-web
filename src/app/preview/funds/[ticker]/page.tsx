@@ -184,11 +184,15 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
           }
       : null;
 
-  // Fund family — free. (Guard against the base row's `fundFamily` STRING, which
-  // is the DB adviser name colliding with the fixture panel key; only a real
-  // panel object counts as present.)
+  // Fund family — free. Prefer the real backend panel. Guard against the base
+  // row's `fundFamily` STRING, which is the DB adviser name colliding with the
+  // fixture panel key; only a real panel object counts as present.
   const familyPanel =
-    row.fundFamily != null && typeof row.fundFamily === "object" ? row.fundFamily : null;
+    row.fundFamilyPanel != null && typeof row.fundFamilyPanel === "object"
+      ? row.fundFamilyPanel
+      : row.fundFamily != null && typeof row.fundFamily === "object"
+        ? row.fundFamily
+        : null;
   const familyPresent = familyPanel != null;
   const fundFamily = free ? familyPanel : null;
 

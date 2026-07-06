@@ -311,6 +311,9 @@ export interface FactRow {
   fees: Record<string, unknown> | null;
   passiveBaseline: PassiveBaseline | null;
   performance: Record<string, unknown> | null;
+  // navSeries (profile-nav-series) arrives on the served row; its full typed
+  // shape lives on FactRowV2 (profile-v2.ts NavSeries). Accessed here via the
+  // index signature for the field-level paid strip in applyGates below.
   riskBehavior: Record<string, unknown> | null;
   holdings: Record<string, unknown> | null;
   managerParent: Record<string, unknown> | null;
@@ -319,6 +322,9 @@ export interface FactRow {
   returnAttribution: Record<string, unknown> | null;
   riskAttribution: RiskAttribution | null;
   positioningChanges: Record<string, unknown> | null;
+  // fundFamilyPanel (fund-family-panel) arrives on the served row; its typed
+  // shape lives on FactRowV2 (profile-v2.ts FundFamilyPanel). Like navSeries,
+  // it is reached via the index signature here so the V2 narrowing compiles.
   alternatives: Record<string, unknown> | null;
   takeaways: unknown[] | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -334,6 +340,7 @@ const GATED_SECTIONS: { col: string; gate: string }[] = [
   { col: "fees", gate: "fees" },
   { col: "passiveBaseline", gate: "passive_baseline" },
   { col: "performance", gate: "performance" },
+  { col: "navSeries", gate: "nav_series" },
   { col: "riskBehavior", gate: "risk_behavior" },
   { col: "holdings", gate: "holdings" },
   { col: "managerParent", gate: "manager_parent" },
@@ -342,6 +349,7 @@ const GATED_SECTIONS: { col: string; gate: string }[] = [
   { col: "returnAttribution", gate: "return_attribution" },
   { col: "riskAttribution", gate: "risk_attribution" },
   { col: "positioningChanges", gate: "positioning_changes" },
+  { col: "fundFamilyPanel", gate: "fund_family_panel" },
   { col: "alternatives", gate: "alternatives" },
   { col: "takeaways", gate: "takeaways" },
 ];
@@ -757,6 +765,41 @@ export function applyGates(row: FactRow, userState: UserState): FactRow {
     // Denormalized scalars carry the same precise figures — strip them too.
     out.valueScoreBps = null;
     out.valueScore100 = null;
+  }
+
+  // Field-level: the growth-of-$1000 chart is public (the FUND line + shape), but
+  // the vs-passive comparison is paid — null the passive + beta-adjusted legs on
+  // every point, and collapse the after-fee period table to ONE free proof-point
+  // row (prefer 3Y, else the longest window) keeping only its fund/passive
+  // annualized return + diff (beta-adjusted diff stays paid). Mirrors the
+  // value_score "verdict free, precision paid" field-gate; the passive_label stays
+  // so the proof point can name the alternative ("3Y: −40 bps/yr vs IWF"). The
+  // full typed shape lives on FactRowV2 (profile-v2.ts); here we reach it via the
+  // index-signature accessor `o.navSeries`.
+  const nav = o.navSeries;
+  if (nav && typeof nav === "object" && !isLocked(nav) && rank < TIER_RANK.paid) {
+    const ns = nav as AnyObj;
+    const points: AnyObj[] = Array.isArray(ns.points) ? ns.points : [];
+    const table: AnyObj[] = Array.isArray(ns.period_table) ? ns.period_table : [];
+    const proof =
+      ["3Y", "SI", "5Y", "1Y"]
+        .map((p) => table.find((r) => r?.period === p))
+        .find((r) => r != null) ??
+      table[0] ??
+      null;
+    o.navSeries = {
+      ...ns,
+      beta: null, // the β behind the (paid) beta-adjusted leg — paid, like value_score.beta
+      points: points.map((p) => ({ ...p, passive: null, beta_adj_passive: null })),
+      period_table: proof ? [{ ...proof, beta_adj_diff_bps: null }] : [],
+      locked_fields: [
+        "beta",
+        "points.passive",
+        "points.beta_adj_passive",
+        "period_table.beta_adj_diff_bps",
+        "period_table[full]",
+      ],
+    };
   }
 
   // Field-level: Manager Moves direction-of-impact label is public, but the

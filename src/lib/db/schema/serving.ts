@@ -94,6 +94,10 @@ export const fundProfileFacts = pgTable(
     fees: jsonb("fees"),
     passiveBaseline: jsonb("passive_baseline"),
     performance: jsonb("performance"),
+    // profile-nav-series — matched growth-of-$1000 series (fund vs passive blend)
+    // + after-fee period table. Section gate is public (fund-only chart); the
+    // vs-passive legs + full period table are stripped field-level below paid.
+    navSeries: jsonb("nav_series"),
     riskBehavior: jsonb("risk_behavior"),
     holdings: jsonb("holdings"),
     managerParent: jsonb("manager_parent"), // carries skill_evidence + manager_moves
@@ -104,6 +108,7 @@ export const fundProfileFacts = pgTable(
     exposureXray: jsonb("exposure_xray"), // spec #4 — differentiated exposure rows + contributors
     returnAttribution: jsonb("return_attribution"), // spec #10 — active-return attribution
     positioningChanges: jsonb("positioning_changes"), // spec #12 — surfaced portfolio shifts
+    fundFamilyPanel: jsonb("fund_family_panel"), // fund-family-panel — adviser-level family aggregation
     alternatives: jsonb("alternatives"), // spec #6 — alternatives to inspect + reasons
     takeaways: jsonb("takeaways"), // spec #8 (3b) — evidence bullets
     theTake: jsonb("the_take"), // spec #8 (3a) — synthesis block

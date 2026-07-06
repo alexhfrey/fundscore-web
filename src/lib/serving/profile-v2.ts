@@ -309,6 +309,7 @@ export interface FactRowV2 extends FactRow {
   teDecomposition?: TeDecomposition | null;
   recentChangesTe?: RecentChangesTe | null;
   fundFamily?: FundFamilyPanel | null;
+  fundFamilyPanel?: FundFamilyPanel | null;
   aiSummary?: AiSummary | null;
   attributionBlocks?: AttributionBlocks | null;
   attributionWindowSummary?: AttributionWindowSummary | null;
@@ -336,14 +337,13 @@ export async function overlayV2Fixtures(
   out.positioningContext = out.positioningContext ?? fx.positioningContext;
   out.teDecomposition = out.teDecomposition ?? fx.teDecomposition;
   out.recentChangesTe = out.recentChangesTe ?? fx.recentChangesTe;
-  // NOTE: the base fact row carries a `fundFamily` STRING (Drizzle maps the DB
-  // `fund_family` adviser-name column to this camelCase key) — a name collision
-  // with the fixture PANEL. That string is not the served family data product,
-  // so only keep the existing value when it's a real panel object; else overlay.
-  out.fundFamily =
-    out.fundFamily != null && typeof out.fundFamily === "object"
-      ? out.fundFamily
-      : fx.fundFamily;
+  const servedFamily =
+    out.fundFamilyPanel != null && typeof out.fundFamilyPanel === "object"
+      ? out.fundFamilyPanel
+      : out.fundFamily != null && typeof out.fundFamily === "object"
+        ? out.fundFamily
+        : null;
+  out.fundFamily = servedFamily ?? fx.fundFamily;
   out.aiSummary = out.aiSummary ?? fx.aiSummary;
   out.attributionWindowSummary =
     out.attributionWindowSummary ?? fx.attributionWindowSummary;
