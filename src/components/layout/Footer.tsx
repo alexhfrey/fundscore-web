@@ -16,8 +16,8 @@ export function Footer() {
               </span>
             </div>
             <p className="text-sm text-gray-500 max-w-xs">
-              Forward-looking fund ratings that predict which active funds will
-              beat their passive alternatives.
+              See what you actually get for a fund&apos;s fee versus its closest
+              passive alternative.
             </p>
           </div>
           <div>
@@ -35,18 +35,18 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/model"
+                  href="/xray"
                   className="text-sm text-gray-500 hover:text-gray-900"
                 >
-                  Model Details
+                  Portfolio X-Ray
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/compare"
+                  href="/methodology"
                   className="text-sm text-gray-500 hover:text-gray-900"
                 >
-                  Compare Funds
+                  Methodology
                 </Link>
               </li>
             </ul>
@@ -54,11 +54,22 @@ export function Footer() {
           <div>
             <h3 className="text-sm font-semibold text-gray-900 mb-3">About</h3>
             <p className="text-sm text-gray-500">
-              FundScore uses SEC N-PORT filings and proprietary models to
-              generate forward-looking predictions of active fund performance.
+              FundScore uses SEC N-PORT filings and reference data to show what a
+              fund holds, what it charges, and how it compares with its passive
+              alternative.{" "}
+              <Link
+                href="/methodology"
+                className="text-gray-600 underline hover:text-gray-900"
+              >
+                See our methodology
+              </Link>
+              .
             </p>
             <p className="text-xs text-gray-400 mt-4">
-              Data shown is synthetic for demonstration purposes.
+              For informational purposes only — not investment advice and not a
+              recommendation to buy or sell any fund. Data is derived from SEC
+              filings and reference sources; holdings are filed with a lag. This
+              is a pre-launch preview.
             </p>
           </div>
         </div>

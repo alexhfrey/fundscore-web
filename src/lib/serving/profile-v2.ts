@@ -1,0 +1,355 @@
+import type { FactRow, UserState } from "./profile";
+
+// ============================================================================
+// Profile v2 (eight-section redesign) — payload types for the SEVEN data
+// products specced in feature-pipeline/specs/queue/ (2026-07-01), plus the
+// fixture-overlay used by the /preview route while the backend catches up.
+// ----------------------------------------------------------------------------
+// CONTRACT: these interfaces mirror the spec payloads exactly (snake_case inner
+// keys, camelCase column names — same convention as profile.ts). When a spec
+// ships, its section arrives on the real FactRow and the fixture overlay for
+// that section is deleted; the type stays.
+//
+// Sample marking: every fixture-backed object carries `__sample: true`. The
+// preview UI MUST render a visible "sample data" chip off isSample() and MUST
+// NOT attach a methodology link to sample sections (the registry is a trust
+// surface — anchors only exist for shipped data products).
+// ============================================================================
+
+/** Present on fixture-backed payloads only; never set by the real assembler. */
+export interface SampleTag {
+  __sample?: true;
+  /** Optional visible provenance line for the sample (e.g. which real query fed it). */
+  sample_label?: string;
+}
+
+export function isSample(v: unknown): boolean {
+  return typeof v === "object" && v !== null && "__sample" in v;
+}
+
+// ---------------------------------------------------------------------------
+// Preview-route tier gating for FIXTURE sections.
+// ----------------------------------------------------------------------------
+// The real fact-row sections are gated server-side by applyGates (profile.ts).
+// The fixture-overlaid sections (nav series, positioning, family, …) carry no
+// gate metadata, so the /preview page decides their tier here and only passes
+// the entitled data to each component. Mirrors profile.ts's TIER_RANK/GATE_RANK
+// so the two never drift. Used ONLY by src/app/preview/**.
+// ---------------------------------------------------------------------------
+const V2_TIER_RANK: Record<UserState, number> = {
+  anonymous: 0,
+  free: 1,
+  paid: 2,
+  pro: 3,
+};
+const V2_GATE_RANK: Record<string, number> = {
+  public: 0,
+  free: 1,
+  paid: 2,
+  pro: 3,
+};
+
+/** True when `userState` is entitled to a section gated at `requiredGate`. */
+export function tierAllows(
+  userState: UserState,
+  requiredGate: "public" | "free" | "paid" | "pro",
+): boolean {
+  return (V2_TIER_RANK[userState] ?? 0) >= (V2_GATE_RANK[requiredGate] ?? 0);
+}
+
+// --- nav_series (spec: profile-nav-series) ----------------------------------
+export interface NavSeriesPoint {
+  t: string; // "YYYY-MM" month key
+  fund: number; // growth of $1000, after-fee (adjusted NAV)
+  passive: number | null; // the passive blend leg (null when withheld below the paid gate)
+  beta_adj_passive?: number | null;
+}
+export interface NavPeriodRow {
+  period: string; // "YTD" | "1Y" | "3Y" | "5Y" | "10Y" | "SI"
+  fund_ann_pct: number | null;
+  passive_ann_pct: number | null;
+  beta_adj_passive_ann_pct?: number | null;
+  diff_bps: number | null; // excess: fund − passive, annualized, after fees
+  beta_adj_diff_bps: number | null; // alpha: fund − β·passive (same market risk)
+}
+export interface NavSeries extends SampleTag {
+  passive_label: string | null; // ALWAYS named beside the chart
+  series_start: string | null; // common-window start month
+  as_of: string | null;
+  beta?: number | null; // the β used for the beta-adjusted leg (from value_score)
+  points: NavSeriesPoint[];
+  period_table: NavPeriodRow[];
+  /** Plain-English hover explainers for the excess/alpha columns. */
+  hover_copy?: { excess: string; alpha: string } | null;
+  method_version: string | null;
+}
+
+// --- positioning_context (spec: positioning-context-percentiles) ------------
+export interface PositioningContext extends SampleTag {
+  beta: number | null;
+  beta_percentile: number | null; // strictly-below convention
+  beta_cohort_median: number | null;
+  te_bps: number | null;
+  te_percentile: number | null;
+  te_cohort_median_bps: number | null;
+  cohort: {
+    kind: "same_passive_alt" | "peer_group";
+    label: string; // e.g. "funds benchmarked to IWF"
+    n_funds: number;
+  } | null;
+  as_of: string | null;
+  method_version?: string | null;
+}
+
+// --- te_decomposition (spec: te-decomposition-by-bet) -----------------------
+export interface TeBet {
+  label: string;
+  bet_type: "stock" | "sector" | "theme" | "macro";
+  beta: number | null;
+  var_share: number | null; // share of factor-explained variance (can be < 0)
+  te_alloc_bps: number | null; // var_share × factor sleeve (negative = diversifying)
+  confidence_state: string | null;
+  diversifying?: boolean;
+}
+export interface TeDecomposition extends SampleTag {
+  total_te_bps: number | null; // anchors to the served te_current — one TE per page
+  factor_sleeve_te_bps: number | null;
+  stock_selection_te_bps: number | null; // the idio sleeve
+  idio_risk_share: number | null; // fraction of active variance
+  basis_label: string | null; // which baseline the bet betas are measured against
+  bets: TeBet[];
+  as_of?: string | null;
+  method_version?: string | null;
+}
+
+// --- recent changes enrichment (spec: recent-changes-te-ranked) -------------
+export interface RecentChangeRow {
+  change_name: string;
+  classification: "stock" | "sector" | "theme" | "concentration" | "cash";
+  change_direction: string;
+  prior_value: number | null;
+  current_value: number | null;
+  value_unit: string | null;
+  change_magnitude: number | null;
+  te_impact_bps: number | null; // ESTIMATE; null until the backend spec ships
+  te_impact_basis?: string | null;
+  te_rank: number | null;
+}
+export interface RecentChangesTe extends SampleTag {
+  rows: RecentChangeRow[];
+  eval_date: string | null;
+  holdings_as_of_current: string | null; // dual as-of stamps are mandatory (staleness!)
+  holdings_as_of_prior: string | null;
+  ranking_note?: string | null;
+  method_version?: string | null;
+}
+
+// --- fund_family (spec: fund-family-panel) -----------------------------------
+export interface FamilyFundRow {
+  ticker: string;
+  name: string | null;
+  value_bps: number | null; // vs the fund's OWN passive alternative
+  aum_usd: number | null;
+  passive_alt_label: string | null;
+  is_this_fund?: boolean;
+}
+export interface FamilyLeaderRow {
+  rank: number;
+  family: string;
+  n_funds: number;
+  aum_weighted_bps: number | null;
+  avg_bps: number | null;
+}
+export interface FundFamilyPanel extends SampleTag {
+  family: string | null; // cleaned adviser name (grouping key)
+  family_display: string | null; // short brand label for copy
+  n_funds_scored: number | null;
+  total_scored_aum_usd: number | null;
+  avg_value_bps: number | null;
+  aum_weighted_value_bps: number | null;
+  avg_value_bps_3y: number | null; // null until profile-nav-series lands
+  aum_weighted_value_bps_3y: number | null;
+  family_rank: number | null;
+  n_families_ranked: number | null;
+  rank_basis: string | null;
+  funds: FamilyFundRow[]; // top-N by AUM; the fund's own row always present
+  leaders?: FamilyLeaderRow[];
+  as_of: string | null;
+  method_version?: string | null;
+}
+
+// --- ai_summary (spec: ai-summary-generation) --------------------------------
+export interface AiSummary extends SampleTag {
+  paragraphs: string[];
+  generated_at: string | null;
+  model: string | null;
+  facts_hash: string | null;
+  method_version?: string | null;
+}
+
+// --- attribution explorer (specs: attribution-quarter-blocks +
+//     attribution-factor-path-serving; served via the fund_attribution_blocks
+//     table, fetched only when the section renders) --------------------------
+export interface FactorPathBlock {
+  quarter_end: string;
+  factor_id: string;
+  factor_label: string;
+  factor_type: "sector" | "theme" | "macro";
+  beta: number | null;
+  fwd_factor_ret_bps: number | null;
+  contribution_bps: number | null;
+}
+export interface BrinsonBlock {
+  quarter_end: string;
+  dimension: "stock" | "sector" | "theme";
+  member_id: string;
+  member_label: string; // includes the "other" residual bucket
+  contribution_bps: number | null;
+  fund_weight_avg: number | null;
+  passive_weight_avg: number | null;
+}
+export interface AttributionBlocks extends SampleTag {
+  holdings_window: string | null;
+  quarter_grid: string[]; // quarter-end dates the range selects snap to
+  quarter_returns: { quarter_end: string; fund_ret_bps: number | null; passive_ret_bps: number | null }[];
+  factor_path: FactorPathBlock[];
+  market_beta_path: { quarter_end: string; beta_mkt: number | null; beta_effect_bps: number | null }[];
+  idio_by_quarter: { quarter_end: string; idio_bps: number | null }[];
+  brinson: BrinsonBlock[];
+  method_version: string | null;
+}
+
+// The full-window aggregate view (already REAL today via riskAttribution's
+// active_return_attribution / the mock combined_decomposition). The preview
+// renders the Explorer from this summary with the range control pinned to the
+// default window until per-quarter blocks ship — never fabricating sub-window
+// numbers.
+export interface AttributionWindowSummary extends SampleTag {
+  window: string | null; // e.g. "2020-12-31 to 2025-09-30"
+  quarter_grid: string[];
+  default_window: { start: string; end: string } | null;
+  factor_contributions: {
+    factor_id: string;
+    factor_type: "sector" | "theme" | "macro";
+    total_bps: number | null;
+    bias_bps: number | null; // rendered as "steady tilt" — NEVER "timing skill"
+    timing_bps: number | null; // rendered as "tilt variation"
+    avg_active_beta: number | null;
+  }[];
+  stock_selection_idio_bps: number | null;
+  realised_active_bps: number | null;
+  // The frozen-vs-NAV reconciliation gap (fees + intra-quarter trading — the
+  // decomposition is gross, on frozen filed holdings; NAV is net). NOT a
+  // decomposition residual: bets + selection == realised_active by construction.
+  residual_reconciliation_bps: number | null;
+  /** Context bar: (β−1) × baseline return — measured OUTSIDE the beta-adjusted
+   *  decomposition basis; render separately, never summed into the chain. */
+  beta_tilt?: {
+    beta: number;
+    est_bps_per_year: number;
+    window: string;
+    note: string;
+  } | null;
+  n_quarters: number | null;
+  /** Cross-generation basis note: why some Positioning bets fold into a factor here. */
+  basis_migration_note?: string | null;
+  /** Why there is no residual inside the decomposition (frozen-vs-NAV gap). */
+  residual_explainer?: string | null;
+}
+
+// --- holdings_full (spec: current-positioning "View all 280") ----------------
+export interface HoldingRow {
+  stock_ticker: string;
+  weight_pct: number;
+}
+export interface HoldingsFull extends SampleTag {
+  as_of: string | null;
+  basis: string | null;
+  n_positions: number | null;
+  rows: HoldingRow[];
+}
+
+// --- top10_vs_iwf (spec: current-positioning holdings block) -----------------
+export interface Top10Row {
+  ticker: string;
+  fund_pct: number | null;
+  iwf_pct: number | null;
+  diff_pp: number | null;
+  note?: string | null;
+}
+export interface Top10VsIwf extends SampleTag {
+  as_of: string | null;
+  basis_note: string | null;
+  rows: Top10Row[];
+}
+
+// --- positioning_bet_bridges (spec: bets table, non-attributed bridge rows) --
+export interface BetBridge {
+  bet: string;
+  bridge: string;
+}
+export interface PositioningBetBridges extends SampleTag {
+  note: string | null;
+  bridges: BetBridge[];
+}
+
+// --- risk_explainers (spec: ⓘ plain-language explainers) ---------------------
+export interface RiskExplainers extends SampleTag {
+  beta: string | null;
+  tracking_error: string | null;
+  beta_tilt_plain: string | null;
+}
+
+// --- the extended row ---------------------------------------------------------
+// Optional columns: absent until the matching backend spec ships its Drizzle
+// column + assembler section. The preview route overlays fixtures for FCNTX.
+export interface FactRowV2 extends FactRow {
+  navSeries?: NavSeries | null;
+  positioningContext?: PositioningContext | null;
+  teDecomposition?: TeDecomposition | null;
+  recentChangesTe?: RecentChangesTe | null;
+  fundFamily?: FundFamilyPanel | null;
+  fundFamilyPanel?: FundFamilyPanel | null;
+  aiSummary?: AiSummary | null;
+  attributionBlocks?: AttributionBlocks | null;
+  attributionWindowSummary?: AttributionWindowSummary | null;
+  holdingsFull?: HoldingsFull | null;
+  top10VsIwf?: Top10VsIwf | null;
+  positioningBetBridges?: PositioningBetBridges | null;
+  riskExplainers?: RiskExplainers | null;
+}
+
+/**
+ * Overlay fixture payloads for sections the backend doesn't serve yet.
+ * PREVIEW-ONLY: imported by src/app/preview/** and nowhere else. Real served
+ * sections always win — a fixture never shadows real data. Non-fixture tickers
+ * get nulls (the honest Unavailable state), not a generic fake fund.
+ */
+export async function overlayV2Fixtures(
+  row: FactRow,
+  ticker: string,
+): Promise<FactRowV2> {
+  const { getV2Fixtures } = await import("../fixtures/profile-v2-fcntx");
+  const fx = getV2Fixtures(ticker);
+  const out: FactRowV2 = { ...row };
+  if (!fx) return out;
+  out.navSeries = out.navSeries ?? fx.navSeries;
+  out.positioningContext = out.positioningContext ?? fx.positioningContext;
+  out.teDecomposition = out.teDecomposition ?? fx.teDecomposition;
+  out.recentChangesTe = out.recentChangesTe ?? fx.recentChangesTe;
+  const servedFamily =
+    out.fundFamilyPanel != null && typeof out.fundFamilyPanel === "object"
+      ? out.fundFamilyPanel
+      : out.fundFamily != null && typeof out.fundFamily === "object"
+        ? out.fundFamily
+        : null;
+  out.fundFamily = servedFamily ?? fx.fundFamily;
+  out.aiSummary = out.aiSummary ?? fx.aiSummary;
+  out.attributionWindowSummary =
+    out.attributionWindowSummary ?? fx.attributionWindowSummary;
+  out.holdingsFull = out.holdingsFull ?? fx.holdingsFull;
+  out.top10VsIwf = out.top10VsIwf ?? fx.top10VsIwf;
+  out.positioningBetBridges = out.positioningBetBridges ?? fx.positioningBetBridges;
+  out.riskExplainers = out.riskExplainers ?? fx.riskExplainers;
+  return out;
+}

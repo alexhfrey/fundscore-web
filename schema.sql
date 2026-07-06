@@ -501,3 +501,211 @@ admin_details: {
   "website": "https://www.fidelity.com"
 }
 */
+
+-- ============================================================================
+-- SERVING LAYER (Track 1B) — Value Offering hot path
+-- ----------------------------------------------------------------------------
+-- These tables replace the legacy predictive-score mock above as the profile
+-- page's data source (the mock is retired in Track 1C once the UI is rebuilt).
+-- The Python loader (fund_score: scripts/pipeline/build_serving_facts.py) does
+-- a full-replace COPY into fund_profile_facts and mirrors the build manifest
+-- into serving_manifest. Source of truth: src/lib/db/schema/serving.ts.
+-- ============================================================================
+
+CREATE TYPE tier_label AS ENUM ('Strong', 'Mixed', 'Weak');
+CREATE TYPE value_offering_status AS ENUM ('available', 'limited', 'unavailable');
+CREATE TYPE data_completeness_state AS ENUM (
+  'full', 'basic_profile_only', 'missing_passive_match',
+  'missing_holdings', 'missing_expense', 'unsupported'
+);
+
+-- One row per series_id. Hot scalars + nested JSONB payload sections matching
+-- the FundProfilePayload contract (docs/product/data_contracts/fund_profile.md).
+-- Sections with no real data for a fund are SQL NULL (never synthetic). The
+-- Phase 2/3 panels (value_offering_reframed/exposure_xray/return_attribution/
+-- positioning_changes/alternatives/takeaways/the_take) shipped in Track 1C prep.
+CREATE TABLE fund_profile_facts (
+  series_id               text PRIMARY KEY,
+  canonical_ticker        varchar(12),
+  profile_build_version   text NOT NULL,
+  fund_name               text,                          -- SEC free text; not length-capped
+  fund_family             text,
+  asset_class             asset_class_code,
+  peer_group              varchar(64),
+  management_style        varchar(24),
+  vehicle_type            varchar(32),
+  value_offering_score    integer,                       -- null when unavailable (legacy v0.1)
+  value_offering_label    tier_label,                    -- null when unavailable (legacy v0.1)
+  value_offering_status   value_offering_status NOT NULL,
+  confidence_state        value_offering_status NOT NULL,
+  fee_fairness_label      tier_label,                    -- null when fair_fee null
+  fee_gap_bps             real,
+  net_expense_ratio_bps   real,
+  data_completeness_state data_completeness_state NOT NULL,
+  identity                jsonb NOT NULL,
+  value_offering          jsonb,                         -- legacy 5-leg payload (spec #7 v0.1)
+  value_offering_reframed jsonb,                         -- spec #7 v0.3 badge typology (hero)
+  fees                    jsonb,
+  passive_baseline        jsonb,
+  performance             jsonb,
+  risk_behavior           jsonb,
+  holdings                jsonb,
+  manager_parent          jsonb,                         -- carries skill_evidence + manager_moves
+  source_inventory        jsonb NOT NULL,
+  gates                   jsonb NOT NULL,
+  exposure_xray           jsonb,                         -- spec #4
+  return_attribution      jsonb,                         -- spec #10
+  positioning_changes     jsonb,                         -- spec #12
+  alternatives            jsonb,                         -- spec #6
+  takeaways               jsonb,                         -- spec #8 (3b)
+  the_take                jsonb,                          -- spec #8 (3a)
+  risk_attribution        jsonb,                         -- spec #13 — factor/theme betas + divergence + bias/timing/idio
+  value_score             jsonb,                         -- CURRENT value verdict (the hero, 2026-06-29)
+  value_score_bps         real,                          -- net active value over passive, bps/yr (paid)
+  value_score_100         integer,                       -- anchored 0-100, 50 = breakeven (paid)
+  value_coverage_state    text,                          -- scored | too_new | not_comparable | fee_unavailable
+  updated_at              timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX fpf_ticker_idx ON fund_profile_facts (canonical_ticker);
+CREATE INDEX fpf_peer_group_idx ON fund_profile_facts (peer_group);
+CREATE INDEX fpf_asset_class_idx ON fund_profile_facts (asset_class);
+CREATE INDEX fpf_vo_status_idx ON fund_profile_facts (value_offering_status);
+
+-- Mirrors data/product/fund_profiles/profile_build_manifest.json at the serving
+-- boundary (Serving Architecture Decision 4).
+CREATE TABLE serving_manifest (
+  id                    serial PRIMARY KEY,
+  profile_build_version text NOT NULL,
+  built_at              timestamptz NOT NULL DEFAULT now(),
+  active                boolean NOT NULL DEFAULT false,
+  fact_row_count        integer NOT NULL,
+  source_panels         jsonb NOT NULL,  -- [{panel,path,mtime,row_count,method_version}]
+  build_manifest        jsonb NOT NULL
+);
+
+CREATE INDEX sm_build_version_idx ON serving_manifest (profile_build_version);
+CREATE INDEX sm_active_idx ON serving_manifest (active);
+
+-- ============================================================================
+-- AUTH / ENTITLEMENTS (Track 1B follow-on) — per-user tables + RLS
+-- ----------------------------------------------------------------------------
+-- Keyed off Supabase auth.users. Applied via
+-- scripts/pipeline/apply_auth_schema.py (fund_score). Tier gating itself runs
+-- server-side in the RSC (see src/lib/serving/profile.ts); RLS here protects the
+-- per-user rows, and public-read RLS guards the serving content tables when
+-- accessed via the Supabase anon/auth roles (the loader writes as postgres,
+-- which bypasses RLS).
+-- ============================================================================
+
+CREATE TYPE entitlement_tier AS ENUM ('free', 'paid_retail', 'pro');
+
+CREATE TABLE users (
+  id         uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email      text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE entitlements (
+  user_id               uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  tier                  entitlement_tier NOT NULL DEFAULT 'free',
+  profiles_viewed_month integer NOT NULL DEFAULT 0,
+  updated_at            timestamptz NOT NULL DEFAULT now()
+);
+
+-- Saved personal Lenses (query_results.md § 7): a user's saved canonical query,
+-- personally named, with opt-in change-tracking. `definition` carries the
+-- canonical /q/{slug} spec verbatim so /lens/{lens_slug} re-runs the SAME
+-- screener path — the ranking is never stored or fabricated. `lens_slug` is the
+-- public shareable handle (distinct from the underlying query slug).
+CREATE TABLE lenses (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  lens_slug       text NOT NULL UNIQUE,
+  slug            text NOT NULL,                       -- underlying canonical /q/{slug}
+  name            text NOT NULL,
+  note            text,
+  change_tracking boolean NOT NULL DEFAULT true,
+  definition      jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  updated_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX lenses_user_id_idx ON lenses (user_id);
+CREATE INDEX lenses_lens_slug_idx ON lenses (lens_slug);
+
+-- Change-tracking basis. One immutable row per snapshot of a Lens's ranked
+-- result set. The honest "N entered / M left" diff compares the latest snapshot
+-- to its prior; the first snapshot (at save) has no prior so a fresh Lens shows
+-- 0 changes. Never a fabricated change history.
+CREATE TABLE lens_snapshots (
+  id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  lens_id            uuid NOT NULL REFERENCES lenses(id) ON DELETE CASCADE,
+  captured_at        timestamptz NOT NULL DEFAULT now(),
+  result_as_of       text,
+  member_count       integer NOT NULL,
+  member_series_ids  jsonb NOT NULL,   -- ordered series_id list (ranked membership)
+  member_meta        jsonb NOT NULL    -- series_id -> {ticker,name} for diff copy
+);
+CREATE INDEX lens_snapshots_lens_id_idx ON lens_snapshots (lens_id);
+
+-- RLS: own-row for per-user tables
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE entitlements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lenses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lens_snapshots ENABLE ROW LEVEL SECURITY;
+CREATE POLICY users_select_own ON users FOR SELECT USING (auth.uid() = id);
+CREATE POLICY users_update_own ON users FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+CREATE POLICY entitlements_select_own ON entitlements FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY lenses_all_own ON lenses FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+-- Snapshots are owned transitively through the parent Lens.
+CREATE POLICY lens_snapshots_all_own ON lens_snapshots FOR ALL
+  USING (EXISTS (SELECT 1 FROM lenses l WHERE l.id = lens_snapshots.lens_id AND l.user_id = auth.uid()))
+  WITH CHECK (EXISTS (SELECT 1 FROM lenses l WHERE l.id = lens_snapshots.lens_id AND l.user_id = auth.uid()));
+
+-- Public shared-Lens read (query_results.md § 7: "share read-only Lens links").
+-- A Lens is private (own-row RLS) for management, but its definition is readable
+-- by anyone who holds the lens_slug — sharing is the whole point. A SECURITY
+-- DEFINER RPC exposes ONLY the non-owner-identifying definition fields by slug,
+-- so the share path never leaks the owner's id, note, or other rows. The app
+-- re-runs the screener for the actual ranking; this returns the query spec only.
+CREATE OR REPLACE FUNCTION public.get_shared_lens(p_lens_slug text)
+RETURNS TABLE (lens_slug text, slug text, name text, change_tracking boolean, definition jsonb, created_at timestamptz)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT l.lens_slug, l.slug, l.name, l.change_tracking, l.definition, l.created_at
+  FROM public.lenses l
+  WHERE l.lens_slug = p_lens_slug
+  LIMIT 1;
+$$;
+GRANT EXECUTE ON FUNCTION public.get_shared_lens(text) TO anon, authenticated;
+
+-- RLS: public read on serving content (loader writes as postgres / bypasses RLS)
+ALTER TABLE fund_profile_facts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE serving_manifest ENABLE ROW LEVEL SECURITY;
+CREATE POLICY fpf_public_read ON fund_profile_facts FOR SELECT USING (true);
+CREATE POLICY sm_public_read ON serving_manifest FOR SELECT USING (true);
+
+-- New-user provisioning: every auth.users insert gets a public.users +
+-- entitlements (default 'free') row, regardless of sign-up path. SECURITY
+-- DEFINER so the trigger writes past RLS.
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.users (id, email) VALUES (NEW.id, NEW.email)
+    ON CONFLICT (id) DO NOTHING;
+  INSERT INTO public.entitlements (user_id) VALUES (NEW.id)
+    ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();

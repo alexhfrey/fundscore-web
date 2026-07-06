@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AuthNav } from "./AuthNav";
 
 export function Header() {
   return (
@@ -23,22 +24,22 @@ export function Header() {
                 Screener
               </Link>
               <Link
-                href="/model"
-                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Model
-              </Link>
-              <Link
-                href="/compare"
-                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Compare
-              </Link>
-              <Link
                 href="/xray"
                 className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
               >
                 X-Ray
+              </Link>
+              <Link
+                href="/lens"
+                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Lenses
+              </Link>
+              <Link
+                href="/methodology"
+                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Methodology
               </Link>
             </nav>
           </div>
@@ -46,6 +47,7 @@ export function Header() {
             <span className="hidden sm:inline text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
               Beta
             </span>
+            <AuthNav />
           </div>
         </div>
       </div>
