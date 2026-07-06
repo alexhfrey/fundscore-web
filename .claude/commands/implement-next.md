@@ -70,11 +70,14 @@ Steps:
    the change landed in (WEBROOT for frontend, FUNDSCORE for backend) —
    `~/Projects/fundscore-harness/plugins/fundscore-data/scripts/codex-review.sh --uncommitted` (the plugin
    is the single source of truth; the WEBROOT `.claude/scripts/codex-review.sh` wrapper also works for
-   frontend, but the harness path works from either repo). If `CODEX_GATE: blocked`, fix every P0/P1 finding
-   (or hand it back to the implementer), then re-run the gate; repeat until `CODEX_GATE: pass`. Cap ~3 rounds,
-   then escalate. **Then run one final `--high` pass** (`codex-review.sh --high --uncommitted`) and gate the
-   move-to-done on THAT deep-reasoning pass, not the medium rounds. The spec may NOT move to `done/` until the
-   high pass is `CODEX_GATE: pass`. Surface P2/P3 advisories as warnings.
+   frontend, but the harness path works from either repo). **Pick the tier by expected iteration:**
+   start at `--high` for a likely one-shot, or iterate at the default medium tier if you expect several rounds,
+   then finish at `--high`. If `CODEX_GATE: blocked`, fix every P0/P1 finding (or hand it back to the
+   implementer), then re-run (same tier); repeat until `CODEX_GATE: pass`. Cap ~3 rounds, then escalate. **A
+   clean `--high` pass is MANDATORY before move-to-done** — the spec may NOT move to `done/` until
+   `codex-review.sh --high --uncommitted` reports `CODEX_GATE: pass` (fix any P0/P1 it surfaces and re-run
+   `--high` until it does); the gate rides on THIS deep-reasoning pass, never on a medium round. Surface P2/P3
+   advisories as warnings.
 7. **Reconcile the backlog, then report.** If the spec moved to `done/` AND a line in `backlog.md`'s
    `## Specced (in queue)` section references this slug (`→ specs/queue/<slug>.md`), change its `- [~]` → `- [x]`
    and move it to the top of `## Done` (specs that came from the critique→proposal pipeline have no backlog
