@@ -27,10 +27,30 @@ Steps:
    **`effort`** (`low | medium | high | xhigh`) routing hints. These pin which model implements the
    spec — set at spec-writing/triage time so nobody has to remember per-spec model choices. Absent
    fields = session default.
-4. **Write the checkpoint BEFORE dispatching**: `feature-pipeline/.loop-state.json` =
+4. **Re-ground the spec against the CURRENT code/data (staleness gate — do this BEFORE dispatching).**
+   A queued spec was grounded when it was written; the code and data may have moved since, and an
+   implementer will confidently build against references that no longer exist. Confirm every concrete
+   claim the spec makes still resolves in the current tree:
+   - Enumerate the spec's checkable references: named columns / serving-facts fields, gold/product
+     panels and parquet paths, table & schema names, `file:line` anchors, and the functions/modules it
+     says to modify.
+   - Verify each still exists NOW. **Frontend specs** → Grep the Drizzle serving schema
+     (`WEBROOT/src/lib/db/schema/`), the data layer, and the component/route paths. **Backend specs** →
+     Grep the builders/serving modules in FUNDSCORE and confirm each named column actually exists in the
+     real gold/product parquet (a quick `duckdb`/`uv run python` read of the panel schema) — not merely
+     that the field name appears in the spec's prose. Delegate a broad sweep to one `Explore` agent if
+     the spec references many things.
+   - **All references resolve →** continue to step 5.
+   - **Any reference is missing / moved / renamed →** do NOT build against a stale spec. Bounce it: hand
+     the spec to the revise flow (`/review-specs`, which runs `revise-specs` — the spec-writer re-grounds
+     it against current code), then re-run this gate. If it can't be cleanly re-grounded because the data
+     it needs genuinely no longer exists (a real scope change, not a rename), STOP and surface it to the
+     owner: leave the spec in `queue/` with a ` — STALE: <what moved>` note. Never implement a spec whose
+     references don't resolve.
+5. **Write the checkpoint BEFORE dispatching**: `feature-pipeline/.loop-state.json` =
    `{ slug, track, specPath, started: <ISO>, runId?: <Workflow runId once known>, agentId?:
    <Agent id once known>, args?: <the backend workflow args> }`. Update it with the
-   runId/agentId as soon as the dispatch returns. DELETE it in step 6 when the spec moves to
+   runId/agentId as soon as the dispatch returns. DELETE it in step 7 when the spec moves to
    `done/` (or on a clean blocked/failed stop — the file means "interrupted", not "failed").
    The file is gitignored state, not history.
    Route:
@@ -46,7 +66,7 @@ Steps:
      This is the reviewed assembly line (EDA → implement → data-reviewer checkpoint after each step
      → commit), which halts on any FAIL. The model/effort override applies to implementer segments
      only; reviewer/EDA gate agents stay on the session default.
-5. **Codex sign-off gate (MANDATORY).** After the implementer's own gates pass, run the gate from the repo
+6. **Codex sign-off gate (MANDATORY).** After the implementer's own gates pass, run the gate from the repo
    the change landed in (WEBROOT for frontend, FUNDSCORE for backend) —
    `~/Projects/fundscore-harness/plugins/fundscore-data/scripts/codex-review.sh --uncommitted` (the plugin
    is the single source of truth; the WEBROOT `.claude/scripts/codex-review.sh` wrapper also works for
@@ -55,7 +75,7 @@ Steps:
    then escalate. **Then run one final `--high` pass** (`codex-review.sh --high --uncommitted`) and gate the
    move-to-done on THAT deep-reasoning pass, not the medium rounds. The spec may NOT move to `done/` until the
    high pass is `CODEX_GATE: pass`. Surface P2/P3 advisories as warnings.
-6. **Reconcile the backlog, then report.** If the spec moved to `done/` AND a line in `backlog.md`'s
+7. **Reconcile the backlog, then report.** If the spec moved to `done/` AND a line in `backlog.md`'s
    `## Specced (in queue)` section references this slug (`→ specs/queue/<slug>.md`), change its `- [~]` → `- [x]`
    and move it to the top of `## Done` (specs that came from the critique→proposal pipeline have no backlog
    line — skip silently). Then report the outcome: what was implemented, the build/lint results (frontend) or
