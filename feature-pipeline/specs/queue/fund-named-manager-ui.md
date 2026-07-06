@@ -1,7 +1,7 @@
 ---
 id: fund-named-manager-ui
 title: Surface named portfolio manager, tenure, and a filed manager-transition flag
-status: queued
+status: ready
 track: frontend
 repo: fundscore-web
 depends_on: fund-named-manager-source
@@ -150,3 +150,33 @@ free, and paid renders behave correctly for `manager_parent`.
 - Conflating firm with person: keep "Adviser: {firm}" visually and semantically distinct from the
   named PM line.
 - Alarmism on the transition flag: factual + dated + sourced; no performance speculation.
+
+## Implementation addendum — backend SHIPPED; serving realities to honor (2026-07-05)
+
+`fund-named-manager-source` is **done** (serving_manifest 26 live; spec in specs/done/ with
+addendum 3). The `manager_parent` JSONB now carries the contract exactly as specified:
+`manager_names` (lead-first actives, `[]` when none), `managers[]`, `manager_transition`,
+`manager_as_of`. Verified served FCNTX: Danoff (since 1990) + Anolic + Weiner (2025) + transition
+`{departed, 2026-12-31, has_pending_transition: true}`.
+
+**Product decision (owner-decided): a needs_review fund HIDES the manager module — no claim, no
+firm fallback.** Serving already enforces this: needs_review/uncovered funds serve
+`manager_names: []` / `managers: []` / no transition / null `manager_as_of`, indistinguishable
+from never-covered. The UI needs NO special needs_review state — the empty-roster honest state IS
+the hide behavior (keep the existing firm-only "Adviser:" line).
+
+Serving realities the render MUST honor (from the data-review + check-data,
+`fund_score:reports/feature_pipeline/manager_canonical_20260705_check_data.md`):
+1. **`start_date` is year-precision for 87.5% of rows** (`YYYY-01-01` means "since YYYY").
+   Render the YEAR ("since 1990"), never a full date; tenure_years is Jan-1-convention (36.15 →
+   "36 yrs" is fine).
+2. **12.4% of named PMs have null `start_date`/`tenure_years`** (filing stated no tenure).
+   Render name (+role if known) with no "since"/tenure fragment — no placeholder dashes.
+3. **All current transitions are successor-less** (`incoming_managers: []`). The flag copy must
+   read naturally without an incoming name ("{departing} is expected to step back on {date}") and
+   only append "; {names} named" when non-empty.
+4. **Roles are mostly `unknown` (75%) or `co_manager`; `lead` is rare** (stated-lead only). Do
+   not label a PM "lead" unless role === 'lead'; for `unknown` render just "PM"; roster order is
+   already lead-first-then-earliest-start — preserve served order.
+5. Coverage expectation for QA: 2,778 of 5,799 profiles serve rosters (47.9%); DODGX serves 6
+   named committee members; VOO/passive stays suppressed.

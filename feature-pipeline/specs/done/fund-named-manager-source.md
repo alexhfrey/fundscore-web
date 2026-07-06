@@ -1,7 +1,7 @@
 ---
 id: fund-named-manager-source
 title: Source real named portfolio managers, tenure, and manager-change events (replace placeholder)
-status: queued
+status: done
 track: backend
 repo: fund_score
 depends_on: ""
@@ -267,3 +267,34 @@ spec:
 5. **Open product decision for the UI spec (`fund-named-manager-ui`)**: what a `needs_review` fund
    shows (hide the module vs "manager data under review"). Recommended default: hide, with no
    claim — a wrong roster is worse than a missing module.
+
+## Implementation addendum 3 — SHIPPED (2026-07-05)
+
+Remaining scope delivered on fund_score branch `feat/manager-extract-r3` (HEAD `3f22609`;
+worktree ~/Projects/fund_score-mgr-build). Codex SIGN-OFF: yes (re-review after d5d83f3, zero
+findings). All data-reviewer checkpoints passed; /check-data PASS
+(`reports/feature_pipeline/manager_canonical_20260705_check_data.md`).
+
+- **Web-verify pass (full universe, 4,035 series, ~$50)**: 76 promoted, 736 demoted →
+  **2,778/4,035 (68.9%) auto-served confident**, 1,257 queued with evidence. Two lane fixes
+  shipped: credential-trademark normalization ('CFA®'), and the **dated-EDGAR evidence guard**
+  (sec.gov citations older than the extraction filing are not "current" evidence — downgraded to
+  inconclusive fail-closed; 195 spurious demotions + 182 weak promotions prevented). Provenance:
+  `scripts/pipeline/prep_manager_web_verify_inputs.py` + `apply_manager_web_verdicts.py`.
+- **Canonical panels** (`manager_people_v1.0`): real rows ONLY for post-web-verify confident
+  series; placeholders preserved; 25 review-gated change events (FCNTX Danoff 2026-12-31
+  survives); validator 24/24; previously-failing universe test passes.
+- **Serving**: `_manager_parent` emits `manager_names`/`managers[]`/`manager_transition`/
+  `manager_as_of` per contract; firm synthesis removed. Loaded as serving_manifest 26 (5,799
+  rows); full-universe served==gold reconciliation passed; immutable snapshot
+  `data/product/fund_profiles/serving_facts_manifest26.parquet` (the shared staging path was
+  clobbered post-load by concurrent main-checkout work — do NOT re-load it from a branch without
+  the manager serving code).
+- **Branch note**: `feat/fund-family-panel` was merged in (serving-schema catch-up: the DB had
+  already dropped legacy value_offering columns per `retire-legacy-value-offering-serving`);
+  `load.py` COPYs the contract∩table intersection.
+- **Follow-ups filed** (check-data report, ranked): cross-registrant change disclosures (GFOA
+  Blair Frank case), AGTHX ticker keyed to F-2 class, placeholder provenance flattening
+  (promotion queue vs never-covered), per-manifest staging snapshots in the loader; plus the
+  pre-existing recall items (colon-form tenure, Lord Abbett/Hotchkis, roster-bearing filing
+  selection).
