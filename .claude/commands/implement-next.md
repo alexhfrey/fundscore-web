@@ -46,11 +46,15 @@ Steps:
      This is the reviewed assembly line (EDA → implement → data-reviewer checkpoint after each step
      → commit), which halts on any FAIL. The model/effort override applies to implementer segments
      only; reviewer/EDA gate agents stay on the session default.
-5. **Codex sign-off gate (MANDATORY).** After the implementer's own gates pass, run
-   `.claude/scripts/codex-review.sh --uncommitted` (from the repo the change landed in — WEBROOT for
-   frontend, FUNDSCORE for backend). If `CODEX_GATE: blocked`, fix every P0/P1 finding (or hand it back to
-   the implementer), then re-run the gate; repeat until `CODEX_GATE: pass`. The spec may NOT move to `done/`
-   until codex passes. Cap ~3 rounds, then escalate. Surface P2/P3 advisories as warnings.
+5. **Codex sign-off gate (MANDATORY).** After the implementer's own gates pass, run the gate from the repo
+   the change landed in (WEBROOT for frontend, FUNDSCORE for backend) —
+   `~/Projects/fundscore-harness/plugins/fundscore-data/scripts/codex-review.sh --uncommitted` (the plugin
+   is the single source of truth; the WEBROOT `.claude/scripts/codex-review.sh` wrapper also works for
+   frontend, but the harness path works from either repo). If `CODEX_GATE: blocked`, fix every P0/P1 finding
+   (or hand it back to the implementer), then re-run the gate; repeat until `CODEX_GATE: pass`. Cap ~3 rounds,
+   then escalate. **Then run one final `--high` pass** (`codex-review.sh --high --uncommitted`) and gate the
+   move-to-done on THAT deep-reasoning pass, not the medium rounds. The spec may NOT move to `done/` until the
+   high pass is `CODEX_GATE: pass`. Surface P2/P3 advisories as warnings.
 6. Report the outcome: what was implemented, the build/lint results (frontend) or checkpoint verdicts
    (backend), the codex verdict, the branch name, the data-scientist HTML report paths (backend), and whether
    the spec moved to `done/` (success) or stayed in `queue/` (blocked/failed — with the reason and the failing
