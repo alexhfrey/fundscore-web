@@ -25,6 +25,8 @@ Stack: Next.js 16 / React 19 RSC, Drizzle + Postgres (Supabase), Tailwind v4, re
 - After rebuilding any feature: run the `/check-data` protocol; FAIL blocks, WARNs go to the owner.
 
 ## Harness entry points (the feature pipeline)
+Full harness guide (repos, agents, workflows, how to invoke them): **`docs/HARNESS.md`**.
+
 Work state lives under `feature-pipeline/`:
 `backlog.md` → `proposals/{pending,approved,rejected}/` → `specs/{queue,done}/` → shipped.
 
