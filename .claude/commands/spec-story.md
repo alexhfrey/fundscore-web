@@ -10,6 +10,11 @@ pass clear ones straight through.
 Steps:
 1. **Read the story** + any linked context. Resolve WEBROOT and FUNDSCORE from
    `feature-pipeline/config/page-types.json` if the story needs grounding in code.
+   **Dedup gate (first):** derive the deterministic kebab-case `<slug>` from the story title and check
+   `feature-pipeline/specs/queue/<slug>.md` and `feature-pipeline/specs/done/<slug>.md`. If a spec already
+   exists, do NOT re-spec — report `already specced → <path>` and its state (in `queue/` → the backlog item
+   should move to **Specced (in queue)**; in `done/` → move it to **Done**) so the caller reconciles the
+   backlog, and STOP.
 
 2. **Clarity gate (you judge, honestly).** The story is **CLEAR** only if ALL hold:
    - the functionality is unambiguous (one reasonable interpretation),
@@ -40,8 +45,12 @@ Steps:
    e. If clean → fold the PRD into a lean spec in `feature-pipeline/specs/queue/<slug>.md` (link the PRD) and
       continue.
 
-5. **Hand off to implementation.** The spec is now queued. Run `/implement-next` (or report it's ready). The
-   implementer's gates — including the mandatory `CODEX_GATE: pass` — apply there; this loop does not commit code.
+5. **Hand off to implementation.** The spec is now queued at `specs/queue/<slug>.md`. This loop does not commit
+   code — either run `/implement-next` now, or report the spec is ready for later. Either way the story has
+   **left `## Open`**: the caller moves the backlog item to **Specced (in queue)** linked to `<slug>`, unless
+   `/implement-next` ships it in this same pass (then it goes straight to **Done**). The implementer's
+   gates — including the mandatory `CODEX_GATE: pass` — apply there.
 
 6. Report: clarity verdict (clear/vague + why), whether a PRD+red-team ran, any owner escalation, the spec
-   path, and the next step. On a CLEAR pass-through, say so plainly — the overhead was skipped on purpose.
+   `<slug>`/path, the resulting backlog state (**Specced (in queue)** / shipped / awaiting owner), and the
+   next step. On a CLEAR pass-through, say so plainly — the overhead was skipped on purpose.

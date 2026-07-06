@@ -55,7 +55,10 @@ Steps:
    then escalate. **Then run one final `--high` pass** (`codex-review.sh --high --uncommitted`) and gate the
    move-to-done on THAT deep-reasoning pass, not the medium rounds. The spec may NOT move to `done/` until the
    high pass is `CODEX_GATE: pass`. Surface P2/P3 advisories as warnings.
-6. Report the outcome: what was implemented, the build/lint results (frontend) or checkpoint verdicts
-   (backend), the codex verdict, the branch name, the data-scientist HTML report paths (backend), and whether
-   the spec moved to `done/` (success) or stayed in `queue/` (blocked/failed — with the reason and the failing
-   gate). Never report success unless the gates actually passed.
+6. **Reconcile the backlog, then report.** If the spec moved to `done/` AND a line in `backlog.md`'s
+   `## Specced (in queue)` section references this slug (`→ specs/queue/<slug>.md`), change its `- [~]` → `- [x]`
+   and move it to the top of `## Done` (specs that came from the critique→proposal pipeline have no backlog
+   line — skip silently). Then report the outcome: what was implemented, the build/lint results (frontend) or
+   checkpoint verdicts (backend), the codex verdict, the branch name, the data-scientist HTML report paths
+   (backend), and whether the spec moved to `done/` (success) or stayed in `queue/` (blocked/failed — with the
+   reason and the failing gate). Never report success unless the gates actually passed.

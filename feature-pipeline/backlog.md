@@ -1,14 +1,17 @@
 # Triage Backlog
 
-One list of everything to do. `/triage` drains it: picks the top **Open** item, routes by
-`(type)` to the matching loop, and on success checks it off and moves it to **Done**.
+The intake list. `/triage` drains the **Open** section: it picks the top item and routes it by
+`(type)`. A `(bug)` or `(data)` item is fixed end-to-end and moves straight to **Done**. A `(story)`
+that gets turned into a queued spec moves to **Specced (in queue)** — it has left the backlog for the
+spec queue and is no longer re-triageable — and only reaches **Done** when `/implement-next` ships
+that spec. Each item lives in exactly one state at a time (never Open *and* specced).
 
 **Format:** `- [ ] (type) Title — one-line context [area]`
 **Optional model tag:** `[model: fable|opus|sonnet, effort: xhigh|high|...]` — a routing hint for judgment-heavy items. Fix loops run in the MAIN session, so the dispatcher should surface the tag ("this item recommends X — /model to switch, or proceed") rather than silently ignore it. Specs carry the same hint as `model:`/`effort:` frontmatter, which `/implement-next` passes to the implementer agents automatically.
 **Types & routing:**
 - `(bug)` → `fundscore-data:fix-bug` (fundscore-harness plugin) — lean loop: reproduce → fix → verify → review (Claude + codex) → commit.
 - `(data)` → `fundscore-data:fix-data` (fundscore-harness plugin) — lean loop: root-cause at source → fix → rebuild → /check-data + data-reviewer → review (Claude + codex) → commit. (No synthetic data; fix upstream.)
-- `(story)` → existing feature pipeline: `/critique-funds` → review-proposals → `/spec-approved` → `/implement-next`.
+- `(story)` → `spec-story`: clarity-gate → a lean spec in `specs/queue/` (or escalate to the owner if vague). Discovery-heavy, net-new product direction goes to `/critique-funds` → review-proposals → `/spec-approved` instead. Once a spec is queued, the item moves to **Specced (in queue)** (below), not Done.
 
 Keep items small and single-purpose. Put the type first so the dispatcher can route without reading the whole line.
 
@@ -36,6 +39,11 @@ Keep items small and single-purpose. Put the type first so the dispatcher can ro
 - [ ] (data) NAV feed cuts off ~2025-04-30 for a batch of live funds — ~324 tickers' paired fund+passive series in `passive_alt_daily_nav` end on essentially the same day (2025-04-30) while the fresh majority (20,289 of 27,288 tickers) runs to 2026-05; both the fund's own `fund_daily_adj_close` and the paired series stop together, and codex confirmed some of these funds have 2025/2026 SEC filings (i.e. alive). A same-day cutoff across hundreds of funds ⇒ a fund-NAV **ingestion staleness/cutoff**, not organic liquidations. Consequence: their profile `nav_series` can only end ~13mo+ stale, so they honestly serve `nav_series:null` today (profile-nav-series v1). Root-cause which NAV vendor/pull freezes this cohort at 2025-04-30 and refresh so live funds carry current NAV (recovers ~123 profile-nav funds correctly, with fresh endpoints). Surfaced 2026-07-04 by the profile-nav-series coverage review (codex [P2] rejected a keep-longest-run band-aid as serving stale charts). [fund_score: NAV ingestion → passive_alt_daily_nav / fund_daily_adj_close]
 - [ ] (data) Passive-blend micro-gaps fragment live-fund NAV tails — `passive_alt_daily_nav` drops 1–2 month runs of `benchmark_nav` for funds that ARE continuously priced in `fund_daily_adj_close` those same months, right before the series end (e.g. LSLTX: paired run 2002-12..2025-01, gap 2025-02/03, then a 1-month 2025-04 stub; MRTHX: 2017-01..2025-02, gap 2025-03, 2025-04 stub). 122/123 profile-nav "recoverable" funds show this fund-alive-in-gap pattern; the tiny post-gap stub then trips the MIN_MONTHS length filter and nulls the whole fund. Root-cause the passive-match/`benchmark_nav` build's month gaps for continuously-priced funds (a continuous blend would keep these funds served without any trim heuristics). Surfaced 2026-07-04 by the profile-nav-series coverage review. [fund_score: passive-match / build_benchmark_nav → passive_alt_daily_nav]
 - [ ] (data) serve-l2-passive-candidate-fit serves non-match / inverse ETFs as the "closest passive alternative" — built out-of-band, **FAILED data-review 2026-07-04**; do NOT ship as-is (code preserved on branch `wip/concurrent-fund-family-l2`, spec back in `queue/`). BLOCKERS: (1) **No fit-quality floor** — 7.1% of the 3,299 served funds have selected `correlation < 0.7`, **9 negatively correlated** (RATE→AGG corr −0.909 beta −3.61 TE 3,190bps; GSCOX→IWD corr −0.22 TE 316%); presenting an inverse ETF as "closest passive alternative" is worse than honest suppression → add a min-correlation / min-R² / max-TE gate (else serve null). (2) **Contradictory fit numbers under one label** — `selected_summary` stacks 3 R² + 2 TE for the same fund×ETF from two undisclosed bases (solver weekly-5Y vs `l2_replica_quality` daily); the spec's own reconciliation invariant (`is_selected.corr² ≈ replica_r2 ±0.01`) FAILS for **2,011/2,692 (75%)**, max gap 0.882 — silently replaced by a tautological check → collapse to ONE labeled basis. (3) **check-data is GREEN but blind** (`check_l2_passive_candidate_fit.py` only tests bounds + copy-fidelity, not fit quality / cross-basis coherence) → add fit-quality + coherence checks. Also: corrupt source price **GSCOX 2022-06-13 (+756% one-day)** propagates untouched into corr/beta/TE (upstream `fund_daily_adj_close`); no `n_obs` floor (899 selected fits use <2yr). Recoverable-miss is small (7 funds); the failing axis is precision-of-served. [fund_score: product/l2_passive_candidate_fit.py + serving/fact_assembler._passive_baseline + scripts/reports/check_l2_passive_candidate_fit.py]
+
+## Specced (in queue)
+Stories that became a queued spec — they've left the backlog for the spec queue and are **not**
+re-triageable. `/implement-next` flips one to Done when it ships the linked spec.
+Format: `- [~] (story) Title — context → specs/queue/<slug>.md`
 
 ## Done
 
