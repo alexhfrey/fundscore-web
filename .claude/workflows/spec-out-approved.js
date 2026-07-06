@@ -62,6 +62,7 @@ const results = await pipeline(
       label: `spec:${proposalPath.split('/').pop()}`,
       phase: 'Spec',
       schema: SPEC_SCHEMA,
+      model: 'opus', // spec-writer-tier work
     })
 )
 

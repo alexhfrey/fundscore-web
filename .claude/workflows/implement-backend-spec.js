@@ -1,13 +1,13 @@
 export const meta = {
   name: 'implement-backend-spec',
-  description: 'Implement one backend-track data spec in fund_score as a reviewed assembly line: EDA plots, then implement → data-reviewer checkpoint after every step, then commit. Stops on any FAIL.',
+  description: 'Implement one backend-track data spec in fund_score as a reviewed assembly line: EDA plots, then implement → data-reviewer checkpoint after every step (a FAIL bounces the blocking issues back to the implementer, max 2 revision rounds), then a hard /check-data gate and commit. Stops when a checkpoint still fails after revision.',
   whenToUse: 'When /implement-next picks a track:backend spec',
   phases: [
     { title: 'EDA', detail: 'data-scientist explores inputs, emits HTML plots + go/no-go' },
-    { title: 'Sample', detail: 'implement on a small sample → data-reviewer checkpoint 1' },
-    { title: 'Full build', detail: 'full build → data-reviewer checkpoint 2 + output plots' },
-    { title: 'Serving', detail: 'serving rebuild → data-reviewer checkpoint 3 (served == gold)' },
-    { title: 'Finalize', detail: '/check-data, commit on branch, move spec to done' },
+    { title: 'Sample', detail: 'implement on a small sample → data-reviewer checkpoint 1 (revise-until-pass ×2)' },
+    { title: 'Full build', detail: 'full build → data-reviewer checkpoint 2 (revise-until-pass ×2) + output plots' },
+    { title: 'Serving', detail: 'serving rebuild → data-reviewer checkpoint 3 (served == gold, revise-until-pass ×2)' },
+    { title: 'Finalize', detail: 'hard /check-data gate (any FAIL stops), commit on branch, move spec to done' },
   ],
 }
 
@@ -15,14 +15,18 @@ export const meta = {
 // model/effort come from the spec's frontmatter (`model: fable|opus|sonnet`, `effort:
 // low|medium|high|xhigh`) and apply to the IMPLEMENTER segments only — the data-reviewer /
 // data-scientist gate agents stay on the session default so review quality never drops with a
-// cheaper implementer.
+// cheaper implementer. Without a spec-level pin the implementer defaults to opus — the gates
+// (data-reviewer, data-scientist) stay on the session model, so reviewer ≥ implementer holds.
 const A = typeof args === 'string' ? JSON.parse(args) : (args || {})
 const { webRoot, fundScoreRoot, specPath, slug, model, effort } = A
 if (!webRoot || !fundScoreRoot || !specPath || !slug)
   throw new Error('args requires webRoot, fundScoreRoot, specPath, slug')
-const implOpts = { ...(model ? { model } : {}), ...(effort ? { effort } : {}) }
+const implOpts = { model: model || 'opus', ...(effort ? { effort } : {}) }
 
-const persona = (name) => `${webRoot}/.claude/agents/${name}.md`
+// Shared backend personas live in the fundscore-harness plugin checkout (single source of
+// truth; also registered as `fundscore-data:<name>` plugin agents in both repos).
+const harnessRoot = A.harnessRoot || '/Users/alexfrey/Projects/fundscore-harness'
+const persona = (name) => `${harnessRoot}/plugins/fundscore-data/agents/${name}.md`
 const common = `
 Persona/instructions: read ${persona('PERSONA')}
 Spec to implement (read it fully, by absolute path): ${specPath}
@@ -91,6 +95,29 @@ function phaseOf(s) {
 }
 const stopped = (where, detail) => ({ status: 'stopped', stopped_at: where, detail, slug })
 
+// Rubric revise-loop checkpoint: the data-reviewer's checklist is the rubric; a FAIL sends the
+// blocking issues back to the implementer to fix AT THE SOURCE (max 2 revision rounds), then
+// re-reviews with the same full gate. Review rigor never drops across rounds. Still failing
+// after round 2 → the line stops for the owner.
+const reviewedSegment = async (segment, step, extra = '') => {
+  let out = await impl(segment, extra)
+  if (out?.blocker) return { out, rev: null, stop: [segment, out.blocker] }
+  let rev = await review(step, out)
+  for (let round = 1; rev && rev.verdict === 'fail' && round <= 2; round++) {
+    log(`${step}: checkpoint FAIL round ${round} — ${(rev.blocking_issues || []).length} blocking issue(s); bouncing back to implementer`)
+    out = await impl(
+      segment,
+      `${extra}\n\nREVISION ROUND ${round} — the data-reviewer FAILED this segment. Fix EVERY blocking\n` +
+        `issue at its source (never paper over data, never narrow a check to make it pass), then stop\n` +
+        `for re-review.\nBLOCKING ISSUES (JSON):\n${JSON.stringify(rev.blocking_issues || [], null, 2)}`
+    )
+    if (out?.blocker) return { out, rev, stop: [segment, out.blocker] }
+    rev = await review(`${step} (revision ${round})`, out)
+  }
+  if (!rev || rev.verdict === 'fail') return { out, rev, stop: [`checkpoint (${step})`, rev] }
+  return { out, rev, stop: null }
+}
+
 // ---- EDA -------------------------------------------------------------------
 phase('EDA')
 const eda = await agent(
@@ -110,19 +137,17 @@ if (eda?.coverage_estimate) log(`EDA coverage ceiling: ${eda.coverage_estimate}`
 // coverage and split honest-missing vs recoverable-missing (a large recoverable miss is BLOCKING),
 // not just precision/fabrication. (See data-reviewer.md check 2a.)
 
-// ---- Sample + checkpoint 1 -------------------------------------------------
+// ---- Sample + checkpoint 1 (revise-until-pass, max 2 rounds) ----------------
 phase('Sample')
-const s1 = await impl('implement-sample')
-if (s1?.blocker) return stopped('implement-sample', s1.blocker)
-const r1 = await review('implement-sample', s1)
-if (!r1 || r1.verdict === 'fail') return stopped('checkpoint-1 (sample)', r1)
+const seg1 = await reviewedSegment('implement-sample', 'implement-sample')
+if (seg1.stop) return stopped(seg1.stop[0], seg1.stop[1])
+const s1 = seg1.out, r1 = seg1.rev
 
 // ---- Full build + checkpoint 2 + output plots ------------------------------
 phase('Full build')
-const s2 = await impl('implement-full')
-if (s2?.blocker) return stopped('implement-full', s2.blocker)
-const r2 = await review('implement-full', s2)
-if (!r2 || r2.verdict === 'fail') return stopped('checkpoint-2 (full build)', r2)
+const seg2 = await reviewedSegment('implement-full', 'implement-full')
+if (seg2.stop) return stopped(seg2.stop[0], seg2.stop[1])
+const s2 = seg2.out, r2 = seg2.rev
 const ds2 = await agent(
   common.replace('PERSONA', 'data-scientist') +
     `\n\nMode 2 (post-build output review): visualize the built output (${JSON.stringify(s2?.output_paths || [])}).\n` +
@@ -132,14 +157,44 @@ const ds2 = await agent(
 
 // ---- Serving integration + checkpoint 3 ------------------------------------
 phase('Serving')
-const s3 = await impl('serving-integration')
-if (s3?.blocker) return stopped('serving-integration', s3.blocker)
-const r3 = await review('serving-integration (served == gold provenance)', s3)
-if (!r3 || r3.verdict === 'fail') return stopped('checkpoint-3 (serving)', r3)
+const seg3 = await reviewedSegment('serving-integration', 'serving-integration (served == gold provenance)')
+if (seg3.stop) return stopped(seg3.stop[0], seg3.stop[1])
+const s3 = seg3.out, r3 = seg3.rev
 
 // ---- Finalize --------------------------------------------------------------
 phase('Finalize')
-const s4 = await impl('finalize-commit')
+
+// Hard /check-data gate: runs the full protocol on every built/rebuilt output BEFORE the
+// commit. Any FAIL stops the line; WARNs surface to the owner. This is a scripted gate, not
+// implementer discretion — a spec cannot reach `done` without a fresh check report.
+const CHECK_SCHEMA = {
+  type: 'object',
+  properties: {
+    overall: { type: 'string', enum: ['PASS', 'WARN', 'FAIL'] },
+    report_path: { type: 'string' },
+    fails: { type: 'array', items: { type: 'string' } },
+    warns: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['overall', 'report_path'],
+}
+const builtOutputs = [...new Set([...(s2?.output_paths || []), ...(s3?.output_paths || [])])]
+const cd = await agent(
+  common.replace('PERSONA', 'data-reviewer') +
+    `\n\nCHECK-DATA GATE (do not fix anything — verdict only). Read the protocol at\n` +
+    `~/.claude/skills/check-data/SKILL.md and execute BOTH halves YOURSELF in this session:\n` +
+    `(1) write+run the aggregate-diagnostics script, (2) do the atomic spot checks, fault-first.\n` +
+    `Run it against EVERY feature/panel this spec built or rebuilt:\n${JSON.stringify(builtOutputs, null, 2)}\n` +
+    `Write ONE combined markdown report to ${fundScoreRoot}/reports/${slug}_check_data.md.\n` +
+    `Overall = worst across features (FAIL if any FAIL). Return overall, report_path, fails, warns.`,
+  { label: 'check-data-gate', schema: CHECK_SCHEMA, phase: 'Finalize' }
+)
+if (!cd || cd.overall === 'FAIL') return stopped('check-data gate', cd)
+if (cd.overall === 'WARN') log(`check-data WARN — surfacing to owner: ${(cd.warns || []).join('; ')}`)
+
+const s4 = await impl(
+  'finalize-commit',
+  `\nThe check-data gate passed (${cd.overall}); its report is at ${cd.report_path} — stage that report with the commit.`
+)
 if (s4?.blocker) return stopped('finalize-commit', s4.blocker)
 
 return {
@@ -147,7 +202,8 @@ return {
   slug,
   eda_report: eda?.report_path,
   output_report: ds2?.report_path,
+  check_data: { overall: cd.overall, report: cd.report_path },
   checkpoints: { sample: r1.verdict, full: r2.verdict, serving: r3.verdict },
   files_changed: s4?.files_changed || [],
-  warnings: [r1, r2, r3].flatMap((r) => r?.warnings || []),
+  warnings: [...[r1, r2, r3].flatMap((r) => r?.warnings || []), ...(cd.warns || [])],
 }

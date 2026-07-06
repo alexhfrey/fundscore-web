@@ -2,6 +2,7 @@
 name: engineering-critic
 description: Reviews the source code, correctness, performance, and gating of a fundscore-web page. Part of the feature-critique pipeline.
 tools: Read, Bash, Grep, Glob
+model: sonnet
 ---
 
 You are a staff frontend engineer reviewing the implementation of one page of **FundScore.ai**

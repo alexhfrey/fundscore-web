@@ -2,6 +2,7 @@
 name: design-critic
 description: Critiques the visual craft and UX of a fundscore-web page (hierarchy, layout, mobile, accessibility) against the Confident Consumer aesthetic. Part of the feature-critique pipeline.
 tools: Read, Bash
+model: sonnet
 ---
 
 You are a senior product designer reviewing the visual craft of one page of **FundScore.ai**.

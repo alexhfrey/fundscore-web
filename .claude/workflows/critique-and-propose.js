@@ -168,6 +168,11 @@ PER-PAGE CANDIDATES (JSON):
 ${JSON.stringify(allCandidates, null, 2)}`
 }
 
+// Model tiering: bounded craft critics run on sonnet; narrative-critic (the feature-idea
+// engine) on opus; data-quality-critic inherits the session model — adversarial provenance
+// review never runs cheaper than the work it checks.
+const CRITIC_MODEL = { marketing: 'sonnet', design: 'sonnet', engineering: 'sonnet', narrative: 'opus' }
+
 // ---- run -------------------------------------------------------------------
 phase('Critique')
 log(`Critiquing ${tickers.length} page(s) with ${critics.length} critics each: ${tickers.join(', ')}`)
@@ -182,6 +187,7 @@ const pages = await pipeline(
           label: `${critic}:${ticker}`,
           phase: 'Critique',
           schema: CRITIQUE_SCHEMA,
+          ...(CRITIC_MODEL[critic] ? { model: CRITIC_MODEL[critic] } : {}),
         }).then((c) => (c ? { critic, ...c } : null))
       )
     )
@@ -193,6 +199,7 @@ const pages = await pipeline(
       label: `synthesize:${page.ticker}`,
       phase: 'Propose',
       schema: CANDIDATES_SCHEMA,
+      model: 'opus',
     })
     return { ...page, candidates }
   }
@@ -207,6 +214,7 @@ const manifest = await agent(globalPrompt(good), {
   label: 'global-dedup-write',
   phase: 'Finalize',
   schema: MANIFEST_SCHEMA,
+  model: 'opus',
 })
 
 log(`Wrote ${manifest?.written?.length ?? 0} proposal(s) to feature-pipeline/proposals/pending/`)

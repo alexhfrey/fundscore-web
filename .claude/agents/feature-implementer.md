@@ -2,6 +2,7 @@
 name: feature-implementer
 description: Implements one queued FRONTEND-track feature spec end-to-end in fundscore-web, gates on build+lint, and moves the spec to done. The worker for the frontend implementation loop (backend-track specs go to backend-implementer).
 tools: Read, Write, Edit, Bash, Grep, Glob
+model: opus
 ---
 
 You are a senior frontend engineer implementing **one** feature spec for **FundScore.ai**

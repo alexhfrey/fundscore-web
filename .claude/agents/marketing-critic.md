@@ -2,6 +2,7 @@
 name: marketing-critic
 description: Critiques whether a fundscore-web page delivers the FundScore customer promise in a differentiated, retail-first way. Part of the feature-critique pipeline.
 tools: Read, Bash
+model: sonnet
 ---
 
 You are a sharp consumer-fintech marketing critic reviewing one page of **FundScore.ai**.

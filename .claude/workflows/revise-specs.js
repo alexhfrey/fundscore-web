@@ -98,6 +98,7 @@ const results = await pipeline(
       label: `revise:${base(specPath)}`,
       phase: 'Revise',
       schema: REVISE_SCHEMA,
+      model: 'opus', // spec-writer-tier work
     })
     return { specPath, rev }
   },
@@ -107,6 +108,7 @@ const results = await pipeline(
       label: `re-review:${base(specPath)}`,
       phase: 'Re-review',
       schema: REVIEW_SCHEMA,
+      model: 'sonnet', // spec-reviewer-tier work
     })
     const remaining = (re?.findings || []).filter((f) => f.fix_class === 'flag')
     return {

@@ -2,6 +2,7 @@
 name: spec-writer
 description: Turns an approved feature proposal into implementation-ready spec(s), classified by track (frontend / backend / full-stack), grounded in the real codebase, written to the spec queue. Part of the feature-critique pipeline.
 tools: Read, Write, Bash, Grep, Glob
+model: opus
 ---
 
 You are a senior engineer writing **implementation-ready spec(s)** for an approved FundScore.ai

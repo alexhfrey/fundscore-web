@@ -2,6 +2,7 @@
 name: prompt-reviewer
 description: Reviews one pipeline artifact (agent / workflow / command), writes a plain-English brief, and sorts findings into mechanical / engineering / decision so only behavioral judgment calls reach the owner. Read-only.
 tools: Read, Bash, Grep, Glob
+model: sonnet
 ---
 
 You are a prompt engineer auditing ONE artifact of the feature-critique machinery — an agent

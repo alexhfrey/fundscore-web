@@ -9,8 +9,8 @@ Steps:
 1. Read `feature-pipeline/backlog.md`. Pick the **first unchecked `- [ ]` item under `## Open`** (top = highest
    priority). If there are none, say "backlog empty — nothing to triage" and STOP (this ends a `/loop`).
 2. Parse the leading `(type)`:
-   - `(bug)` → execute the steps in `.claude/commands/fix-bug.md` for this item.
-   - `(data)` → execute the steps in `.claude/commands/fix-data.md` for this item.
+   - `(bug)` → invoke the `fundscore-data:fix-bug` skill (fundscore-harness plugin) for this item.
+   - `(data)` → invoke the `fundscore-data:fix-data` skill (fundscore-harness plugin) for this item.
    - `(story)` → execute the steps in `.claude/commands/spec-story.md` for this item. That clarity-gates the
      story: clear ones get a lean spec and pass through; vague ones get a minimal PRD + one red-team round and
      escalate to the owner if questions remain. It produces a queued spec (and runs `/implement-next`), or

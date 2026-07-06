@@ -104,6 +104,7 @@ const reviews = await pipeline(
       label: `review:${base(artifactPath)}`,
       phase: 'Review',
       schema: REVIEW_SCHEMA,
+      model: 'sonnet', // spec/prompt-reviewer-tier work
     })
     return { artifactPath, review }
   },
@@ -119,6 +120,7 @@ const reviews = await pipeline(
           label: `resolve:${base(artifactPath)}`,
           phase: 'Resolve',
           schema: REVISE_SCHEMA,
+          model: 'sonnet', // bounded mechanical/engineering fixes
         })) || rev
     }
     return {
