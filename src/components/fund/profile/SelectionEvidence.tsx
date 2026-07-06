@@ -17,6 +17,7 @@ import {
   fmtPct,
   fmtSignedBps,
   fmtNum,
+  fmtDate,
   skillBandLabel,
   skillBandChip,
   managerMovesChip,
@@ -56,11 +57,35 @@ interface SkillEvidence {
   method_version: string | null;
   manager_moves: ManagerMoves | null;
 }
+// One named PM as served under manager_parent.managers[] (cross-spec contract,
+// fund-named-manager-source). start_date is YEAR-precision for most rows
+// ("YYYY-01-01" means "since YYYY"); start_date/tenure_years are null when the
+// filing stated no tenure — render no "since"/tenure fragment then.
+interface ManagerRecord {
+  name: string | null;
+  role: string | null;
+  start_date: string | null;
+  tenure_years: number | null;
+  confidence_state: string | null;
+}
+// A FILED manager-change event (verbatim filing evidence). Current data is
+// successor-less (incoming_managers: []) — copy must read naturally without one.
+interface ManagerTransition {
+  has_pending_transition: boolean | null;
+  event_type: string | null;
+  effective_date: string | null;
+  departing_manager: string | null;
+  incoming_managers: string[] | null;
+  evidence: string | null;
+}
 interface ManagerParent {
   fund_family: string | null;
   adviser_name: string | null;
   manager_names: string[] | null;
   has_sub_adviser: boolean | null;
+  managers: ManagerRecord[] | null;
+  manager_as_of: string | null;
+  manager_transition: ManagerTransition | null;
   skill_evidence: SkillEvidence | null;
 }
 
@@ -120,6 +145,12 @@ export function SelectionEvidence({
     );
   }
 
+  // Filed manager-transition flag (first-class fact, top of the section). Only
+  // readable when the section is unlocked — anon holds just the {locked} marker.
+  const transition = isLocked(managerParent)
+    ? null
+    : (managerParent?.manager_transition ?? null);
+
   return (
     <Section
       id="selection-evidence"
@@ -128,12 +159,65 @@ export function SelectionEvidence({
       methodologyAnchor="skill-evidence"
     >
       <div className="space-y-4">
+        {transition?.has_pending_transition && transition.departing_manager && (
+          <ManagerTransitionFlag mt={transition} />
+        )}
         <SkillAndMoves managerParent={managerParent} />
         <ReturnAttributionTiles ra={returnAttribution} />
         <PortfolioShifts pc={positioningChanges} />
       </div>
     </Section>
   );
+}
+
+/**
+ * A calm, factual flag for a FILED manager change — amber accent, dated,
+ * sourced via the filing snippet. Never speculates about performance impact.
+ * Current transitions are successor-less; "; {names} named" only appends when
+ * incoming_managers is non-empty.
+ */
+function ManagerTransitionFlag({ mt }: { mt: ManagerTransition }) {
+  const incoming = (mt.incoming_managers ?? []).filter(Boolean);
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-5 shadow-sm">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">
+        Manager transition filed
+      </div>
+      <p className="mt-1.5 text-sm leading-relaxed text-amber-900">
+        {mt.departing_manager} is expected to step back
+        {mt.effective_date ? ` on ${fmtDate(mt.effective_date)}` : ""}
+        {incoming.length > 0 ? `; ${incoming.join(", ")} named` : ""}.
+      </p>
+      {mt.evidence && (
+        <Evidence summary="filing language">
+          <p>&ldquo;…{mt.evidence}…&rdquo;</p>
+        </Evidence>
+      )}
+    </div>
+  );
+}
+
+/** Role label for a named PM. Only a stated lead is called "lead" (rare). */
+function pmRoleLabel(role: string | null): string {
+  if (role === "lead") return "lead PM";
+  if (role === "co_manager") return "co-PM";
+  if (role === "assistant") return "assistant PM";
+  return "PM";
+}
+
+/**
+ * "co-PM since 1990 (36 yrs)" — start_date is year-precision, so only the YEAR
+ * is ever shown; both fragments are omitted when the filing stated no tenure
+ * (no placeholder dashes). Tenure floors (never overstates) and hides under 1yr.
+ */
+function pmDescriptor(m: ManagerRecord): string {
+  let out = pmRoleLabel(m.role);
+  if (m.start_date) out += ` since ${m.start_date.slice(0, 4)}`;
+  if (m.tenure_years != null && isFinite(m.tenure_years)) {
+    const yrs = Math.floor(m.tenure_years);
+    if (yrs >= 1) out += ` (${yrs} yr${yrs === 1 ? "" : "s"})`;
+  }
+  return out;
 }
 
 function SkillAndMoves({
@@ -167,7 +251,12 @@ function SkillAndMoves({
   const se = managerParent?.skill_evidence;
   const mm = se?.manager_moves;
 
-  const managers = managerParent?.manager_names?.filter(Boolean) ?? [];
+  // Named-PM roster: driven SOLELY from managers[] (never manager_names, which
+  // duplicates the names without role/tenure). Served order is lead-first —
+  // preserve it. Empty roster (never-covered or review-held) → honest firm-only
+  // state below; no fabricated PM.
+  const pms = (managerParent?.managers ?? []).filter((m) => m?.name);
+  const adviserName = managerParent?.adviser_name ?? null;
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
@@ -253,11 +342,38 @@ function SkillAndMoves({
             adding or subtracting value.
           </p>
         )}
-        {managers.length > 0 && (
-          <p className="mt-3 border-t border-gray-100 pt-2 text-xs text-gray-400">
-            Adviser: {managerParent?.adviser_name ?? managers.join(", ")}
-            {managerParent?.has_sub_adviser ? " · uses a sub-adviser" : ""}
-          </p>
+        {(pms.length > 0 || adviserName) && (
+          <div className="mt-3 space-y-1.5 border-t border-gray-100 pt-2">
+            {pms.length > 0 && (
+              <div>
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                    Portfolio managers
+                  </span>
+                  {managerParent?.manager_as_of && (
+                    <span className="text-[11px] text-gray-400">
+                      as of {fmtDate(managerParent.manager_as_of)}
+                    </span>
+                  )}
+                </div>
+                <ul className="mt-1 space-y-0.5 text-xs">
+                  {pms.map((m) => (
+                    <li key={m.name}>
+                      <span className="font-medium text-gray-700">{m.name}</span>
+                      <span className="text-gray-400"> — {pmDescriptor(m)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {/* Firm-level line — the adviser is a firm, never conflated with the PM. */}
+            {adviserName && (
+              <p className="text-xs text-gray-400">
+                Adviser: {adviserName}
+                {managerParent?.has_sub_adviser ? " · uses a sub-adviser" : ""}
+              </p>
+            )}
+          </div>
         )}
       </Card>
     </div>

@@ -1,7 +1,7 @@
 ---
 id: fund-named-manager-ui
 title: Surface named portfolio manager, tenure, and a filed manager-transition flag
-status: ready
+status: done
 track: frontend
 repo: fundscore-web
 depends_on: fund-named-manager-source
