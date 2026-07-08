@@ -175,6 +175,25 @@ export const fundHoldingsFull = pgTable(
 );
 
 // ============================================================================
+// fund_attribution_blocks — lazy Attribution Explorer payload
+// ----------------------------------------------------------------------------
+// One row per fund with the quarter-level factor path built by fund_score.
+// The payload matches AttributionBlocks in src/lib/serving/profile-v2.ts.
+// Brinson member blocks remain an empty array until attribution-quarter-blocks
+// lands; do not infer or interpolate member rows client-side.
+// ============================================================================
+
+export const fundAttributionBlocks = pgTable(
+  "fund_attribution_blocks",
+  {
+    seriesId: text("series_id").primaryKey(),
+    canonicalTicker: varchar("canonical_ticker", { length: 12 }),
+    payload: jsonb("payload").notNull(),
+  },
+  (t) => [index("fab_ticker_idx").on(t.canonicalTicker)],
+);
+
+// ============================================================================
 // serving_manifest — mirrors profile_build_manifest.json at the serving boundary
 // ----------------------------------------------------------------------------
 // Serving Architecture Decision 4: gold parquets do NOT carry the build

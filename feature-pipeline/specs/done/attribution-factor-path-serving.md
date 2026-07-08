@@ -1,7 +1,7 @@
 ---
 id: attribution-factor-path-serving
 title: Serve the per-quarter factor path (betas × forward factor returns, market-beta effect, idio) for the beta/sector/macro/selection split
-status: queued
+status: done
 track: backend
 repo: fund_score
 depends_on: ""
@@ -119,3 +119,42 @@ Extend the exposure-path build to emit, per (series_id, quarter):
 - Adding `beta_mkt` to PATH_COLS changes the path panel schema — coordinate the rebuild with the
   existing exposure-divergence consumers (fix-exposure-divergence-l2-baseline is done/; re-run its
   checks after the rebuild).
+
+## Implementation Result
+Done 2026-07-08.
+
+Implemented in `fund_score`:
+- `src/fundscore/product/exposure_path_attribution.py` now emits `exposure_path_v0.2` blocks with
+  standardized risk-model factors, per-quarter forward factor returns, market-beta effect, realized
+  fund/passive returns, and the idio remainder.
+- `scripts/pipeline/build_exposure_path_attribution.py` writes
+  `data/gold/factor_attribution_blocks.parquet` plus checkpoint blocks.
+- `scripts/pipeline/build_fund_attribution_blocks.py` builds the lazy paid
+  `fund_attribution_blocks` payload staging file, excluding low-coverage/pricing-suspect series.
+- `src/fundscore/serving/fact_assembler.py`, `src/fundscore/serving/load.py`,
+  `scripts/pipeline/apply_serving_schema.py`, and `scripts/pipeline/build_serving_facts.py` wire the
+  lazy table and paid `gates.attribution_blocks` presence gate.
+- Reports, checks, focused tests, context docs, and the exposure-path proveout were updated for the
+  new block output and schema.
+
+Implemented in `fundscore-web`:
+- `src/lib/db/schema/serving.ts` mirrors the new `fund_attribution_blocks` serving table.
+
+Verified:
+- `uv run python -m py_compile src/fundscore/product/exposure_path_attribution.py scripts/pipeline/build_fund_attribution_blocks.py scripts/reports/check_exposure_path.py`
+- `uv run pytest tests/test_exposure_path_attribution.py` - 11 passed.
+- `make build-exposure-path` rebuilt 551,573 path rows, 31,683 aggregate attribution rows, 519,742
+  factor block rows, and 1,963 clean-series lazy payload rows.
+- `uv run python scripts/reports/check_exposure_path.py` - Overall WARN only. Report:
+  `reports/product/exposure_path_check_data.md`.
+- `uv run python scripts/pipeline/build_serving_facts.py --staging-only` - 5,799 fact rows.
+- `uv run pytest tests/test_serving_fact_assembler.py` - 31 passed.
+- `npm run lint` - passed with one pre-existing unrelated warning in
+  `.claude/workflows/implement-backend-spec.js`.
+- `npm run build` - passed.
+- Required high-review gates: `fund_score` CODEX_GATE pass; `fundscore-web` CODEX_GATE pass.
+
+Data notes:
+- Data-check WARN: 546 beta rows have `|beta| > 3` (0.10%). No FAILs.
+- `brinson` is intentionally an empty list until `attribution-quarter-blocks` lands.
+- Low-coverage/pricing-suspect funds do not receive the lazy attribution-block payload or paid gate.
