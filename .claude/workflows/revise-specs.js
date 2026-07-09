@@ -33,6 +33,8 @@ const REVISE_SCHEMA = {
   required: ['changes', 'summary'],
 }
 
+// Matches the artifact-reviewer persona's tier contract (mechanical/engineering/decision) —
+// only `decision`-tier findings surface to the owner as still-flagged.
 const REVIEW_SCHEMA = {
   type: 'object',
   properties: {
@@ -44,14 +46,13 @@ const REVIEW_SCHEMA = {
         type: 'object',
         properties: {
           severity: { type: 'string', enum: ['high', 'medium', 'low'] },
-          category: { type: 'string' },
+          tier: { type: 'string', enum: ['mechanical', 'engineering', 'decision'] },
           issue: { type: 'string' },
           evidence: { type: 'string' },
-          fix_class: { type: 'string', enum: ['auto', 'flag'] },
           proposed_fix: { type: 'string' },
           rationale: { type: 'string' },
         },
-        required: ['severity', 'issue', 'fix_class'],
+        required: ['severity', 'tier', 'issue'],
       },
     },
   },
@@ -111,7 +112,7 @@ const results = await pipeline(
       schema: REVIEW_SCHEMA,
       model: 'sonnet', // artifact-reviewer-tier work
     })
-    const remaining = (re?.findings || []).filter((f) => f.fix_class === 'flag')
+    const remaining = (re?.findings || []).filter((f) => f.tier === 'decision')
     return {
       artifact: specPath,
       name: base(specPath),

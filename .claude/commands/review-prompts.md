@@ -16,6 +16,8 @@ Steps:
      .claude/commands -newer <that file> -type f`), plus any artifact that is new/untracked. If no
      prior review exists, fall back to `--all`. Say which artifacts were skipped as unchanged.
    You may exclude `artifact-reviewer.md` to avoid self-review, or include it — your call.
+   **If the changed-only set is empty, STOP here**: report "no machinery changed since the last
+   review" and skip the workflow entirely (it throws on an empty artifacts array).
 3. Run Workflow with `scriptPath` = `WEBROOT/.claude/workflows/review-artifacts.js` and
    `args` = `{ target: "prompts", artifacts: [absolute paths], webRoot: WEBROOT, fundScoreRoot: FUNDSCORE }`.
    Mechanical fixes (broken path/agent-name refs, typos, schema/prompt mismatches, missing defensive
