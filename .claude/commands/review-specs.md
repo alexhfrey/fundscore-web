@@ -11,6 +11,9 @@ Steps:
 3. Run Workflow with `scriptPath` = `WEBROOT/.claude/workflows/review-artifacts.js` and
    `args` = `{ target: "specs", artifacts: [absolute paths], webRoot: WEBROOT, fundScoreRoot: FUNDSCORE }`.
    Obvious/mechanical fixes are auto-applied to the spec files in place; judgment calls come back flagged.
+   The review must also validate implementation lane frontmatter: `lane: lean` is invalid for backend/data,
+   serving-fact semantics, financial calculations, schema/data migrations, cross-repo contracts, or ambiguous
+   product/data-truth decisions. Those must be revised to `lane: reviewed` before implementation.
 4. Write the workflow result to `feature-pipeline/reviews/<YYYY-MM-DD>_spec_review.json` (use `date +%F`).
 5. Render the report:
    `node scripts/critique/render-review.mjs --in <json> --out feature-pipeline/reviews/<date>_spec_review.html --title "Spec review <date>"`.

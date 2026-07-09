@@ -13,7 +13,7 @@
       "label": "Fund profile",
       "route_template": "/funds/{ticker}",
       "needs_dev_server": true,
-      "critics": ["marketing", "design", "engineering", "data-quality", "narrative"],
+      "critics": ["design", "engineering", "data-quality", "narrative"],
       "default_targets": ["FCNTX", "FBGRX", "DODGX", "VDIGX", "VOO"],
       "target_kind": "ticker",
       "source_files": [

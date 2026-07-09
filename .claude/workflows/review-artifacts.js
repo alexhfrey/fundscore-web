@@ -16,7 +16,8 @@ if (!webRoot || !fundScoreRoot) throw new Error('args requires webRoot, fundScor
 if (!['specs', 'prompts'].includes(target)) throw new Error("args.target must be 'specs' or 'prompts'")
 if (!artifacts.length) throw new Error('args.artifacts must be a non-empty array of paths')
 
-const reviewerName = target === 'specs' ? 'spec-reviewer' : 'prompt-reviewer'
+// One merged reviewer persona covers both subjects (specs and machinery).
+const subjectKind = target === 'specs' ? 'spec' : 'machinery'
 const base = (p) => p.split('/').pop()
 
 const REVIEW_SCHEMA = {
@@ -67,8 +68,9 @@ const REVISE_SCHEMA = {
   required: ['resolved'],
 }
 
-const reviewPrompt = (artifactPath) => `You are the **${reviewerName}**. Read your instructions:
-  ${webRoot}/.claude/agents/${reviewerName}.md
+const reviewPrompt = (artifactPath) => `You are the **artifact-reviewer**. Read your instructions:
+  ${webRoot}/.claude/agents/artifact-reviewer.md
+Subject kind for this review: **${subjectKind}**.
 
 Review this artifact (read it, then verify its claims against the real code/data):
   ${artifactPath}
@@ -104,7 +106,7 @@ const reviews = await pipeline(
       label: `review:${base(artifactPath)}`,
       phase: 'Review',
       schema: REVIEW_SCHEMA,
-      model: 'sonnet', // spec/prompt-reviewer-tier work
+      model: 'sonnet', // artifact-reviewer-tier work
     })
     return { artifactPath, review }
   },

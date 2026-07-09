@@ -15,14 +15,19 @@ here, and the implementers need it as cwd for `npm`. Have the **dev server** (`n
 ## The flow — 3 phases + a human gate
 
 ```
-/critique-funds     5 critics + product-strategist   → proposals/pending/      (Phase 1, automated)
+/critique-funds     4 critics + product-strategist   → proposals/pending/      (Phase 1, automated;
+                    canonicality precheck first — never review pages whose headline numbers are stale)
    ▼ you: /review-proposals          → approved/                               (the human gate)
-/spec-approved      spec-writer                       → specs/queue/  (track-tagged)
+/spec-approved      spec-writer                       → specs/queue/  (track-tagged, just-in-time:
+                    soft cap ~3 unstarted specs — queued specs decay as code moves)
    ▼ you: /review-specs   (decision-altitude dashboard; revise loop auto-fixes the rest)
-/implement-next     routes by track:                                           (Phase 3)
-        frontend → feature-implementer → npm build+lint → branch
-        backend  → implement-backend-spec assembly line
-                   (EDA → implement → data-reviewer ✋ each step → /check-data → commit; halts on FAIL)
+/implement-next     routes by lane:                                            (Phase 3)
+        lean     → main session direct edit → targeted verify → codex gate
+        standard → feature-implementer → npm build+lint → codex gate → branch
+        reviewed → implement-backend-spec assembly line
+                   (EDA → implement → data-reviewer ✋ each step → final data gate
+                    [served==gold + /check-data, one combined pass] → codex-gated commit;
+                    halts on FAIL, fails closed — no codex pass + SHA, no done)
 ```
 
 ## Commands (`.claude/commands/`)
@@ -31,20 +36,40 @@ here, and the implementers need it as cwd for `npm`. Have the **dev server** (`n
 |---|---|---|
 | `/critique-funds [tickers]` | 1 | Capture the pages + run the critic panel → writes `proposals/pending/`. |
 | `/review-proposals` | gate | Triage pending proposals: keep → `approved/`, reject → `rejected/`. |
-| `/spec-approved` | 2 | Turn approved proposals into specs in `specs/queue/`, classified by track. |
+| `/spec-approved` | 2 | Turn approved proposals into specs in `specs/queue/`, classified by track and lane. |
 | `/review-specs` | 2 | Decision-altitude review dashboard: auto-fix mechanical+engineering, surface only product decisions. |
-| `/implement-next` | 3 | Implement the next ready spec, routing frontend vs backend. `/loop /implement-next` drains the queue. |
+| `/implement-next` | 3 | Implement the next ready spec, routing by `lane: lean|standard|reviewed`. `/loop /implement-next` drains the queue. |
 | `/review-prompts` | meta | Audit the machinery itself (agent/workflow/command prompts) at decision altitude. |
+
+## Implementation lanes
+
+Specs may carry `lane: lean`, `lane: standard`, or `lane: reviewed` in frontmatter.
+
+- **Lean** — tiny, localized non-data work with a concrete acceptance check. The main session implements
+  directly, runs targeted verification, and uses a risk-sized codex gate. It must not touch `fund_score`
+  feature data, serving-fact semantics, financial calculations, schema/data migrations, or cross-repo
+  contracts.
+- **Standard** — normal frontend/product specs over existing served data/contracts. One implementer agent,
+  build/lint/tests, and a high-reasoning codex sign-off before done.
+- **Reviewed** — backend data, serving semantics, financial calculations, migrations, cross-repo/full-stack
+  contracts, or ambiguous product/data-truth work. This keeps the full assembly line and `/check-data` gates.
+
+If `lane` is absent, `/implement-next` infers conservatively: frontend specs default to `standard`; backend,
+full-stack, `fund_score`, data/serving, financial, schema, and cross-repo specs default to `reviewed`.
 
 ## Agents (`.claude/agents/`)
 
-- **Critics** (Phase 1, return structured findings + feature ideas): `marketing-critic` · `design-critic`
-  · `engineering-critic` · `data-quality-critic` (cross-repo provenance audit) · `narrative-critic`.
-- **Pipeline**: `product-strategist` (critiques → deduped proposals) · `spec-writer` (frontend / backend /
-  full-stack, grounded in real code) · `feature-implementer` (frontend; gates on build+lint, commits on a branch).
+- **Critics** (Phase 1, return structured findings + feature ideas): `design-critic` ·
+  `engineering-critic` · `data-quality-critic` (cross-repo provenance audit) · `narrative-critic`
+  (retail lens + the promise/differentiation mandate — absorbed the former marketing-critic).
+- **Pipeline**: `product-strategist` (critiques → deduped proposals; on ≤2-page runs the per-page
+  Role-A pass is skipped and Role B merges raw critiques directly) · `spec-writer` (frontend / backend /
+  full-stack, grounded in real code; flags redesign collisions) · `feature-implementer` (frontend; gates
+  on build+lint, commits on a branch).
 - **Backend reviewed track**: `backend-implementer` (data work in fund_score, segmented) · `data-reviewer`
   (adversarial gate after every step) · `data-scientist` (EDA + self-contained HTML plot reports).
-- **Reviewers** (decision altitude): `spec-reviewer` · `prompt-reviewer`.
+- **Reviewer** (decision altitude): `artifact-reviewer` — one persona for both specs and machinery
+  (merged the former spec-reviewer + prompt-reviewer).
 
 ## Workflows (`.claude/workflows/`)
 
@@ -53,7 +78,9 @@ here, and the implementers need it as cwd for `npm`. Have the **dev server** (`n
 - `revise-specs.js` — revise flagged specs + re-review.
 - `review-artifacts.js` — **decision altitude**: review specs or prompts, auto-resolve mechanical +
   engineering issues, surface only product **decisions** (+ a plain-English brief and the artifact inline).
-- `implement-backend-spec.js` — the **reviewed assembly line** for backend data specs; halts on any FAIL.
+- `implement-backend-spec.js` — the **reviewed assembly line** for backend data specs; halts on any
+  FAIL and **fails closed**: the codex gate is enforced inside its finalize stage (no clean pass +
+  commit SHA → the run returns `stopped`, never `done`; a killed finalize also returns `stopped`).
 
 ## Tooling (`scripts/critique/`)
 
@@ -69,6 +96,8 @@ captures/<slug>/           per-page capture bundle (gitignored)
 proposals/{pending,approved,rejected}/   the review inbox
 specs/{queue,done}/        the build queue
 reviews/                   review/decision HTML reports (gitignored)
+backlog.md                 the operational intake list (## Done keeps only the 3 newest entries)
+backlog-archive.md         full changelog of shipped Done entries (newest first)
 ```
 
 ## How reviews work — "decision altitude"
@@ -79,10 +108,30 @@ language with a recommendation). You review a brief + your decisions + the artif
 browser dashboard — **not** a finding dump. Reports are always **opened in the browser + served at a
 localhost URL**, never handed over as a bare file path.
 
+**Canonicality precedes review.** Before any multi-round adversarial review of a page, mock, or
+dossier, verify its headline numbers against the canonical gold sources (`config/page-types.json`
+`ground_truth`) — a review loop that certifies internally-consistent-but-wrong data is pure waste
+(one mock loop burned ~450K tokens across two rounds validating a fee that was ~2× off).
+
+## Queue discipline — spec just-in-time
+
+Speccing is cheap; **spec inventory is not**. A queued spec decays as the code moves under it, and a
+deep queue invites building against components another queued item is about to replace (two
+fully-worked specs — one already implemented — were orphaned by the v2 redesign; a 2026-07-03 audit
+found 1 of 17 queued specs implemented). Soft rules, enforced as nudges (never hard gates):
+- `/spec-approved` defers proposals past ~3 unstarted specs in `queue/` (approved proposals keep —
+  they don't decay the way grounded specs do).
+- `/spec-story` reports queue depth when it specs past the cap.
+- `spec-writer` flags redesign collisions (`at_risk: superseded-by <slug>` frontmatter).
+- Don't spec against a component an in-flight redesign is replacing; sequence behind it instead.
+
 ## Data-integrity guardrails
 
 - **No synthetic data, ever.** Missing reads as missing; the verification gate (sample → atomic +
   aggregate checks) runs before any scale build; `/check-data` after rebuilds.
+- **Lean is forbidden for data truth.** Any change that can alter or misstate a fund fact, generated feature,
+  source provenance, or served financial calculation uses the reviewed lane, regardless of how small the code
+  diff looks.
 - **Commensurability + fault-first + "things that look off"** — baked into `data-reviewer`,
   `data-quality-critic`, and the global `/check-data` skill: any two compared quantities must share
   baseline / as-of / window / population / units; treat contradictions and surprises as defects to
@@ -101,6 +150,11 @@ localhost URL**, never handed over as a bare file path.
   autonomous with hard gates). Custom `agentType` only resolves in its own repo's session — that's why
   the workflows read personas by path instead.
 - **Hybrid autonomy** — auto-apply obvious/mechanical fixes; flag nuanced/judgment calls.
+- **Worktrees + branches** — a PreToolUse branch-guard hook (harness plugin `branch-guard.sh`,
+  registered in both repos) blocks `git commit` on master/main: one worktree + one feature branch
+  per committing session (`new-worktree.sh <slug>` sets one up, symlinking gitignored shared state).
+  Git isolates code only — the fund_score lakehouse stays one shared store; reviewed data builds
+  stay serialized in the canonical checkout. `SKIP_BRANCH_GUARD=1` overrides deliberately.
 
 ## Extending to new page types
 

@@ -1,13 +1,13 @@
 export const meta = {
   name: 'implement-backend-spec',
-  description: 'Implement one backend-track data spec in fund_score as a reviewed assembly line: EDA plots, then implement → data-reviewer checkpoint after every step (a FAIL bounces the blocking issues back to the implementer, max 2 revision rounds), then a hard /check-data gate and commit. Stops when a checkpoint still fails after revision.',
+  description: 'Implement one backend-track data spec in fund_score as a reviewed assembly line: EDA plots, then implement → data-reviewer checkpoint after every step (a FAIL bounces the blocking issues back to the implementer, max 1 revision round), then one combined final data gate (served==gold + the full /check-data protocol) and a codex-gated commit. Stops when a checkpoint still fails after revision, or when the codex gate cannot produce a clean pass.',
   whenToUse: 'When /implement-next picks a track:backend spec',
   phases: [
     { title: 'EDA', detail: 'data-scientist explores inputs, emits HTML plots + go/no-go' },
-    { title: 'Sample', detail: 'implement on a small sample → data-reviewer checkpoint 1 (revise-until-pass ×2)' },
-    { title: 'Full build', detail: 'full build → data-reviewer checkpoint 2 (revise-until-pass ×2) + output plots' },
-    { title: 'Serving', detail: 'serving rebuild → data-reviewer checkpoint 3 (served == gold, revise-until-pass ×2)' },
-    { title: 'Finalize', detail: 'hard /check-data gate (any FAIL stops), commit on branch, move spec to done' },
+    { title: 'Sample', detail: 'implement on a small sample → data-reviewer checkpoint 1 (revise-until-pass ×1)' },
+    { title: 'Full build', detail: 'full build → data-reviewer checkpoint 2 (revise-until-pass ×1) + output plots' },
+    { title: 'Serving', detail: 'serving rebuild → FINAL DATA GATE: one data-reviewer pass runs served==gold provenance AND the full /check-data protocol (revise-until-pass ×1)' },
+    { title: 'Finalize', detail: 'codex --high gate enforced IN-WORKFLOW (no pass+SHA → stopped, never done), commit on branch, move spec to done' },
   ],
 }
 
@@ -29,6 +29,7 @@ const implOpts = { model: model || 'opus', ...(effort ? { effort } : {}) }
 // workflow sandbox); callers may override with A.harnessRoot.
 const harnessRoot = A.harnessRoot || webRoot.replace(/fundscore-web\/?$/, 'fundscore-harness')
 const persona = (name) => `${harnessRoot}/plugins/fundscore-data/agents/${name}.md`
+const codexScript = `${harnessRoot}/plugins/fundscore-data/scripts/codex-review.sh`
 const common = `
 Persona/instructions: read ${persona('PERSONA')}
 Spec to implement (read it fully, by absolute path): ${specPath}
@@ -61,6 +62,15 @@ const REVIEW_SCHEMA = {
   },
   required: ['verdict', 'blocking_issues'],
 }
+// The final data gate returns the review verdict PLUS the /check-data report it wrote.
+const FINAL_GATE_SCHEMA = {
+  type: 'object',
+  properties: {
+    ...REVIEW_SCHEMA.properties,
+    report_path: { type: 'string', description: 'the combined check-data markdown report this gate wrote' },
+  },
+  required: ['verdict', 'blocking_issues', 'report_path'],
+}
 const DS_SCHEMA = {
   type: 'object',
   properties: {
@@ -72,12 +82,27 @@ const DS_SCHEMA = {
   },
   required: ['report_path', 'verdict'],
 }
+// Finalize must PROVE the codex gate ran and passed, and that a commit exists. The workflow
+// verifies these fields — an empty commit_sha or a non-pass gate can never return status:done.
+const FINALIZE_SCHEMA = {
+  type: 'object',
+  properties: {
+    segment: { type: 'string' },
+    files_changed: { type: 'array', items: { type: 'string' } },
+    codex_gate: { type: 'string', enum: ['pass', 'blocked', 'error'], description: 'result of the LAST codex-review.sh run; error = the gate could not execute (network/CLI failure)' },
+    codex_log: { type: 'string', description: 'path to the codex review log' },
+    commit_sha: { type: 'string', description: 'the fund_score commit SHA; empty if no commit was made' },
+    spec_moved_to_done: { type: 'boolean', description: 'true ONLY if the spec file now lives in specs/done/' },
+    blocker: { type: 'string', description: 'empty if none' },
+  },
+  required: ['segment', 'codex_gate', 'commit_sha', 'spec_moved_to_done', 'blocker'],
+}
 
-const impl = (segment, extra = '') =>
+const impl = (segment, extra = '', schema = SEGMENT_SCHEMA) =>
   agent(
     common.replace('PERSONA', 'backend-implementer') +
       `\n\nDo ONLY the **${segment}** segment, then stop for review.${extra}`,
-    { label: `impl:${segment}`, schema: SEGMENT_SCHEMA, phase: phaseOf(segment), ...implOpts }
+    { label: `impl:${segment}`, schema, phase: phaseOf(segment), ...implOpts }
   )
 const review = (step, payload) =>
   agent(
@@ -98,14 +123,14 @@ function phaseOf(s) {
 const stopped = (where, detail) => ({ status: 'stopped', stopped_at: where, detail, slug })
 
 // Rubric revise-loop checkpoint: the data-reviewer's checklist is the rubric; a FAIL sends the
-// blocking issues back to the implementer to fix AT THE SOURCE (max 2 revision rounds), then
-// re-reviews with the same full gate. Review rigor never drops across rounds. Still failing
-// after round 2 → the line stops for the owner.
+// blocking issues back to the implementer to fix AT THE SOURCE (max 1 revision round), then
+// re-reviews with the same full gate. Review rigor never drops across rounds. A segment that
+// fails twice needs the owner, not a third opus round — the line stops.
 const reviewedSegment = async (segment, step, extra = '') => {
   let out = await impl(segment, extra)
   if (out?.blocker) return { out, rev: null, stop: [segment, out.blocker] }
   let rev = await review(step, out)
-  for (let round = 1; rev && rev.verdict === 'fail' && round <= 2; round++) {
+  for (let round = 1; rev && rev.verdict === 'fail' && round <= 1; round++) {
     log(`${step}: checkpoint FAIL round ${round} — ${(rev.blocking_issues || []).length} blocking issue(s); bouncing back to implementer`)
     out = await impl(
       segment,
@@ -139,7 +164,7 @@ if (eda?.coverage_estimate) log(`EDA coverage ceiling: ${eda.coverage_estimate}`
 // coverage and split honest-missing vs recoverable-missing (a large recoverable miss is BLOCKING),
 // not just precision/fabrication. (See data-reviewer.md check 2a.)
 
-// ---- Sample + checkpoint 1 (revise-until-pass, max 2 rounds) ----------------
+// ---- Sample + checkpoint 1 (revise-until-pass, max 1 round) -----------------
 phase('Sample')
 const seg1 = await reviewedSegment('implement-sample', 'implement-sample')
 if (seg1.stop) return stopped(seg1.stop[0], seg1.stop[1])
@@ -157,55 +182,85 @@ const ds2 = await agent(
   { label: 'output-plots', schema: DS_SCHEMA, phase: 'Full build' }
 )
 
-// ---- Serving integration + checkpoint 3 ------------------------------------
+// ---- Serving integration + FINAL DATA GATE ----------------------------------
+// One combined data-reviewer pass replaces the old checkpoint-3 + separate /check-data re-run
+// (they substantially re-verified the same outputs): served==gold provenance AND the full
+// /check-data protocol over every built output, with ONE revision round on fail.
 phase('Serving')
-const seg3 = await reviewedSegment('serving-integration', 'serving-integration (served == gold provenance)')
-if (seg3.stop) return stopped(seg3.stop[0], seg3.stop[1])
-const s3 = seg3.out, r3 = seg3.rev
+let s3 = await impl('serving-integration')
+if (s3?.blocker) return stopped('serving-integration', s3.blocker)
 
-// ---- Finalize --------------------------------------------------------------
-phase('Finalize')
+const builtOutputs = () => [...new Set([...(s2?.output_paths || []), ...(s3?.output_paths || [])])]
+const finalGate = (payload, tag) =>
+  agent(
+    common.replace('PERSONA', 'data-reviewer') +
+      `\n\nFINAL DATA GATE${tag} (verdict only — fix nothing). This single pass is BOTH the serving\n` +
+      `checkpoint and the /check-data gate; a spec cannot reach done without it. Do ALL of:\n` +
+      `(1) served == gold provenance for the serving integration below — spot-check 3–5 joined rows\n` +
+      `    end-to-end (your check 7a), fault-first.\n` +
+      `(2) The /check-data protocol: read ~/.claude/skills/check-data/SKILL.md and execute BOTH halves\n` +
+      `    YOURSELF in this session — (a) write+run the aggregate-diagnostics script, (b) the atomic\n` +
+      `    spot checks — against EVERY feature/panel this spec built or rebuilt:\n` +
+      `    ${JSON.stringify(builtOutputs(), null, 2)}\n` +
+      `Write ONE combined markdown report to ${fundScoreRoot}/reports/${slug}_check_data.md and return\n` +
+      `its path in report_path. verdict = fail if ANY blocking issue or any check FAILs; put check-data\n` +
+      `WARNs in warnings.\n\nIMPLEMENTER OUTPUT (JSON):\n${JSON.stringify(payload, null, 2)}`,
+    { label: `final-data-gate${tag}`, schema: FINAL_GATE_SCHEMA, phase: 'Serving' }
+  )
 
-// Hard /check-data gate: runs the full protocol on every built/rebuilt output BEFORE the
-// commit. Any FAIL stops the line; WARNs surface to the owner. This is a scripted gate, not
-// implementer discretion — a spec cannot reach `done` without a fresh check report.
-const CHECK_SCHEMA = {
-  type: 'object',
-  properties: {
-    overall: { type: 'string', enum: ['PASS', 'WARN', 'FAIL'] },
-    report_path: { type: 'string' },
-    fails: { type: 'array', items: { type: 'string' } },
-    warns: { type: 'array', items: { type: 'string' } },
-  },
-  required: ['overall', 'report_path'],
+let r3 = await finalGate(s3, '')
+if (r3 && r3.verdict === 'fail') {
+  log(`final data gate: FAIL — ${(r3.blocking_issues || []).length} blocking issue(s); one revision round`)
+  s3 = await impl(
+    'serving-integration',
+    `\n\nREVISION ROUND — the final data gate FAILED. Fix EVERY blocking issue at its source (never\n` +
+      `paper over data, never narrow a check to make it pass), then stop for re-review.\n` +
+      `BLOCKING ISSUES (JSON):\n${JSON.stringify(r3.blocking_issues || [], null, 2)}`
+  )
+  if (s3?.blocker) return stopped('serving-integration', s3.blocker)
+  r3 = await finalGate(s3, ' (revision 1)')
 }
-const builtOutputs = [...new Set([...(s2?.output_paths || []), ...(s3?.output_paths || [])])]
-const cd = await agent(
-  common.replace('PERSONA', 'data-reviewer') +
-    `\n\nCHECK-DATA GATE (do not fix anything — verdict only). Read the protocol at\n` +
-    `~/.claude/skills/check-data/SKILL.md and execute BOTH halves YOURSELF in this session:\n` +
-    `(1) write+run the aggregate-diagnostics script, (2) do the atomic spot checks, fault-first.\n` +
-    `Run it against EVERY feature/panel this spec built or rebuilt:\n${JSON.stringify(builtOutputs, null, 2)}\n` +
-    `Write ONE combined markdown report to ${fundScoreRoot}/reports/${slug}_check_data.md.\n` +
-    `Overall = worst across features (FAIL if any FAIL). Return overall, report_path, fails, warns.`,
-  { label: 'check-data-gate', schema: CHECK_SCHEMA, phase: 'Finalize' }
-)
-if (!cd || cd.overall === 'FAIL') return stopped('check-data gate', cd)
-if (cd.overall === 'WARN') log(`check-data WARN — surfacing to owner: ${(cd.warns || []).join('; ')}`)
+if (!r3 || r3.verdict === 'fail') return stopped('final data gate', r3)
+if ((r3.warnings || []).length) log(`final data gate WARNs — surfacing to owner: ${r3.warnings.join('; ')}`)
 
+// ---- Finalize (codex gate enforced IN-WORKFLOW, then commit) ----------------
+phase('Finalize')
 const s4 = await impl(
   'finalize-commit',
-  `\nThe check-data gate passed (${cd.overall}); its report is at ${cd.report_path} — stage that report with the commit.`
+  `\nThe final data gate passed; its combined check-data report is at ${r3.report_path} — stage that\n` +
+    `report with the commit.\n\n` +
+    `MANDATORY CODEX GATE, BEFORE the commit (the workflow verifies your structured output — a\n` +
+    `non-pass gate or empty commit_sha means this spec does NOT move to done):\n` +
+    `1. From ${fundScoreRoot}, run: ${codexScript}   (deep reasoning by default; scope --uncommitted).\n` +
+    `2. On CODEX_GATE: blocked — fix every P0/P1 finding at its source, then re-run. Max 2 gate rounds.\n` +
+    `3. Commit on the feature branch ONLY after CODEX_GATE: pass. Then move the spec to done/.\n` +
+    `4. If the gate still blocks after 2 rounds, or cannot execute at all (network/CLI error): do NOT\n` +
+    `   commit, do NOT move the spec, and return codex_gate: blocked|error with the blocker field set —\n` +
+    `   never treat an unrunnable gate as a pass.\n` +
+    `Return codex_gate, codex_log, commit_sha, spec_moved_to_done in your structured output.`,
+  FINALIZE_SCHEMA
 )
-if (s4?.blocker) return stopped('finalize-commit', s4.blocker)
+// Fail closed: a killed/dead finalize agent (null result) is an interrupted run, never done.
+if (!s4) return stopped('finalize-commit', 'finalize agent returned null (killed or session died) — commit state unknown; resume or inspect the branch')
+if (s4.blocker) return stopped('finalize-commit', s4.blocker)
+if (s4.codex_gate !== 'pass' || !s4.commit_sha || s4.spec_moved_to_done !== true)
+  return stopped('finalize gate', {
+    codex_gate: s4.codex_gate,
+    codex_log: s4.codex_log,
+    commit_sha: s4.commit_sha,
+    spec_moved_to_done: s4.spec_moved_to_done,
+    detail: 'finalize incomplete — needs codex pass + commit SHA + spec in done/; spec stays in queue/ otherwise',
+  })
 
 return {
   status: 'done',
   slug,
   eda_report: eda?.report_path,
   output_report: ds2?.report_path,
-  check_data: { overall: cd.overall, report: cd.report_path },
-  checkpoints: { sample: r1.verdict, full: r2.verdict, serving: r3.verdict },
-  files_changed: s4?.files_changed || [],
-  warnings: [...[r1, r2, r3].flatMap((r) => r?.warnings || []), ...(cd.warns || [])],
+  check_data: { report: r3.report_path, warns: r3.warnings || [] },
+  codex: { gate: s4.codex_gate, log: s4.codex_log },
+  commit_sha: s4.commit_sha,
+  checkpoints: { sample: r1.verdict, full: r2.verdict, final_gate: r3.verdict },
+  files_changed: s4.files_changed || [],
+  warnings: [...[r1, r2, r3].flatMap((r) => r?.warnings || [])],
 }

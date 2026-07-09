@@ -4,7 +4,7 @@ export const meta = {
   whenToUse: 'After /review-specs, to act on flagged findings',
   phases: [
     { title: 'Revise', detail: 'spec-writer rewrites each spec addressing its flags' },
-    { title: 'Re-review', detail: 'spec-reviewer re-checks each revised spec' },
+    { title: 'Re-review', detail: 'artifact-reviewer re-checks each revised spec' },
   ],
 }
 
@@ -79,8 +79,9 @@ a real prerequisite.
 
 Return the structured list of changes per finding, plus any finding you did NOT fully resolve and why.`
 
-const reviewPrompt = (specPath) => `You are the **spec-reviewer**. Read your instructions:
-  ${webRoot}/.claude/agents/spec-reviewer.md
+const reviewPrompt = (specPath) => `You are the **artifact-reviewer**. Read your instructions:
+  ${webRoot}/.claude/agents/artifact-reviewer.md
+Subject kind for this review: **spec**.
 Re-review this just-revised spec (verify against the real code/data; repo roots — fundscore-web:
 ${webRoot}, fund_score: ${fundScoreRoot}):
   ${specPath}
@@ -108,7 +109,7 @@ const results = await pipeline(
       label: `re-review:${base(specPath)}`,
       phase: 'Re-review',
       schema: REVIEW_SCHEMA,
-      model: 'sonnet', // spec-reviewer-tier work
+      model: 'sonnet', // artifact-reviewer-tier work
     })
     const remaining = (re?.findings || []).filter((f) => f.fix_class === 'flag')
     return {

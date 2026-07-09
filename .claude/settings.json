@@ -3,6 +3,17 @@
     "fundscore-data@fundscore-harness": true
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/alexfrey/Projects/fundscore-harness/plugins/fundscore-data/scripts/branch-guard.sh"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",

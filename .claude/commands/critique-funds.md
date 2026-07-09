@@ -16,10 +16,19 @@ Steps:
    from the config.
 4. For each ticker T, capture the page and confirm `ok:true` (screenshot + served_facts present):
    `node scripts/critique/capture.mjs --page-type fund_profile --ticker T`
-5. Run the critique workflow — Workflow with
+5. **Canonicality precheck (cheap — BEFORE any review tokens).** For each captured ticker, verify
+   3–5 headline numbers in `served_facts.json` (the fee/ER, value score, and their as-of dates)
+   against the canonical gold sources in the config's `ground_truth` paths (one-line `duckdb`
+   queries). If a headline number is stale or contradicts gold, STOP for that ticker: file it as a
+   `(data)` item in `feature-pipeline/backlog.md` and drop the ticker from this run — adversarial
+   review of wrong data is wasted spend (a prior mock-review loop burned ~450K tokens validating a
+   fee that was ~2× off). Continue with the tickers that pass.
+6. Run the critique workflow — Workflow with
    `scriptPath` = `WEBROOT/.claude/workflows/critique-and-propose.js` and
-   `args` = `{ webRoot: WEBROOT, pageType: "fund_profile", tickers: [...], critics: ["marketing","design","engineering","data-quality","narrative"] }`.
-6. When it completes, list the new files in `feature-pipeline/proposals/pending/` and summarize each
+   `args` = `{ webRoot: WEBROOT, pageType: "fund_profile", tickers: [...], critics: ["design","engineering","data-quality","narrative"] }`.
+   (The narrative critic carries the promise/differentiation lens — there is no separate marketing
+   critic. On runs of ≤2 tickers the workflow collapses per-page synthesis into the global pass.)
+7. When it completes, list the new files in `feature-pipeline/proposals/pending/` and summarize each
    proposal (title · impact · scope). Tell me to run `/review-proposals` to triage.
 
 Notes: the workflow reads each critic's persona from `.claude/agents/<critic>-critic.md` and writes

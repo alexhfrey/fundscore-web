@@ -13,13 +13,18 @@ export const meta = {
 //   webRoot:  absolute path to the fundscore-web repo
 //   pageType: e.g. "fund_profile"
 //   tickers:  ["FCNTX", ...]   (capture bundles must already exist)
-//   critics:  ["marketing","design","engineering","data-quality","narrative"]
+//   critics:  ["design","engineering","data-quality","narrative"]
+//             (narrative absorbs the former marketing critic's promise/differentiation mandate)
 // }
 const A = typeof args === 'string' ? JSON.parse(args) : (args || {})
 const webRoot = A.webRoot
 const pageType = A.pageType || 'fund_profile'
 const tickers = A.tickers || []
-const critics = A.critics || ['marketing', 'design', 'engineering', 'data-quality', 'narrative']
+const critics = A.critics || ['design', 'engineering', 'data-quality', 'narrative']
+
+// On small runs (≤2 pages) the per-page Role-A synthesis adds an opus pass with little marginal
+// value over the global Role-B dedup — skip it and hand Role B the raw critiques directly.
+const SMALL_RUN = tickers.length <= 2
 
 if (!webRoot) throw new Error('args.webRoot (absolute fundscore-web path) is required')
 if (!tickers.length) throw new Error('args.tickers must be a non-empty array')
@@ -146,11 +151,18 @@ ${JSON.stringify(page.critiques, null, 2)}`
 }
 
 function globalPrompt(pages) {
-  const allCandidates = pages.map((p) => ({ ticker: p.ticker, candidates: p.candidates?.candidates || [] }))
+  const allCandidates = SMALL_RUN
+    ? pages.map((p) => ({ ticker: p.ticker, critiques: p.critiques }))
+    : pages.map((p) => ({ ticker: p.ticker, candidates: p.candidates?.candidates || [] }))
+  const inputNote = SMALL_RUN
+    ? `Below are the RAW critic findings from this small run (Role A was skipped — do its merge
+yourself first: collapse overlapping findings across critics into a small strong set, drop trivia,
+then dedup + write as Role B).`
+    : `Below are per-page candidate proposals from this run.`
   return `You are the **product-strategist** for FundScore.ai, acting in **Role B (global dedup + write)**.
 Read your instructions: ${webRoot}/.claude/agents/product-strategist.md
 
-Below are per-page candidate proposals from this run. Produce the final set and WRITE each as a
+${inputNote} Produce the final set and WRITE each as a
 markdown file (frontmatter + Pitch/Problem/Why it fits) to:
   ${webRoot}/feature-pipeline/proposals/pending/<slug>.md
 
@@ -164,14 +176,14 @@ source_pages). Keep genuinely page-specific issues page-scoped. Use \`date +%F\`
 
 Return the manifest of what you wrote and what you skipped as duplicates.
 
-PER-PAGE CANDIDATES (JSON):
+PER-PAGE INPUT (JSON):
 ${JSON.stringify(allCandidates, null, 2)}`
 }
 
 // Model tiering: bounded craft critics run on sonnet; narrative-critic (the feature-idea
-// engine) on opus; data-quality-critic inherits the session model — adversarial provenance
-// review never runs cheaper than the work it checks.
-const CRITIC_MODEL = { marketing: 'sonnet', design: 'sonnet', engineering: 'sonnet', narrative: 'opus' }
+// engine, carrying the promise/differentiation mandate) on opus; data-quality-critic inherits
+// the session model — adversarial provenance review never runs cheaper than the work it checks.
+const CRITIC_MODEL = { design: 'sonnet', engineering: 'sonnet', narrative: 'opus' }
 
 // ---- run -------------------------------------------------------------------
 phase('Critique')
@@ -193,8 +205,10 @@ const pages = await pipeline(
     )
     return { ticker, slug: slugOf(ticker), critiques: results.filter(Boolean) }
   },
-  // Stage 2 — per-page product synthesis (Role A)
+  // Stage 2 — per-page product synthesis (Role A). Skipped on small runs (≤2 pages):
+  // Role B does the merge itself on the raw critiques, saving one opus pass per page.
   async (page) => {
+    if (SMALL_RUN) return page
     const candidates = await agent(synthPrompt(page), {
       label: `synthesize:${page.ticker}`,
       phase: 'Propose',

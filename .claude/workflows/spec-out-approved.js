@@ -23,12 +23,13 @@ const SPEC_SCHEMA = {
           slug: { type: 'string' },
           title: { type: 'string' },
           track: { type: 'string', enum: ['frontend', 'backend'] },
+          lane: { type: 'string', enum: ['lean', 'standard', 'reviewed'] },
           repo: { type: 'string', enum: ['fundscore-web', 'fund_score'] },
           depends_on: { type: 'string' },
           path: { type: 'string' },
           blocked_by_backend: { type: 'boolean' },
         },
-        required: ['slug', 'title', 'track', 'path'],
+        required: ['slug', 'title', 'track', 'lane', 'path'],
       },
     },
   },
@@ -44,10 +45,19 @@ and the product/repo config:
 Turn this approved proposal into implementation-ready spec(s):
   ${proposalPath}
 
-Classify the track (frontend / backend / full-stack). For full-stack, write TWO linked specs
+Classify the track (frontend / backend / full-stack) and implementation lane. For full-stack, write TWO linked specs
 (backend + frontend with depends_on). Ground every spec in real code — fundscore-web at ${webRoot},
 fund_score at ${fundScoreRoot}. Write spec file(s) to ${webRoot}/feature-pipeline/specs/queue/<slug>.md
 and never assume data into existence (mark missing data as a backend prerequisite).
+
+Lane rules:
+- lane: lean = tiny localized non-data implementation with concrete acceptance checks; no fund_score changes,
+  no serving-fact semantic changes, no schema/migration, no financial calculation, no cross-repo contract.
+- lane: standard = normal frontend/product implementation over existing data/contracts.
+- lane: reviewed = backend data, serving semantics, financial calculations, schema/data migrations,
+  cross-repo/full-stack contracts, or anything where a wrong value would mislead a fund profile.
+
+Every written spec must include lane frontmatter.
 
 Return the structured list of spec(s) you wrote.`
 }
