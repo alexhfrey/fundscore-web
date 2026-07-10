@@ -15,9 +15,10 @@ import type {
   TeDecomposition,
   PositioningBetBridges,
   Top10VsIwf,
-  HoldingsFull,
+  HoldingsFullTeaser,
+  HoldingRow,
 } from "@/lib/serving/profile-v2";
-import { fmtPct, fmtSignedBps, EM_DASH } from "@/lib/serving/format";
+import { fmtPct, fmtSignedBps, fmtDate, EM_DASH } from "@/lib/serving/format";
 import { ordinal, countryName, ppSigned } from "./format";
 import {
   ChapterHeader,
@@ -107,7 +108,8 @@ export function CurrentPositioning({
   teDecomposition,
   bridges,
   top10,
-  holdingsFull,
+  holdingsFullTeaser,
+  loadHoldingsFullRows,
   exposureXray,
   present,
   free,
@@ -119,7 +121,12 @@ export function CurrentPositioning({
   teDecomposition: TeDecomposition | null;
   bridges: PositioningBetBridges | null;
   top10: Top10VsIwf | null;
-  holdingsFull: HoldingsFull | null;
+  // The teaser (count + as-of) off the public holdings section — present iff the
+  // fund has a served list, shown for ALL tiers (anon + free get the locked
+  // affordance below). `loadHoldingsFullRows` is the paid, lazy row fetch (tier
+  // bound server-side); null below paid so the teaser renders locked.
+  holdingsFullTeaser: HoldingsFullTeaser | null;
+  loadHoldingsFullRows: (() => Promise<HoldingRow[]>) | null;
   exposureXray: { rows?: unknown[] } | null;
   // `present` = a fixture exists for this fund (so the gated state reads
   // "locked"); the gated payloads below are only passed when entitled.
@@ -152,6 +159,18 @@ export function CurrentPositioning({
           See where this fund&apos;s market sensitivity and benchmark-relative risk
           sit versus its cohort, its active bets, and its holdings versus {pass}.
         </LockedNotice>
+        {/* The full-holdings teaser (count + as-of, no rows) is public and shows
+            for anon too — only the rows themselves stay paid-gated. Rendered only
+            when the fund actually has a served list. */}
+        {holdingsFullTeaser != null && (
+          <Panel className="p-0">
+            <PanelHead title="Holdings" />
+            <HoldingsFullLocked
+              nPositions={holdingsFullTeaser.n_positions}
+              asOf={holdingsFullTeaser.as_of}
+            />
+          </Panel>
+        )}
       </section>
     );
   }
@@ -280,7 +299,7 @@ export function CurrentPositioning({
       </Panel>
 
       {/* Holdings block — free (this branch only runs for free+ callers) */}
-      {(top10 != null || holdingsFull != null || regions.length > 0) && (
+      {(top10 != null || holdingsFullTeaser != null || regions.length > 0) && (
         <Panel className="p-0">
           <PanelHead title="Holdings" asOf={top10?.as_of ? `N-PORT · as of ${top10.as_of}` : undefined} />
           {top10?.rows && top10.rows.length > 0 ? (
@@ -318,13 +337,19 @@ export function CurrentPositioning({
               <Unavailable>A top-holdings comparison isn&apos;t served for this fund yet.</Unavailable>
             </div>
           )}
-          {holdingsFull?.rows && holdingsFull.rows.length > 0 && (
-            <HoldingsFullDrawer
-              rows={holdingsFull.rows}
-              nPositions={holdingsFull.n_positions}
-              basis={holdingsFull.basis}
-            />
-          )}
+          {holdingsFullTeaser != null &&
+            (loadHoldingsFullRows != null ? (
+              <HoldingsFullDrawer
+                nPositions={holdingsFullTeaser.n_positions}
+                asOf={holdingsFullTeaser.as_of}
+                loadRows={loadHoldingsFullRows}
+              />
+            ) : (
+              <HoldingsFullLocked
+                nPositions={holdingsFullTeaser.n_positions}
+                asOf={holdingsFullTeaser.as_of}
+              />
+            ))}
           {top10?.basis_note && (
             <PanelNote>{top10.basis_note}</PanelNote>
           )}
@@ -353,6 +378,32 @@ export function CurrentPositioning({
         </Panel>
       )}
     </section>
+  );
+}
+
+// --- free/anon locked teaser: count + as-of only, never the rows themselves --
+// Rendered only when a served list exists (never teases rows that don't exist).
+function HoldingsFullLocked({
+  nPositions,
+  asOf,
+}: {
+  nPositions: number;
+  asOf: string | null;
+}) {
+  return (
+    <div className="mx-5 my-4 overflow-hidden rounded-lg border border-gray-200 bg-white">
+      <div className="flex items-center gap-2 bg-gray-50 px-4 py-3 text-[13px] font-semibold text-gray-500">
+        View all {nPositions} holdings
+        <span className="ml-auto text-[11px] font-normal text-gray-400">
+          N-PORT{asOf ? ` · as of ${fmtDate(asOf)}` : ""}
+        </span>
+      </div>
+      <div className="px-4 pb-3">
+        <UnlockLine tier="paid">
+          See every filed position — name, weight, value, country, sector and type.
+        </UnlockLine>
+      </div>
+    </div>
   );
 }
 

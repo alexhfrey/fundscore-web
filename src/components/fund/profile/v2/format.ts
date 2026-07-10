@@ -95,6 +95,37 @@ export function categoryLabel(type: string): string {
   }
 }
 
+// --- N-PORT filed asset-category code → plain label (labels only, never data).
+// Codes are the SEC N-PORT `assetCat` enumeration. An UNKNOWN code renders as
+// the raw code itself — no guessing, no silent bucketing (data-integrity rule).
+const ASSET_CAT_LABELS: Record<string, string> = {
+  EC: "Common stock",
+  EP: "Preferred stock",
+  DBT: "Debt",
+  STIV: "Cash & short-term",
+  RA: "Repurchase agreement",
+  RE: "Real estate",
+  LON: "Loan",
+  COMM: "Commodity",
+  SN: "Structured note",
+  "ABS-MBS": "Mortgage-backed",
+  "ABS-APCP": "Asset-backed commercial paper",
+  "ABS-CBDO": "Collateralized bond/debt obligation",
+  "ABS-O": "Asset-backed (other)",
+  DCO: "Derivative (commodity)",
+  DCR: "Derivative (credit)",
+  DE: "Derivative (equity)",
+  DFE: "Derivative (FX)",
+  DIR: "Derivative (rate)",
+  DO: "Derivative (other)",
+};
+
+/** Plain label for a filed N-PORT asset-category code; unknown codes render raw. */
+export function assetCatLabel(code: string | null | undefined): string {
+  if (!code) return EM_DASH;
+  return ASSET_CAT_LABELS[code] ?? code;
+}
+
 /** Ordinal for a percentile, e.g. 2 → "2nd", 67 → "67th". */
 export function ordinal(n: number | null | undefined): string {
   if (n == null || !isFinite(n)) return EM_DASH;

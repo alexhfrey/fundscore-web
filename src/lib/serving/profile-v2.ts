@@ -257,10 +257,29 @@ export interface AttributionWindowSummary extends SampleTag {
   residual_explainer?: string | null;
 }
 
-// --- holdings_full (spec: current-positioning "View all 280") ----------------
+// --- holdings_full (spec: serve-full-holdings) -------------------------------
+// One row per filed N-PORT position line at the fund's latest canonical
+// accession, AS FILED: multi-line issuers stay separate rows, weights are the
+// filed pctVal (% of net assets) and are never rescaled. Rows are lazily fetched
+// (paid-gated) when the drawer opens — never carried on the profile fact row.
 export interface HoldingRow {
-  stock_ticker: string;
-  weight_pct: number;
+  // Stable position key = the filed-weight rank (1-based). Used as the React
+  // row key, NOT the ticker: ~40% of rows universe-wide have no resolvable
+  // ticker (private placements, cash instruments) yet still appear.
+  position_id: number;
+  name: string | null; // security name — often the only identifier
+  ticker: string | null; // resolved US ticker; null where unresolved
+  weight_pct: number | null; // filed pctVal (% of net assets), exactly as filed
+  value_usd: number | null; // filed valUSD
+  country: string | null; // filed invCountry
+  sector: string | null; // cusip_reference join; null where unresolved
+  asset_cat: string | null; // filed assetCat raw code (labeled in the UI)
+}
+/** Free teaser for the locked drawer — the served count + as-of, read off the
+ *  PUBLIC holdings section (present iff the fund has a served list). */
+export interface HoldingsFullTeaser {
+  n_positions: number;
+  as_of: string | null;
 }
 export interface HoldingsFull extends SampleTag {
   as_of: string | null;
@@ -313,7 +332,6 @@ export interface FactRowV2 extends FactRow {
   aiSummary?: AiSummary | null;
   attributionBlocks?: AttributionBlocks | null;
   attributionWindowSummary?: AttributionWindowSummary | null;
-  holdingsFull?: HoldingsFull | null;
   top10VsIwf?: Top10VsIwf | null;
   positioningBetBridges?: PositioningBetBridges | null;
   riskExplainers?: RiskExplainers | null;
@@ -347,7 +365,6 @@ export async function overlayV2Fixtures(
   out.aiSummary = out.aiSummary ?? fx.aiSummary;
   out.attributionWindowSummary =
     out.attributionWindowSummary ?? fx.attributionWindowSummary;
-  out.holdingsFull = out.holdingsFull ?? fx.holdingsFull;
   out.top10VsIwf = out.top10VsIwf ?? fx.top10VsIwf;
   out.positioningBetBridges = out.positioningBetBridges ?? fx.positioningBetBridges;
   out.riskExplainers = out.riskExplainers ?? fx.riskExplainers;

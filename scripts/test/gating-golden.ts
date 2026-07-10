@@ -21,7 +21,15 @@
 // are intentionally absent — the test proves they are gone, not present.
 // ============================================================================
 
-import { applyGates, isLocked, type FactRow } from "../../src/lib/serving/gating.ts";
+import {
+  applyGates,
+  effectiveHoldingsTier,
+  gateHoldingsFull,
+  hasHoldingsFullList,
+  holdingsFullEntitled,
+  isLocked,
+  type FactRow,
+} from "../../src/lib/serving/gating.ts";
 
 // --- FCNTX fixture (post-drop payload shape) --------------------------------
 // Gates carried VERBATIM from the capture: applyGates defaults a missing gate to
@@ -345,6 +353,119 @@ check(
 // Even the full paid payload carries no retired legacy key (schema is clean).
 for (const k of LEGACY_KEYS) {
   check(`no legacy key "${k}" anywhere in paid payload`, !hasKey(paid, k));
+}
+
+// ============================================================================
+// 3. Full-holdings gate (serve-full-holdings) — pure, generic, db-free.
+// ----------------------------------------------------------------------------
+// The filed rows load lazily on the drawer's fetch path; gateHoldingsFull is the
+// single server-side gate there. paid/pro get the rows; anon/free get ZERO; a
+// fund with no served list (gate key absent) gets ZERO for everyone AND is not
+// entitled (so no teaser is shown — never tease rows that don't exist).
+// ============================================================================
+console.log("holdings_full gate:");
+
+const SAMPLE_HOLDINGS = [
+  { position_id: 1, name: "META PLATFORMS INC", ticker: "META", weight_pct: 10.2875 },
+  { position_id: 2, name: "SPACE EXPLORATION TECHNOLOGIES CORP", ticker: null, weight_pct: 1.8628 },
+];
+const PAID_LIST_GATES = { holdings_full: "paid" };
+const NO_LIST_GATES: Record<string, string> = {}; // fund without a served list
+
+check(
+  "paid sees the full list (holdings_full=paid)",
+  gateHoldingsFull(PAID_LIST_GATES, "paid", SAMPLE_HOLDINGS).length === SAMPLE_HOLDINGS.length,
+);
+check(
+  "pro sees the full list (holdings_full=paid)",
+  gateHoldingsFull(PAID_LIST_GATES, "pro", SAMPLE_HOLDINGS).length === SAMPLE_HOLDINGS.length,
+);
+check(
+  "free sees ZERO holdings rows (below paid)",
+  gateHoldingsFull(PAID_LIST_GATES, "free", SAMPLE_HOLDINGS).length === 0,
+);
+check(
+  "anonymous sees ZERO holdings rows (below paid)",
+  gateHoldingsFull(PAID_LIST_GATES, "anonymous", SAMPLE_HOLDINGS).length === 0,
+);
+check(
+  "fund without a served list yields ZERO rows even for pro",
+  gateHoldingsFull(NO_LIST_GATES, "pro", SAMPLE_HOLDINGS).length === 0,
+);
+check(
+  "fund without a served list is not entitled — no teaser (paid)",
+  !holdingsFullEntitled(NO_LIST_GATES, "paid"),
+);
+check(
+  "entitled true for paid on a served list",
+  holdingsFullEntitled(PAID_LIST_GATES, "paid"),
+);
+check(
+  "entitled false for free on a served list",
+  !holdingsFullEntitled(PAID_LIST_GATES, "free"),
+);
+
+// hasHoldingsFullList — the ONE source of truth for "this fund has a served
+// list" (the teaser + the row gate both key off it, never off holdings JSON).
+check("hasHoldingsFullList true when gate present", hasHoldingsFullList(PAID_LIST_GATES));
+check("hasHoldingsFullList false when gate absent", !hasHoldingsFullList(NO_LIST_GATES));
+
+// Malformed gate values FAIL CLOSED everywhere: this is the only gate on a
+// public server-action path, so a loader typo / future tier must never widen
+// access — and must not tease a list nobody can fetch (coherence under bad data).
+const MALFORMED_GATES = { holdings_full: "platinum-typo" };
+check("malformed gate: no served list", !hasHoldingsFullList(MALFORMED_GATES));
+check(
+  "malformed gate: anonymous gets zero rows",
+  gateHoldingsFull(MALFORMED_GATES, "anonymous", SAMPLE_HOLDINGS).length === 0,
+);
+check(
+  "malformed gate: even pro gets zero rows (fail closed, not fail public)",
+  gateHoldingsFull(MALFORMED_GATES, "pro", SAMPLE_HOLDINGS).length === 0,
+);
+
+// effectiveHoldingsTier — a forged / replayed server-action POST cannot elevate
+// the tier: in PRODUCTION the reviewer override is IGNORED (the real session tier
+// wins), so a below-paid session that supplies "paid" stays below paid and gets
+// ZERO rows downstream. The reviewer override is honored only outside production.
+console.log("holdings_full action tier resolution:");
+// NODE_ENV is typed read-only under Next's env augmentation; mutate via a plain
+// string-map view so we can exercise both the production and non-production paths.
+const envView = process.env as Record<string, string | undefined>;
+const savedNodeEnv = envView.NODE_ENV;
+try {
+  envView.NODE_ENV = "production";
+  check(
+    "production IGNORES a forged 'paid' override (anon stays anon)",
+    effectiveHoldingsTier("anonymous", "paid") === "anonymous",
+  );
+  check(
+    "production: forged 'paid' override yields ZERO rows downstream",
+    gateHoldingsFull(
+      PAID_LIST_GATES,
+      effectiveHoldingsTier("anonymous", "paid"),
+      SAMPLE_HOLDINGS,
+    ).length === 0,
+  );
+  check(
+    "production: a real paid session still gets rows",
+    gateHoldingsFull(
+      PAID_LIST_GATES,
+      effectiveHoldingsTier("paid", undefined),
+      SAMPLE_HOLDINGS,
+    ).length === SAMPLE_HOLDINGS.length,
+  );
+  envView.NODE_ENV = "development";
+  check(
+    "outside production: reviewer override IS honored (anon → paid)",
+    effectiveHoldingsTier("anonymous", "paid") === "paid",
+  );
+  check(
+    "outside production: a bogus override value is ignored",
+    effectiveHoldingsTier("free", "superadmin") === "free",
+  );
+} finally {
+  envView.NODE_ENV = savedNodeEnv;
 }
 
 // ============================================================================

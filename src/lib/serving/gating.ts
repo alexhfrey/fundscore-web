@@ -844,6 +844,80 @@ export function applyGates(row: FactRow, userState: UserState): FactRow {
   return out;
 }
 
+// ============================================================================
+// Full-holdings list gate (serve-full-holdings) — PURE, db-free, generic.
+// ----------------------------------------------------------------------------
+// The filed positions live in a separate LONG serving table and are fetched
+// lazily when the profile drawer opens. This is the ONE server-side gate on
+// that fetch path: the rows are served only when the caller's tier meets the
+// fund's `gates.holdings_full` requirement (the loader sets it to "paid" and
+// present IFF the fund has a served list — verified gate ⇔ teaser coherent).
+// Below the gate, or when the fund has no served list at all (gate absent),
+// BOTH helpers yield zero access — so paid holdings never ship to an anon/free
+// session and a fund without a list is never teased. Kept in this db-free module
+// (imported by the gating golden test) and generic over the row shape so it has
+// no coupling to the row contract in profile-v2.ts.
+// ============================================================================
+
+/** The SINGLE source of truth for "this fund has a served full-holdings list":
+ *  the `gates.holdings_full` marker (backend contract: present IFF rows exist).
+ *  The teaser and the row gate both key off THIS — never off the holdings JSON
+ *  metadata — so a fund is never teased with rows its drawer can't fetch.
+ *  A malformed/unknown gate value fails CLOSED here (treated as no served
+ *  list), so teaser, entitlement, and rows stay coherent under bad data. */
+export function hasHoldingsFullList(
+  gates: Record<string, string> | null | undefined,
+): boolean {
+  const gate = gates?.["holdings_full"];
+  return gate != null && GATE_RANK[gate] != null;
+}
+
+/** True when `userState` is entitled to the fund's full-holdings list. False
+ *  when the fund has no served list (gate absent) — never tease/serve rows.
+ *  This is the only gate on a public server-action path, so an unknown gate
+ *  value must never widen access: hasHoldingsFullList already rejects it. */
+export function holdingsFullEntitled(
+  gates: Record<string, string> | null | undefined,
+  userState: UserState,
+): boolean {
+  if (!hasHoldingsFullList(gates)) return false;
+  return TIER_RANK[userState] >= GATE_RANK[gates!["holdings_full"]];
+}
+
+/** Return the rows only when entitled, else an empty array. Runs on the lazy
+ *  fetch path before any row reaches the client. Generic so this module stays
+ *  db-free and contract-free. */
+export function gateHoldingsFull<T>(
+  gates: Record<string, string> | null | undefined,
+  userState: UserState,
+  rows: readonly T[],
+): T[] {
+  return holdingsFullEntitled(gates, userState) ? [...rows] : [];
+}
+
+/**
+ * Resolve the tier the full-holdings fetch is gated against, inside the server
+ * action. The REAL session tier always wins in production, so a forged / replayed
+ * server-action POST cannot supply `userState='paid'` to exfiltrate paid rows —
+ * server actions are public endpoints and their bound args are only encrypted on
+ * the normal UI path, so the tier is NEVER trusted from the client. A /preview
+ * reviewer `?tier=` override is honored ONLY outside production (env-gated), and
+ * only when it names a real tier. Pure + testable (reads NODE_ENV at call time).
+ */
+export function effectiveHoldingsTier(
+  sessionTier: UserState,
+  previewOverride: string | null | undefined,
+): UserState {
+  if (
+    process.env.NODE_ENV !== "production" &&
+    typeof previewOverride === "string" &&
+    previewOverride in TIER_RANK
+  ) {
+    return previewOverride as UserState;
+  }
+  return sessionTier;
+}
+
 /** Tickers to pre-render at build (the Phase-0 dossier set); rest are on-demand ISR. */
 export const SEED_TICKERS = [
   "FCNTX", "DODGX", "FBGRX", "SEQUX", "VDIGX", "VOO", "FXAIX",
