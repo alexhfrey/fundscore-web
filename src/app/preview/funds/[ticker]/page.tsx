@@ -12,6 +12,8 @@ import {
   type UserState,
 } from "@/lib/serving/profile";
 import { resolveSession } from "@/lib/serving/session";
+import { readHoldingsFullTeaser } from "@/lib/serving/holdings-full";
+import { loadHoldingsFullRows as loadHoldingsFullRowsAction } from "@/lib/serving/holdings-full-actions";
 import { overlayV2Fixtures, tierAllows } from "@/lib/serving/profile-v2";
 import { Alternatives, SourceFooter } from "@/components/fund/profile";
 import {
@@ -162,7 +164,20 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
   // holdings feed the free holdings block (paid ⇒ free, so gate at free).
   const bridges = paid ? (row.positioningBetBridges ?? null) : null;
   const top10 = free ? (row.top10VsIwf ?? null) : null;
-  const holdingsFull = free ? (row.holdingsFull ?? null) : null;
+
+  // Full holdings (serve-full-holdings): the teaser (count + as-of) is read off
+  // the PUBLIC holdings section (keyed to the gates.holdings_full marker) and
+  // shown for ALL tiers when a list exists — anon and free both get the locked
+  // "View all N holdings" affordance (never rows). The row LOADER fetches lazily
+  // via a server action that resolves entitlement from the REAL session itself
+  // (it never trusts a passed tier); the bound `userState` here is only a
+  // /preview reviewer ?tier= override, honored server-side outside production and
+  // ignored in production. null loader below paid ⇒ the teaser renders locked.
+  const holdingsFullTeaser = readHoldingsFullTeaser(raw);
+  const loadHoldingsFullRows =
+    paid && holdingsFullTeaser != null
+      ? loadHoldingsFullRowsAction.bind(null, ticker, userState)
+      : null;
 
   // Recent changes — free-gated: paid → full; free → top shift only; anon → none.
   const rcFx = row.recentChangesTe ?? null;
@@ -271,9 +286,10 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
             teDecomposition={teDecomposition}
             bridges={bridges}
             top10={top10}
-            holdingsFull={holdingsFull}
+            holdingsFullTeaser={holdingsFullTeaser}
+            loadHoldingsFullRows={loadHoldingsFullRows}
             exposureXray={exposureXray}
-            present={tePresent || row.top10VsIwf != null || row.positioningContext != null || row.holdingsFull != null}
+            present={tePresent || row.top10VsIwf != null || row.positioningContext != null || holdingsFullTeaser != null}
             free={free}
             paid={paid}
             passiveLabel={passiveLabel}

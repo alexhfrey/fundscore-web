@@ -17,7 +17,6 @@ import type {
   AiSummary,
   AttributionWindowSummary,
   FundFamilyPanel,
-  HoldingsFull,
   NavSeries,
   PositioningBetBridges,
   PositioningContext,
@@ -35,7 +34,6 @@ export interface V2Fixtures {
   fundFamily: FundFamilyPanel;
   aiSummary: AiSummary;
   attributionWindowSummary: AttributionWindowSummary;
-  holdingsFull: HoldingsFull;
   top10VsIwf: Top10VsIwf;
   positioningBetBridges: PositioningBetBridges;
   riskExplainers: RiskExplainers;
@@ -182,20 +180,6 @@ const attributionWindowSummary: AttributionWindowSummary = {
   residual_explainer: j.attribution_explorer.residual_explainer ?? null,
 };
 
-const holdingsFull: HoldingsFull = {
-  __sample: true,
-  sample_label:
-    "real N-PORT positions (2025-09-30) from the design-mock prep; the served holdings section carries the same source",
-  as_of: j.holdings_full.as_of,
-  basis: j.holdings_full.basis,
-  n_positions: j.holdings_full.n_positions,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  rows: j.holdings_full.rows.map((r: any) => ({
-    stock_ticker: r.stock_ticker,
-    weight_pct: r.weight_pct,
-  })),
-};
-
 const top10VsIwf: Top10VsIwf = {
   __sample: true,
   sample_label:
@@ -241,7 +225,6 @@ const FIXTURES: Record<string, V2Fixtures> = {
     fundFamily,
     aiSummary,
     attributionWindowSummary,
-    holdingsFull,
     top10VsIwf,
     positioningBetBridges,
     riskExplainers,
