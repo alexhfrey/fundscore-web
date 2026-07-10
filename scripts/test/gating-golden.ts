@@ -356,6 +356,58 @@ for (const k of LEGACY_KEYS) {
 }
 
 // ============================================================================
+// 2b. Malformed section gate FAILS CLOSED — an unknown/typo'd gates.<section>
+// value must strip the section for EVERY tier (never rank as public). Live
+// gates carry only public/free/paid (verified 2026-07-10); this is the
+// applyGates sibling of the holdings_full fail-closed rule.
+// ============================================================================
+const MALFORMED_ROW = {
+  ...FCNTX_ROW,
+  gates: { ...FCNTX_ROW.gates, alternatives: "platinum-typo" },
+};
+const malformedAnon = applyGates(MALFORMED_ROW, "anonymous");
+check(
+  "malformed section gate: alternatives locked for anonymous",
+  isLocked(malformedAnon.alternatives),
+);
+const malformedPro = applyGates(MALFORMED_ROW, "pro");
+check(
+  "malformed section gate: alternatives locked even for pro (fail closed, not fail public)",
+  isLocked(malformedPro.alternatives),
+);
+const malformedPaid = applyGates(MALFORMED_ROW, "paid");
+check(
+  "malformed gate does not disturb sibling sections (paid still opens return_attribution)",
+  malformedPaid.returnAttribution != null && !isLocked(malformedPaid.returnAttribution),
+);
+// HARD lock: a malformed gate must not even emit the preview proof point —
+// there is no valid tier policy to preview against (codex P2 on this diff).
+check(
+  "malformed gate is a hard lock: no preview emitted (anonymous)",
+  isLocked(malformedAnon.alternatives) &&
+    !("preview" in (malformedAnon.alternatives as Record<string, unknown>)),
+);
+// Prototype-key gate values must NOT resolve via inherited Object properties
+// ("toString" would rank as a function → NaN comparison → fail OPEN). Codex P2.
+const PROTO_ROW = {
+  ...FCNTX_ROW,
+  gates: { ...FCNTX_ROW.gates, alternatives: "toString" },
+};
+check(
+  "prototype-key gate value ('toString') fails closed even for pro",
+  isLocked(applyGates(PROTO_ROW, "pro").alternatives),
+);
+check(
+  "prototype-key holdings_full gate: no served list, zero rows for pro",
+  !hasHoldingsFullList({ holdings_full: "toString" }) &&
+    gateHoldingsFull({ holdings_full: "toString" }, "pro", [{ name: "X" }]).length === 0,
+);
+check(
+  "prototype-key preview override ('constructor') is ignored outside production",
+  effectiveHoldingsTier("anonymous", "constructor") === "anonymous",
+);
+
+// ============================================================================
 // 3. Full-holdings gate (serve-full-holdings) — pure, generic, db-free.
 // ----------------------------------------------------------------------------
 // The filed rows load lazily on the drawer's fetch path; gateHoldingsFull is the

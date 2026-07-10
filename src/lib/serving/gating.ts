@@ -16,18 +16,22 @@
 
 export type UserState = "anonymous" | "free" | "paid" | "pro";
 
-const TIER_RANK: Record<UserState, number> = {
+// Null-prototype rank maps: a malformed gate/tier string must resolve ONLY
+// against own properties — an inherited Object key ("toString", "constructor")
+// would otherwise rank as a function and coerce comparisons to NaN, silently
+// failing OPEN. This also makes `in` checks own-property-only.
+const TIER_RANK: Record<UserState, number> = Object.assign(Object.create(null), {
   anonymous: 0,
   free: 1,
   paid: 2,
   pro: 3,
-};
-const GATE_RANK: Record<string, number> = {
+});
+const GATE_RANK: Record<string, number> = Object.assign(Object.create(null), {
   public: 0,
   free: 1,
   paid: 2,
   pro: 3,
-};
+});
 
 export interface Locked {
   locked: string; // tier required to view
@@ -704,11 +708,17 @@ export function applyGates(row: FactRow, userState: UserState): FactRow {
 
   for (const { col, gate: gateKey } of GATED_SECTIONS) {
     const gate = row.gates?.[gateKey] ?? "public";
-    if (rank < (GATE_RANK[gate] ?? 0) && o[col] != null) {
+    // An unknown/malformed gate value fails CLOSED (section stripped for every
+    // tier, HARD lock — no preview proof point either: a malformed gate has no
+    // valid tier policy to preview against). Live gates carry only
+    // public/free/paid (verified 2026-07-10), so this is behavior-neutral
+    // hardening of the serving boundary.
+    const required = GATE_RANK[gate] ?? Number.POSITIVE_INFINITY;
+    if (rank < required && o[col] != null) {
       // Surface ONE whitelisted proof point per gated section (free), gate the
       // rest. The projector copies only named fields — the full breakdown never
       // ships below the gate. Sections without a projector keep the hard lock.
-      const projector = PREVIEW_PROJECTORS[col];
+      const projector = Number.isFinite(required) ? PREVIEW_PROJECTORS[col] : undefined;
       if (projector) {
         o[col] = { preview: projector(o[col] as AnyObj) ?? null, locked: gate };
       } else {
