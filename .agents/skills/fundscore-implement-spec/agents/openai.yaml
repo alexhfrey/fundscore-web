@@ -1,0 +1,4 @@
+interface:
+  display_name: "FundScore Implement Spec"
+  short_description: "Implement one FundScore spec with data and review gates"
+  default_prompt: "Use $fundscore-implement-spec to implement one queued FundScore spec by slug or path, run the required checks, and update the spec status."

@@ -9,7 +9,8 @@ source_proposal: ""
 origin: FCNTX fund-profile design exploration — public/_reviews/design-mocks/combined-v4.html (2026-06-25)
 created: 2026-06-25
 scope: global
-model: opus
+model: fable
+effort: xhigh
 ---
 
 ## Goal

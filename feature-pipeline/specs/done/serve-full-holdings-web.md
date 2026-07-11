@@ -77,3 +77,16 @@ The drawer/preview files are part of in-flight uncommitted profile-simple work o
 `feat/profile-simple` (CurrentPositioning.tsx, HoldingsFullDrawer.tsx, profile-v2.ts,
 gating.ts, gating-golden.ts, preview page). **Before starting, inspect the working tree**; if
 that work is still uncommitted, continue on top of it — do not revert or blindly overwrite.
+
+## Implementation Result
+
+SHIPPED 2026-07-10 (fundscore-web `feat/serve-full-holdings-web` 2bf678d, unmerged — overnight
+run). Lazy server-action fetch; entitlement resolved from the real session INSIDE the action
+(preview `?tier=` env-gated to non-prod); teaser/entitlement/rows all key off `gates.holdings_full`
+and fail closed on malformed values. Weights/values render as filed incl. negatives
+(JAIGX −309.17%, −$2.4B). Gates: build+lint+gating-golden PASS; codex 4 rounds → pass (0 P0/P1;
+fixed along the way: 2 display P2s, action-tier-trust P1, fail-open-gate P1). Acceptance verified
+live (FCNTX 428 rows @2026-03-31, META 10.29%, SpaceX 5 lines, anon teaser, forged-POST → 0 rows).
+Residual advisories for owner: pre-existing `applyGates` `?? 0` fail-open sibling (gating.ts:707,
+on main, filed to backlog); unreferenced `HoldingsFull` type; orphaned fixture JSON block;
+`fmtAum` renders sub-$1K dust as $0K.

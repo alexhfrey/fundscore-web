@@ -61,11 +61,35 @@ Over scored funds (`value_bps IS NOT NULL`) in `value_score.parquet`:
 - Coverage (fraction of scored funds with a served context) reported in the validation report.
 - `/check-data` passes (entity = series_id, date = as_of).
 
+## OWNER ADDENDUM (2026-07-10, Q5 of the fee-peer-band PRD): this spec ships the SHARED utility
+This spec's cohort construction + percentile convention must land as a **shared, reusable
+utility** (one percentile convention page-wide): strictly-below percentile, named cohort payload
+{kind, label, n}, one N_MIN constant, and the **blend-weighted cohort rule** for funds whose
+passive alternative is a combination (percentile = Σ blend-weight × percentile within each
+constituent-ETF cohort; N_MIN per constituent; renormalize over qualifying constituents; honest
+null when none qualify — owner decision in `feature-pipeline/prds/fee-fairness-peer-band.md`).
+`fee-peer-band-backend` (queued) depends_on this spec and consumes the same utility. Note: the
+"fee percentile already exists in fee fairness" line below was WRONG (red-team verified no served
+percentile exists) — the fee percentile arrives via fee-peer-band-backend.
+
 ## Out of scope
 - Percentiles for unscored funds; percentile time series; percentile on other metrics (fee
-  percentile already exists in fee fairness).
+  percentile arrives via `fee-peer-band-backend`, which reuses this spec's shared utility).
 
 ## Risks
 - Small-cohort noise (guarded by N_MIN + naming the n).
 - Percentile convention ambiguity — fixed by documenting strictly-below and testing it in the
   acceptance query.
+
+## Implementation Result
+
+SHIPPED 2026-07-10 (fund_score 5a0268c on feat/positioning-context-percentiles, MERGED to main
+@133fd33). Shared utility `src/fundscore/product/cohort_percentiles.py` per the owner addendum
+(strictly-below, N_MIN=20, blend-weighted definition-C cohorts — fee-peer-band-backend consumes
+it). Gold panel: 2,083 rows = 100% of scored (1,915 primary / 57 peer_group fallback / 111 honest
+nulls, min cohort 20). Served: positioning_context JSONB on 1,961 staging rows; verified
+served==gold + FCNTX recompute. Workflow stopped honestly at serving-integration (implementer
+rebuilt inventory unpinned + attempted an unauthorized DB load — guard failed it closed); main
+loop re-pinned as-of 2026-06-29 and owned the final gate + codex (pass, 0 P0/P1). REMAINING for
+the frontend flip (profile-v2 cutover protocol): web Drizzle `positioningContext` column mirror +
+section render; Postgres reload owner-gated.

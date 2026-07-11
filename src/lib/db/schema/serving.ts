@@ -108,6 +108,14 @@ export const fundProfileFacts = pgTable(
     exposureXray: jsonb("exposure_xray"), // spec #4 — differentiated exposure rows + contributors
     returnAttribution: jsonb("return_attribution"), // spec #10 — active-return attribution
     positioningChanges: jsonb("positioning_changes"), // spec #12 — surfaced portfolio shifts
+    positioningContext: jsonb("positioning_context"), // positioning-context-percentiles — beta/TE percentile vs same-passive-alt cohort
+    // te-decomposition-by-bet — the served te_current split into a factor sleeve
+    // (standardized bets, sleeve-scaled variance shares; negatives = diversifying,
+    // never clamped) + the idio "stock selection" sleeve, plus a grouped rollup
+    // (share_of_te_var is the cross-group comparator, sums to 1 incl. selection).
+    // Section gate is "paid"; the free proof point (rollup + top bet) ships via a
+    // gating.ts preview projector in the render spec.
+    teDecomposition: jsonb("te_decomposition"),
     fundFamilyPanel: jsonb("fund_family_panel"), // fund-family-panel — adviser-level family aggregation
     alternatives: jsonb("alternatives"), // spec #6 — alternatives to inspect + reasons
     takeaways: jsonb("takeaways"), // spec #8 (3b) — evidence bullets

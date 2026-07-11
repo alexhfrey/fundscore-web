@@ -1,7 +1,7 @@
 ---
 id: te-decomposition-by-bet
 title: Decompose tracking error by bet (factor tilts + stock-selection sleeve), ranked by TE contribution
-status: queued
+status: done
 track: backend
 repo: fund_score
 depends_on: ""
@@ -109,3 +109,28 @@ reference, not the target.
 - **Basis mismatch is the top risk** (EDA #1 resolves it before any code).
 - Collinear factor sets making individual rows unstable — mitigated by kept_factors basis,
   confidence states, grouped-rollup-first presentation.
+
+## Shipped (2026-07-11, fund_score ee72d15, branch feat/te-decomposition-by-bet)
+- Gold `data/gold/te_decomposition.parquet` (te_decomp_v0.1): 26,594 rows / 2,054 funds, as-of
+  2026-05-09. Coverage 2,054/2,083 scored (98.6%); 29 misses proven honest (<104 aligned weekly
+  rows); recoverable-missing = 0.
+- One coherent basis (EDA #1 resolution): y = the exact winsorized beta-adjusted weekly L2-active
+  series `te_current` is measured on (fail-honest 1e-9 anchor gate, exact for all funds); bet
+  universe = the SHARED standardized selection factored into
+  `src/fundscore/risk_model/standardized_basis.py` (also consumed by exposure-path — one bet
+  universe page-wide); idio sleeve recomputed as 1−R² of the joint fit (never legacy
+  risk_decomp_v0.1); per-bet betas = single-factor FWL reads with same-fit t-stats. Only
+  sleeve-scaled shares served; negatives (23.3%) flagged diversifying, never clamped.
+- Acceptance: per-bet te_alloc sums to the factor sleeve, sleeves add in quadrature to te_current
+  (all funds); FCNTX prototype-ordering deviation explained by the DOCUMENTED basis change (owner
+  2026-07-01 standardized model + 2026-07-10 L2-active y-basis); served == gold field-by-field for
+  all 2,043 served funds; every row carries bet_type + confidence_state.
+- Gates: assembly-line checkpoints PASS; final data gate PASS
+  (`fund_score/reports/te-decomposition-by-bet_check_data.md`); CODEX_GATE pass (0 P0/P1, 2 P2
+  advisories → backlog fast-follow: fail build CLI on validate() violations, register the panel in
+  run_checks.py).
+- Owner WARNs (filed in backlog + pipeline_status): `theme::emerging_markets_exjapan` label reads
+  "EM ex-China" but its basket holds BABA/JD/PDD (260 funds) — fix-data BEFORE the render spec
+  exposes the section; 78 funds (3.8%) pre-existing stale fit windows (payload serves the window);
+  render spec owes the gating.ts PREVIEW_PROJECTORS free proof point (rollup + top bet) and must
+  not clamp var_share to [0,100%].
