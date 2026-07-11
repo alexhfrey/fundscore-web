@@ -20,6 +20,11 @@ risks to the read. Sample target copy (hand-written, fact-grounded) lives in
 **This is the riskiest spec in the redesign set and is deliberately sequenced last**, behind the
 data products whose numbers the narrative cites.
 
+**Owner decision 2026-07-11: de-scoped from the V1 production cutover to a post-launch
+fast-follow.** `profile-v2-production-cutover` no longer depends on this spec; V1 ships with
+seven sections and the AI Summary section stays absent in production until this ships and flips
+under the per-section protocol.
+
 ## Context
 - No LLM infra exists in fund_score today. Precedent for the client: the manager spec's validated
   addendum (qwen3-8b via OpenRouter, `temperature=0`, `trend-swing/llm_features/providers.py

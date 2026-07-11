@@ -4,7 +4,7 @@ title: Promote the v2 profile from /preview to production /funds/[ticker] — se
 status: queued
 track: frontend
 repo: fundscore-web
-depends_on: profile-nav-series, positioning-context-percentiles, fund-family-panel, attribution-factor-path-serving, te-decomposition-by-bet, recent-changes-te-ranked, ai-summary-generation
+depends_on: profile-nav-series, positioning-context-percentiles, fund-family-panel, attribution-factor-path-serving, te-decomposition-by-bet, recent-changes-te-ranked
 source_proposal: feature-pipeline/proposals/approved/profile-redesign-eight-sections.md
 created: 2026-07-02
 scope: page
@@ -47,7 +47,14 @@ A v2 section may switch from fixture to served data ONLY when ALL of:
 - 3Y risk expander wires the already-served `riskBehavior` section (no backend dependency — may
   flip first).
 
-## Final cutover (after all eight sections are live)
+## Scope decision 2026-07-11 (owner)
+**AI Summary is de-scoped from V1 to a fast-follow.** The cutover ships with seven live
+sections; `ai-summary-generation` stays queued and its section flips post-launch under the same
+per-section protocol. At cutover the AI Summary section must be ABSENT from production (not a
+fixture — production never shows sample data), and its fixture export is removed from the
+production dependency graph like every other.
+
+## Final cutover (after the seven in-scope sections are live)
 1. Replace the composition of `src/app/funds/[ticker]/page.tsx` with the v2 component tree
    (components move out of `/v2/` naming or are re-exported; preview route becomes a redirect or is
    removed; the `?tier=` override does NOT survive into production).
