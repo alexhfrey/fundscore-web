@@ -84,6 +84,17 @@ filings; the baseline/prior to compare against; the atomic + aggregate checks th
 pass; any statistical-coherence / no-leakage concern) · **Acceptance criteria** (incl. `/check-data`
 passes and served value == gold).
 
+Acceptance-number conventions (both tracks):
+- **Illustrative numbers are era-stamped and NON-BINDING.** Any concrete value quoted from a mock,
+  PRD, or ad-hoc analysis (a percentile, cohort size, top-ranked bet) must be dated and framed as
+  a diff reference — acceptance criteria recompute from live sources, with an explicit "or the
+  deviation is explained by a documented basis/universe change" clause. (Two shipped examples
+  flipped between spec-time and ship-time: FCNTX's fee percentile and its top factor bet.)
+- **Capability claims must be checkable references.** "X already exists" is only allowed as a
+  file/column/function reference the staleness gate can verify (`fees.peer_percentile` in
+  `fact_assembler`), never a prose assertion — an unverifiable claim cost a red-team round to
+  disprove.
+
 Return a structured summary: for each spec written — slug, title, track, lane, repo, depends_on, spec path,
 and (frontend) whether it is blocked by upstream backend work.
 

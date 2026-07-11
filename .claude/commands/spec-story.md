@@ -46,6 +46,10 @@ Steps:
    - Use `lane: reviewed` for backend/data/high-risk specs. If the story is full-stack, split it into backend
      `lane: reviewed` and frontend `lane: standard` specs with `depends_on`, unless the frontend part is tiny
      enough to be `lane: lean` after the backend is done.
+   Acceptance-number conventions: illustrative numbers from mocks/PRDs/ad-hoc analysis are
+   era-stamped and NON-BINDING (acceptance recomputes from live sources, "or the deviation is
+   explained" clause); capability claims must be checkable file/column references, never prose
+   assertions.
    Go to step 5.
 
 4. **VAGUE → one PRD + one red-team round, then escalate if needed.**
