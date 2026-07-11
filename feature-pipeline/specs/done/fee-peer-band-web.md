@@ -38,3 +38,23 @@ PRD: `feature-pipeline/prds/fee-fairness-peer-band.md` (owner decisions 2026-07-
 
 Lean: single component + copy, served contract only, no data semantics. If re-grounding finds the
 payload shape diverged from this spec, bounce to `/review-specs` rather than improvising.
+
+## Implementation Result (2026-07-11, lean lane, main session)
+
+Shipped in `FeeFairnessV2.tsx`: typed `fees.peer_percentile` contract, one cohort sentence under
+the ruler (bold quotes the SAME `active_fee_over_passive_bps` the ruler center shows), and a
+percentile marker line on the fund's existing ruler mark (`{ordinal} percentile of {n}` via the
+shared v2 `ordinal()` — one percentile convention page-wide, matching CurrentPositioning). Absent
+or incomplete payload → nothing new renders (verified: VOO).
+
+- Re-grounding: payload verified LIVE in Postgres (manifest 32) before coding — FCNTX
+  `fee_percentile 36.875`, cohort `{label IWF, n_funds 160, is_blend false}`; blend case DTEYX
+  `IXN 50% / FDN 50%`.
+- Rendered acceptance (dev server, SSR HTML): FCNTX free+paid → "56 bps over passive is higher
+  than 37% of the 160 funds benchmarked to IWF." + "37th percentile of 160" marker; DTEYX →
+  "…of the 20 funds sharing its blended passive alternative (weighted across IXN 50% / FDN 50%).";
+  VOO → zero new strings. Free tier confirmed (section already gated FREE; no gating change).
+- Gates: lint 0 errors; production build clean; gating-golden ALL PASS (unchanged-green).
+- Codex: `CODEX_GATE: pass`, 0 P0/P1. Two P2 advisories (double-prefix label; `kind` vs
+  `is_blend`) are contradicted by the live served payload and the curl-verified rendered copy —
+  documented here, no change needed.

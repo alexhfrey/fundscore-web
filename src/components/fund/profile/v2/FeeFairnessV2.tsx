@@ -4,8 +4,11 @@
 // component when it is absent. Every figure is served directly; the only
 // composition is the geometry of placing the fair marker its served over-passive
 // premium to the right of the passive marker. Gated FREE.
+// fee-peer-band-web: when fees.peer_percentile is served, one cohort sentence
+// under the ruler + a percentile line on the fund's ruler mark; absent → nothing.
 // ============================================================================
 import { pctFromBps, fmtBps, fmtSignedBps, fairnessChip, EM_DASH } from "@/lib/serving/format";
+import { ordinal } from "./format";
 import { ChapterHeader, Panel, PanelNote } from "./primitives";
 import { LockedNotice } from "../primitives";
 import { FeeFairness } from "../FeeFairness";
@@ -20,11 +23,39 @@ interface FairFee {
   perf_fee_bps?: number | null;
   eval_date?: string | null;
 }
+interface PeerCohortConstituent {
+  etf?: string | null;
+  weight?: number | null;
+}
+interface PeerCohort {
+  label?: string | null;
+  n_funds?: number | null;
+  is_blend?: boolean | null;
+  constituents?: PeerCohortConstituent[] | null;
+}
+interface PeerPercentile {
+  fee_percentile?: number | null;
+  cohort?: PeerCohort | null;
+}
 interface FeesShape {
   fair_fee?: FairFee | null;
+  peer_percentile?: PeerPercentile | null;
   net_expense_ratio_bps?: number | null;
   gross_expense_ratio_bps?: number | null;
   management_fee_bps?: number | null;
+}
+
+// Cohort description for the peer-percentile sentence. Blend-baseline funds get
+// the owner-decided honest phrasing (constituent ETFs + weights); single-ETF
+// cohorts name the ETF directly. Cohort name + n are ALWAYS in the copy.
+function cohortPhrase(c: PeerCohort): string {
+  if (c.is_blend && c.constituents?.length) {
+    const weights = c.constituents
+      .map((k) => `${k.etf} ${Math.round((k.weight ?? 0) * 100)}%`)
+      .join(" / ");
+    return `funds sharing its blended passive alternative (weighted across ${weights})`;
+  }
+  return `funds benchmarked to ${c.label}`;
 }
 
 function niceMax(v: number): number {
@@ -71,6 +102,21 @@ export function FeeFairnessV2({
   const fairTotal = passive != null ? passive + fairPremium : null;
   const overPassive = ff.active_fee_over_passive_bps ?? null;
   const label = ff.fee_fairness_label ?? null;
+
+  // fee-peer-band-web: percentile of over-passive fee within the shared-passive-alt
+  // cohort. Rendered ONLY when the served payload is complete; absent → nothing new.
+  const peerRaw = f?.peer_percentile ?? null;
+  const peerView =
+    peerRaw?.fee_percentile != null &&
+    peerRaw.cohort?.n_funds != null &&
+    peerRaw.cohort.label != null &&
+    overPassive != null
+      ? {
+          pct: peerRaw.fee_percentile,
+          n: peerRaw.cohort.n_funds,
+          phrase: cohortPhrase(peerRaw.cohort),
+        }
+      : null;
 
   const scaleMax = niceMax(Math.max(fundTotal, fairTotal ?? fundTotal, passive ?? 0) * 1.05);
   const pos = (v: number | null) => (v == null ? 0 : Math.max(0, Math.min(100, (v / scaleMax) * 100)));
@@ -176,7 +222,14 @@ export function FeeFairnessV2({
             {passive != null && (
               <RulerLabel left={pos(passive)} top color="text-gray-500" main={`${Math.round(passive)}`} sub="passive — just buy the index" />
             )}
-            <RulerLabel left={pos(fundTotal)} top color="text-gray-900" main={`${Math.round(fundTotal)}`} sub="this fund — what it charges" />
+            <RulerLabel
+              left={pos(fundTotal)}
+              top
+              color="text-gray-900"
+              main={`${Math.round(fundTotal)}`}
+              sub="this fund — what it charges"
+              sub2={peerView ? `${ordinal(peerView.pct)} percentile of ${peerView.n}` : undefined}
+            />
             {/* Bottom label */}
             {fairTotal != null && (
               <RulerLabel
@@ -191,6 +244,13 @@ export function FeeFairnessV2({
             <span>0 bps</span>
             <span>{scaleMax} bps</span>
           </div>
+
+          {peerView && (
+            <p className="mt-4 text-[12.5px] leading-relaxed text-gray-600">
+              <b className="tabular-nums">{Math.round(overPassive as number)} bps over passive</b>{" "}
+              is higher than {Math.round(peerView.pct)}% of the {peerView.n} {peerView.phrase}.
+            </p>
+          )}
 
           <p className="mt-4 text-[12.5px] leading-relaxed text-gray-600">
             Our fair-fee model estimates <b>≈{Math.round(fairPremium)} bps over passive</b>
@@ -238,12 +298,14 @@ function RulerLabel({
   color,
   main,
   sub,
+  sub2,
 }: {
   left: number;
   top?: boolean;
   color: string;
   main: string;
   sub: string;
+  sub2?: string;
 }) {
   return (
     <span
@@ -252,6 +314,7 @@ function RulerLabel({
     >
       {main}
       <span className="block font-medium text-gray-400">{sub}</span>
+      {sub2 && <span className="block font-semibold text-gray-600">{sub2}</span>}
     </span>
   );
 }
