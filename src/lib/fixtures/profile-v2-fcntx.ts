@@ -17,14 +17,12 @@ import type {
   AiSummary,
   AttributionWindowSummary,
   FundFamilyPanel,
-  NavSeries,
   PositioningBetBridges,
   RecentChangesTe,
   Top10VsIwf,
 } from "../serving/profile-v2";
 
 export interface V2Fixtures {
-  navSeries: NavSeries;
   recentChangesTe: RecentChangesTe;
   fundFamily: FundFamilyPanel;
   aiSummary: AiSummary;
@@ -36,19 +34,9 @@ export interface V2Fixtures {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const j = raw as any;
 
-const navSeries: NavSeries = {
-  __sample: true,
-  sample_label:
-    "real monthly series (Tiingo adjusted closes, FCNTX vs IWF) from the design-mock prep; pending spec profile-nav-series",
-  passive_label: j.nav_series.passive_label,
-  series_start: j.nav_series.series_start,
-  as_of: j.nav_series.as_of,
-  beta: j.nav_series.beta,
-  points: j.nav_series.points,
-  period_table: j.nav_series.period_table,
-  hover_copy: j.nav_series.hover_copy,
-  method_version: j.nav_series.method_version,
-};
+// nav_series is now SERVED (profile-nav-series, profile_nav_series_v1) — its
+// fixture was removed at the production flip; a fixture never coexists with a
+// served section. The type lives in serving/profile-v2.ts.
 
 // positioning_context is now SERVED (positioning-context-percentiles,
 // positioning_context_v0.1) — its fixture was removed at the production flip; a
@@ -178,7 +166,6 @@ const positioningBetBridges: PositioningBetBridges = {
 
 const FIXTURES: Record<string, V2Fixtures> = {
   FCNTX: {
-    navSeries,
     recentChangesTe,
     fundFamily,
     aiSummary,

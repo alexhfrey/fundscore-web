@@ -48,6 +48,20 @@ A v2 section may switch from fixture to served data ONLY when ALL of:
   flip first).
 
 ## Flip log
+- **2026-07-12 — nav_series FLIPPED to served** (protocol steps 1–4 + flip-1 critic fast-follows):
+  fixture DELETED; the applyGates field-gate is now the single owner of the public/paid split
+  (in-page strip removed — free gets the ONE proof-point row it defines: "3Y · after fees ·
+  +230 bps/yr vs IWF"; anon keeps the fund line only). Served-contract type (no hover_copy — now
+  DERIVED via buildNavHoverCopy from served β; no β-adj passive column — never served, column
+  dropped). HONESTY FIX: "Since inception" relabeled everywhere — series_start is the COMMON PAIRED
+  WINDOW start (FCNTX 2008-05, inception 1967): table row "Since 2008-05", chart button "Max",
+  chart copy "full paired series (from 2008-05)", header "paired window from 2008-05". Section 03
+  loses its sample chip entirely (chart+table+risk expander all served); methodology artifact
+  `nav-series` + link. Fast-follows folded in: DODGX two-beta cross-basis note (headlineBetaNote),
+  VOO index-fund filed-benchmark one-liner, IR typographic minus, registry per-fund as-of +
+  missing-proxy limitation wording. Coverage 3,190 funds; VOO honest-null (risk expander still
+  renders). Gates: lint/build/golden ALL PASS + codex high pass 0 P0/P1 ("no discrete introduced
+  bugs"; 2 counted advisories are pre-existing comment strings in diff context). Step 5 post-commit.
 - **2026-07-12 — positioning_context FLIPPED to served** (protocol steps 1–4 + the TE bets-table
   presentation batch folded in): fixture DELETED; `applyGates` now owns the section
   (`positioningContext` was MISSING from GATED_SECTIONS — added with fail-closed

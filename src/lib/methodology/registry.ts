@@ -254,6 +254,38 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     ],
   },
   {
+    anchor: "nav-series",
+    title: "Growth & After-Fee Returns (Matched Windows)",
+    tagline:
+      "Growth of $1,000 for the fund and its passive alternative on one matched monthly window, with after-fee period returns raw and at matched market risk.",
+    methodVersion: "profile_nav_series_v1",
+    asOf:
+      "Monthly series through 2026-05; each fund's window starts at the first month both the fund and its passive blend are priced (the common paired window — not the fund's inception).",
+    measures: [
+      "The growth chart shows what $1,000 became in the fund versus its closest passive alternative — both after fees, both on the same monthly grid, from the same start month. The period table shows annualized after-fee returns for 1Y / 3Y / 5Y and the full paired window, with two comparisons: Excess (fund minus passive, the raw scoreboard) and Alpha (fund minus a beta-scaled passive position — the comparison at the same market risk).",
+    ],
+    method: [
+      "Both legs come from daily adjusted NAV (dividends reinvested; fees accrue inside NAV, so the series is after-fee by construction), downsampled to month-ends and restricted to the common window — the first month where BOTH the fund and its passive blend exist through the last common month. Both legs are normalized to $1,000 at the common start.",
+      "The beta-adjusted leg compounds beta times the passive monthly return, using the fund's single full-history beta from the Value Score; a fund with no Value Score row simply omits that leg (beta is never defaulted to 1).",
+      "Period returns are computed from this same monthly grid; a period longer than the common window is suppressed rather than extrapolated. Funds with no passive blend serve no series at all — a market-index substitute is never swapped in.",
+    ],
+    sources: [
+      "Daily adjusted fund NAV (Tiingo adjusted closes)",
+      "The reconstructed L2 passive-blend NAV (passive_alt_daily_nav)",
+      "The fund's beta from the Value Score panel",
+    ],
+    notMeaning: [
+      "Past growth is not a forecast; the chart describes the ride, not what comes next.",
+      "“Since” the window start is NOT since the fund's inception — the window starts where the passive pairing starts, and the page labels the start month.",
+      "Alpha at matched market risk is a fairness adjustment, not a skill verdict — the Value Score is the skill read.",
+    ],
+    limitations: [
+      "Coverage is funds with a passive blend and enough shared history (about 3,200 of 5,700 served funds; passive index vehicles have no cheaper passive alternative and honestly serve nothing).",
+      "A cohort of funds whose NAV feed went stale (~2025-04) serves no series rather than a chart that silently ends years ago; the upstream feed fix is tracked separately.",
+      "Monthly granularity smooths intra-month swings; the chart is for shape and magnitude, not day trading.",
+    ],
+  },
+  {
     anchor: "positioning-context",
     title: "Positioning Context (Cohort Percentiles)",
     tagline:
@@ -293,7 +325,7 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
       "The fund's trailing risk profile — volatility, Sharpe, drawdown, and how it behaved versus its stated prospectus benchmark.",
     methodVersion: "unversioned — fund_metadata risk fields",
     asOf:
-      "Computed from daily adjusted NAV through 2026-05-07 (a pricing refresh is pending; the page marks the stamp stale until it lands).",
+      "Computed from daily adjusted NAV through each fund's latest priced date (2026-05-07/08 at this build); the page stamps each fund's own date and flags it stale while a pricing refresh is pending.",
     measures: [
       "The risk detail shows how bumpy the ride has been: the fund's own trailing 3-year volatility (standard deviation), risk-adjusted return (Sharpe and Sortino), and its worst peak-to-trough loss (maximum drawdown, dated, over the fund's full priced history).",
       "Where the fund's stated prospectus benchmark has a matching index ETF, it also shows benchmark-relative behavior over the same 3 years: beta, alpha, R², tracking error, information ratio, and upside / downside capture — how much of the benchmark's up and down months the fund participated in.",
@@ -314,7 +346,7 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
       "Upside / downside capture describe past co-movement with the stated benchmark, not manager skill.",
     ],
     limitations: [
-      "Benchmark-relative rows exist only where the stated benchmark has a matching index ETF (about 2,500 of 5,450 funds with a risk read); the rest honestly omit that group rather than substitute a different index.",
+      "Benchmark-relative rows exist only where the stated benchmark's ETF proxy has priced history in our store (about 2,500 of 5,450 funds with a risk read). The dominant gap today is missing proxy prices — notably the S&P 500's (SPY) — not unmappable benchmarks; those funds honestly omit the group rather than substitute a different index, and the proxy ingest is tracked as a fix.",
       "Pricing currently runs through 2026-05-07 pending a vendor refresh; the section stamps this and flags it stale rather than hiding it.",
       "Three years of monthly returns is a short, noisy window — treat the levels as descriptive, not precise; the maximum drawdown spans the fund's full priced history, which can include a different manager or mandate era.",
     ],

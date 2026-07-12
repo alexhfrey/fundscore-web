@@ -57,7 +57,13 @@ export function tierAllows(
   return (V2_TIER_RANK[userState] ?? 0) >= (V2_GATE_RANK[requiredGate] ?? 0);
 }
 
-// --- nav_series (spec: profile-nav-series) ----------------------------------
+// --- nav_series (SERVED — profile-nav-series, profile_nav_series_v1).
+//     Matched-window monthly growth-of-$1000: both legs share ONE grid from the
+//     common start (series_start is the COMMON PAIRED WINDOW start, NOT the
+//     fund's inception — label it that way). Adjusted NAV ⇒ after-fee by
+//     construction. Field-gated in applyGates: fund line public; the passive /
+//     β-adjusted legs + β + the full period table are paid (free keeps ONE
+//     proof-point row with its fund/passive/diff, β-adj diff nulled). ----------
 export interface NavSeriesPoint {
   t: string; // "YYYY-MM" month key
   fund: number; // growth of $1000, after-fee (adjusted NAV)
@@ -65,23 +71,41 @@ export interface NavSeriesPoint {
   beta_adj_passive?: number | null;
 }
 export interface NavPeriodRow {
-  period: string; // "YTD" | "1Y" | "3Y" | "5Y" | "10Y" | "SI"
+  period: string; // "1Y" | "3Y" | "5Y" | "SI" (SI = common-window start)
   fund_ann_pct: number | null;
   passive_ann_pct: number | null;
-  beta_adj_passive_ann_pct?: number | null;
   diff_bps: number | null; // excess: fund − passive, annualized, after fees
   beta_adj_diff_bps: number | null; // alpha: fund − β·passive (same market risk)
 }
-export interface NavSeries extends SampleTag {
+export interface NavSeries {
   passive_label: string | null; // ALWAYS named beside the chart
-  series_start: string | null; // common-window start month
+  series_start: string | null; // common-window start month (NOT inception)
   as_of: string | null;
-  beta?: number | null; // the β used for the beta-adjusted leg (from value_score)
+  beta?: number | null; // the β behind the β-adjusted leg (from value_score; paid)
   points: NavSeriesPoint[];
   period_table: NavPeriodRow[];
-  /** Plain-English hover explainers for the excess/alpha columns. */
-  hover_copy?: { excess: string; alpha: string } | null;
   method_version: string | null;
+}
+
+/**
+ * Plain-English hover explainers for the period table's Excess / Alpha columns
+ * — DERIVED copy templated from the served β and passive label (the served
+ * payload carries no hover strings). Nothing computed beyond formatting.
+ */
+export function buildNavHoverCopy({
+  beta,
+  passiveLabel,
+}: {
+  beta: number | null | undefined;
+  passiveLabel: string | null | undefined;
+}): { excess: string; alpha: string } {
+  const pass = passiveLabel ?? "the index";
+  const betaBit =
+    beta != null && isFinite(beta) ? ` (β ${beta.toFixed(2)})` : "";
+  return {
+    excess: `Excess return = the fund minus ${pass}, both after fees. The raw scoreboard vs simply holding the index.`,
+    alpha: `Alpha (beta-adjusted) = the fund minus a beta-scaled ${pass} position${betaBit}. A fund running less market risk than its index is understated by raw excess; alpha compares against a passive position with the SAME market risk.`,
+  };
 }
 
 // --- positioning_context (SERVED — positioning-context-percentiles,
@@ -463,7 +487,8 @@ export async function overlayV2Fixtures(
   const fx = getV2Fixtures(ticker);
   const out: FactRowV2 = { ...row };
   if (!fx) return out;
-  out.navSeries = out.navSeries ?? fx.navSeries;
+  // navSeries is SERVED (profile-nav-series shipped) — no fixture overlay; the
+  // applyGates field-gate owns its public/paid split on the base row.
   // positioningContext is SERVED (positioning-context-percentiles shipped) — no
   // fixture overlay; applyGates owns its free gate on the base row.
   // teDecomposition is SERVED (te-decomposition-by-bet shipped) — no fixture

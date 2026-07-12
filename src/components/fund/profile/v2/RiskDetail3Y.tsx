@@ -17,7 +17,10 @@ import type { SourceStamp } from "@/lib/serving/profile";
 import { fmtDate, EM_DASH } from "@/lib/serving/format";
 import { UnlockLine } from "../primitives";
 
-const ratio = (v: number | null) => (v == null || !isFinite(v) ? EM_DASH : v.toFixed(2));
+// Typographic minus (−), matching the percent formatters below — toFixed alone
+// would emit an ASCII hyphen and the grid would mix glyphs.
+const ratio = (v: number | null) =>
+  v == null || !isFinite(v) ? EM_DASH : v.toFixed(2).replace("-", "−");
 const fracPct = (v: number | null, digits = 1) =>
   v == null || !isFinite(v) ? EM_DASH : `${(v * 100).toFixed(digits)}%`;
 const fracPctSigned = (v: number | null, digits = 1) =>
@@ -42,6 +45,8 @@ export function RiskDetail3Y({
   locked,
   pricingStamp,
   headlineTeNote,
+  headlineBetaNote,
+  isPassive = false,
 }: {
   // Passed only when the caller is free-entitled (applyGates strips it below);
   // `locked` says the served section exists but the caller is below the gate.
@@ -50,8 +55,15 @@ export function RiskDetail3Y({
   // The public Tiingo pricing stamp — the honest as-of (and staleness) for
   // these NAV-derived stats; the payload itself carries no as-of.
   pricingStamp: SourceStamp | null;
-  // One-line pointer at the page's headline TE when both exist (different basis).
+  // One-line pointers at the page's headline TE / beta when both exist — two
+  // same-named references with different bases must cross-reference each other
+  // (e.g. expander beta 0.91 vs gauge beta 1.07, both "vs Russell 1000 Value").
   headlineTeNote: string | null;
+  headlineBetaNote: string | null;
+  // Index funds: the filed prospectus benchmark can differ from the tracked
+  // index (SEC tailored-shareholder-report rule) — say so rather than let a
+  // total-market benchmark read as a false active signal.
+  isPassive?: boolean;
 }) {
   if (riskBehavior == null && !locked) return null;
 
@@ -100,7 +112,7 @@ export function RiskDetail3Y({
             />
             {hasRelative && (
               <>
-                <Cell k={`Beta vs ${bench} (3Y)`} v={ratio(rb.beta_3y)} />
+                <Cell k={`Beta vs ${bench} (3Y)`} v={ratio(rb.beta_3y)} d={headlineBetaNote} />
                 <Cell k={`Alpha vs ${bench} (3Y)`} v={fracPctSigned(rb.alpha_3y)} d="annualized" />
                 <Cell k={`Tracking error vs ${bench} (3Y)`} v={fracPct(rb.tracking_error)} d={headlineTeNote} />
                 <Cell k="Information ratio (3Y)" v={ratio(rb.information_ratio)} />
@@ -120,6 +132,14 @@ export function RiskDetail3Y({
                 Benchmark-relative rows are measured against an ETF tracking the fund&apos;s{" "}
                 <b>stated prospectus benchmark ({bench})</b> — not the passive alternative the
                 rest of this page compares against.
+                {isPassive && (
+                  <>
+                    {" "}
+                    This is an index fund: its filed prospectus benchmark can differ from the
+                    index it actually tracks, so read these rows as behavior vs the filed
+                    benchmark, not tracking quality.
+                  </>
+                )}
               </>
             )}
           </p>

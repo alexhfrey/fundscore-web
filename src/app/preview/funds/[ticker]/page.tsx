@@ -20,6 +20,7 @@ import {
   buildRiskExplainers,
   overlayV2Fixtures,
   tierAllows,
+  type NavSeries,
   type PositioningContext,
   type RiskBehavior,
   type TeDecomposition,
@@ -103,29 +104,11 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
         }
     : null;
 
-  // Nav series — fund line public; comparison legs (passive/β-adj) + comparison
-  // table columns are paid. Strip them for non-paid callers.
-  const navFx = row.navSeries ?? null;
-  const navSeries = navFx
-    ? paid
-      ? navFx
-      : {
-          ...navFx,
-          points: navFx.points.map((p) => ({
-            t: p.t,
-            fund: p.fund,
-            passive: null,
-            beta_adj_passive: null,
-          })),
-          period_table: (navFx.period_table ?? []).map((r) => ({
-            ...r,
-            passive_ann_pct: null,
-            beta_adj_passive_ann_pct: null,
-            diff_bps: null,
-            beta_adj_diff_bps: null,
-          })),
-        }
-    : null;
+  // Nav series — SERVED (profile-nav-series; gate public). applyGates already
+  // field-stripped below paid: passive/β-adj point legs + β nulled, and the
+  // period table collapsed to ONE free proof-point row (its β-adj diff nulled).
+  // No in-page strip — the gating module is the single owner of the contract.
+  const navSeries = (row.navSeries as NavSeries | null) ?? null;
 
   // Attribution window summary — the full decomposition is paid; below the gate
   // keep only the header/teaser scaffolding (window/n_quarters/label).
@@ -279,6 +262,10 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
     positioningContext?.te_bps != null
       ? `the page's headline TE is ${(positioningContext.te_bps / 100).toFixed(1)}%/yr (weekly, β-adjusted vs ${passiveLabel ?? "the passive alternative"})`
       : null;
+  const headlineBetaNote =
+    positioningContext?.beta != null
+      ? `the page's headline beta is ${positioningContext.beta.toFixed(2)} (weekly, vs ${passiveLabel ?? "the passive alternative"}) — a different basis`
+      : null;
 
   const src = row.sourceInventory as {
     source_stamps: { source_label: string; as_of_date?: string | null }[];
@@ -324,6 +311,8 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
             riskLocked={riskLocked}
             pricingStamp={pricingStamp}
             headlineTeNote={headlineTeNote}
+            headlineBetaNote={headlineBetaNote}
+            isPassive={isPassive}
           />
 
           {/* 04 · Performance attribution */}

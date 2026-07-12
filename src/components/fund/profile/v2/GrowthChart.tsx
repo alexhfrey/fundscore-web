@@ -97,7 +97,9 @@ export function GrowthChart({
                 period === p ? "bg-gray-900 text-white" : "bg-white text-gray-500 hover:text-gray-900"
               }`}
             >
-              {p === "SI" ? "Since inception" : p}
+              {/* "SI" is the COMMON PAIRED WINDOW (both legs priced), not the
+                  fund's inception — "Max" avoids the false inception claim. */}
+              {p === "SI" ? "Max" : p}
             </button>
           ))}
         </div>
@@ -168,7 +170,10 @@ export function GrowthChart({
 
       <p className="px-1 pt-2 text-[12.5px] leading-relaxed text-gray-500">
         Growth of <span className="font-semibold text-gray-700">$1,000</span>
-        {period === "SI" ? " since inception" : ` over the last ${period}`}, month-end series
+        {period === "SI"
+          ? ` over the full paired series${data.length ? ` (from ${data[0].t})` : ""}`
+          : ` over the last ${period}`}
+        , month-end series
         {period === "SI" ? "" : " rebased to the window start"}.
         {showComparison && last?.fund != null ? (
           <>
