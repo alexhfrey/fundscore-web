@@ -289,12 +289,13 @@ export interface AttributionBlocks extends SampleTag {
   method_version: string | null;
 }
 
-// The full-window aggregate view (already REAL today via riskAttribution's
-// active_return_attribution / the mock combined_decomposition). The preview
-// renders the Explorer from this summary with the range control pinned to the
-// default window until per-quarter blocks ship — never fabricating sub-window
-// numbers.
-export interface AttributionWindowSummary extends SampleTag {
+// The full-window aggregate view — SERVED: built verbatim from
+// riskAttribution.active_return_attribution (exposure_path_v0.2) by
+// buildAttributionWindowSummary below, with the quarter grid from the lazy
+// fund_attribution_blocks payload. The Explorer keeps its range control pinned
+// to the full window until attribution-quarter-blocks ships — no sub-window
+// number is ever invented.
+export interface AttributionWindowSummary {
   window: string | null; // e.g. "2020-12-31 to 2025-09-30"
   quarter_grid: string[];
   default_window: { start: string; end: string } | null;
@@ -325,6 +326,70 @@ export interface AttributionWindowSummary extends SampleTag {
   basis_migration_note?: string | null;
   /** Why there is no residual inside the decomposition (frozen-vs-NAV gap). */
   residual_explainer?: string | null;
+}
+
+/**
+ * Build the Attribution Explorer's window summary from the SERVED
+ * riskAttribution.active_return_attribution (exposure_path_v0.2) — a pure
+ * field mapping plus derived explainer COPY quoting served values. The served
+ * factor list is truncated to the top rows by the assembler; the gold identity
+ * (idio = realised − Σ ALL factor totals) makes the un-listed remainder exactly
+ * `realised − idio − Σ listed` — the Explorer renders that as an explicit
+ * "smaller factor bets" line rather than letting the chain silently not sum.
+ * beta_tilt is intentionally null: the old fixture bar was a labeled PROTOTYPE
+ * estimate; the real per-quarter beta-effect series is served in the blocks and
+ * its integrated bar ships with attribution-quarter-blocks — nothing is
+ * estimated in the meantime.
+ */
+export function buildAttributionWindowSummary(
+  // The served sub-panel (snake_case JSONB) — typed loosely at the call site.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ara: any,
+  blocksMeta: { quarter_grid: string[]; holdings_window: string | null } | null,
+): AttributionWindowSummary | null {
+  if (!ara || typeof ara !== "object") return null;
+  const idio = ara.idio ?? null;
+  const rows: unknown[] = Array.isArray(ara.factor_contributions)
+    ? ara.factor_contributions
+    : [];
+  // The bets-to-net chain NEEDS the idio aggregates (idio / realised): without
+  // them the waterfall would zero-fill selection, realised, net and the
+  // remainder line — fabricated values. Fail honest instead (codex P2).
+  if (
+    idio == null ||
+    idio.idio_contribution_bps == null ||
+    idio.realised_active_bps == null ||
+    rows.length === 0
+  ) {
+    return null;
+  }
+  const windowStart = (ara.window_start as string | null) ?? null;
+  const windowEnd = (ara.window_end as string | null) ?? null;
+  return {
+    window: windowStart && windowEnd ? `${windowStart} to ${windowEnd}` : null,
+    quarter_grid: blocksMeta?.quarter_grid ?? [],
+    default_window:
+      windowStart && windowEnd ? { start: windowStart, end: windowEnd } : null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    factor_contributions: rows.map((r: any) => ({
+      factor_id: String(r.factor_id ?? ""),
+      factor_type: r.factor_type as "sector" | "theme" | "macro",
+      total_bps: r.total_contribution_bps ?? null,
+      bias_bps: r.bias_bps ?? null,
+      timing_bps: r.timing_bps ?? null,
+      avg_active_beta: r.avg_active_beta ?? null,
+    })),
+    stock_selection_idio_bps: idio?.idio_contribution_bps ?? null,
+    realised_active_bps: idio?.realised_active_bps ?? null,
+    residual_reconciliation_bps: idio?.reconciliation_gap_bps ?? null,
+    beta_tilt: null,
+    n_quarters: idio?.n_quarters ?? null,
+    // v0.2 IS the standardized basis (one bet universe with Positioning / the
+    // TE table) — the old "two model generations" migration note is retired.
+    basis_migration_note: null,
+    residual_explainer:
+      "Within the decomposition there is no residual: stock selection (idio) is defined as the frozen-portfolio active return minus the factor bets, so bets + selection equals the realised figure exactly (the table lists the top factor rows; the “smaller factor bets” line collects the rest, so the chain always sums). The separate reconciliation gap is frozen-vs-NAV: the decomposition prices quarterly FROZEN filed holdings GROSS of fees, while real NAV is net and includes intra-quarter trading — labeled “fees + trading”, never forced to zero.",
+  };
 }
 
 // --- holdings_full (spec: serve-full-holdings) -------------------------------
@@ -514,8 +579,8 @@ export async function overlayV2Fixtures(
   // applyGates owns its free gate on the base row. (The base row's fundFamily
   // STRING — the SEC trust name — is untouched and unrelated.)
   out.aiSummary = out.aiSummary ?? fx.aiSummary;
-  out.attributionWindowSummary =
-    out.attributionWindowSummary ?? fx.attributionWindowSummary;
+  // attributionWindowSummary is SERVED (built in-page from the served
+  // riskAttribution sub-panel + blocks meta) — no fixture overlay.
   out.top10VsIwf = out.top10VsIwf ?? fx.top10VsIwf;
   out.positioningBetBridges = out.positioningBetBridges ?? fx.positioningBetBridges;
   // riskExplainers: DERIVED copy now (buildRiskExplainers) — no fixture overlay;

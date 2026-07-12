@@ -224,9 +224,9 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     title: "Risk & Attribution",
     tagline:
       "What drives a fund in return space — its active factor and theme bets beyond a cheap index, how much of a theme it holds versus actively bets on, and how those bets played out.",
-    methodVersion: "factor_exp_v0.1 · exposure_divergence_v0.1 · exposure_path_v0.1",
+    methodVersion: "factor_exp_v0.1 · exposure_divergence_v0.1 · exposure_path_v0.2",
     asOf:
-      "Return-based exposures through 2026-04-24; holdings side as of the displayed filing date.",
+      "Return-based exposures through 2026-04-24; the realised attribution covers the holdings era (2020-12-31 to 2026-03-31, 21 quarters); holdings side as of the displayed filing date.",
     measures: [
       "The factor lens regresses a fund's returns on the market, the Fama-French style factors, and a library of curated theme baskets to estimate its exposures. The active β is the bet beyond the fund's passive baseline — its closest passive alternative (the L2 index blend) when one exists, otherwise the broad market. A near-zero active β on a theme means the fund holds it only as much as that baseline does.",
       "The divergence headline juxtaposes two different measurements of the same exposure: how much of a theme the fund holds (% of assets) and how much of an active bet it runs on that theme (active β). These are never added together.",
@@ -251,6 +251,8 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
       "Estimated for about 4,700 funds — those with enough usable return history and a matched passive blend; the rest are shown as unavailable rather than estimated.",
       "Where a factor or theme β isn't statistically distinguishable from zero (|t| < 2), we say so rather than present it as a real bet.",
       "The divergence holdings side inherits the 180-day holdings staleness and filing-lag limits; where the passive blend has no theme look-through we lean on the absolute weight and active β rather than a misleading self-overweight.",
+      "The attribution waterfall lists the top factor rows; the remaining small factors are collected into an explicit “smaller factor bets” line (exact by the decomposition's own identity) so the chain always sums — nothing is silently dropped.",
+      "The realised attribution (v0.2) runs on the standardized factor model — the same bet universe as Current Positioning and the tracking-error table — over the holdings era only; earlier history is covered by the returns-based Growth section.",
     ],
   },
   {
@@ -260,7 +262,7 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
       "How a fund's family — its adviser — ranks on after-fee value across its scored funds, and where this fund sits inside it.",
     methodVersion: "fund_family_panel_v0.1",
     asOf:
-      "Value as of 2026-05-09; member AUM stamps span 2024-10-31 to 2025-09-30 (the page discloses the range).",
+      "Value as of 2026-05-09; member AUM stamps come from filings and span 2023-12-31 to 2025-10-31 across families (each page discloses its own family's range).",
     measures: [
       "The family is the fund's ADVISER (from N-CEN filings) — the firm actually running the money — not the SEC trust name, which splits one brand across dozens of registrants. For each family we show the average and the AUM-weighted net value per year across its scored funds (each fund read against its OWN passive alternative), and a rank among families with at least five scored funds.",
       "Showing both averages is deliberate: the AUM-weighted figure counts every invested dollar equally, the simple average counts every fund equally — the gap between them says whether the family's biggest funds do better or worse than its typical fund.",

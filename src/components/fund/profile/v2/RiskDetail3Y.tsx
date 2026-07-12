@@ -47,6 +47,7 @@ export function RiskDetail3Y({
   headlineTeNote,
   headlineBetaNote,
   isPassive = false,
+  hasNavTable = false,
 }: {
   // Passed only when the caller is free-entitled (applyGates strips it below);
   // `locked` says the served section exists but the caller is below the gate.
@@ -64,6 +65,9 @@ export function RiskDetail3Y({
   // index (SEC tailored-shareholder-report rule) — say so rather than let a
   // total-market benchmark read as a false active signal.
   isPassive?: boolean;
+  // Whether section 03 renders a period table above this expander — the basis
+  // note must not reference a table that isn't there (VOO-class funds).
+  hasNavTable?: boolean;
 }) {
   if (riskBehavior == null && !locked) return null;
 
@@ -124,8 +128,10 @@ export function RiskDetail3Y({
           </div>
           <p className="mt-3 text-[11.5px] leading-relaxed text-gray-500">
             Trailing 3-year figures from monthly adjusted NAV (max drawdown from full-history
-            daily closes) — a different, shorter window than the period table above; each is
-            shown with its own window on purpose.
+            daily closes) —{" "}
+            {hasNavTable
+              ? "a different, shorter window than the period table above; each is shown with its own window on purpose."
+              : "each figure is shown with its own window on purpose."}
             {hasRelative && (
               <>
                 {" "}

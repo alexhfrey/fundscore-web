@@ -108,7 +108,11 @@ export function ProfileHero({
             Identity
           </div>
           <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-5 gap-y-2.5 text-[13px]">
-            <IdRow k="Fund family" v={identity.fund_family} />
+            {/* The identity scalar is the SEC TRUST/REGISTRANT — a different
+                thing from section 08's adviser-level "fund family"; two rows
+                named "Fund family" with different answers would contradict
+                (DQ-critic P3). */}
+            <IdRow k="Trust / registrant" v={identity.fund_family} />
             <IdRow
               k="Asset class"
               v={[identity.asset_class, identity.peer_group].filter(Boolean).join(" · ") || null}

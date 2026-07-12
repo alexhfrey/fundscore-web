@@ -101,10 +101,21 @@ export function FundFamily({
           <>
             Two averages, both shown: <b>AUM-weighted {fmtSignedBps(family.aum_weighted_value_bps)}/yr</b>{" "}
             counts every invested dollar equally; the <b>simple average is{" "}
-            {fmtSignedBps(family.avg_value_bps)}/yr</b> — the gap means the family&apos;s
-            biggest funds have done{" "}
-            {(family.aum_weighted_value_bps ?? 0) > (family.avg_value_bps ?? 0) ? "better" : "worse"}{" "}
-            than its typical fund.
+            {fmtSignedBps(family.avg_value_bps)}/yr</b>
+            {/* Equal / near-equal averages must not assert a "gap" (an n=1
+                family's are identical by construction — DQ-critic P2). */}
+            {Math.abs((family.aum_weighted_value_bps ?? 0) - (family.avg_value_bps ?? 0)) < 0.5 ? (
+              <> — the two agree: its biggest funds have done about the same as its typical fund.</>
+            ) : (
+              <>
+                {" "}
+                — the gap means the family&apos;s biggest funds have done{" "}
+                {(family.aum_weighted_value_bps ?? 0) > (family.avg_value_bps ?? 0)
+                  ? "better"
+                  : "worse"}{" "}
+                than its typical fund.
+              </>
+            )}
           </>
         }
       />
@@ -182,7 +193,7 @@ export function FundFamily({
                 <tr className="border-b border-gray-200 text-right text-[10px] uppercase tracking-wide text-gray-400">
                   <th className="px-5 py-2.5 text-left font-semibold">Fund</th>
                   <th className="px-5 py-2.5 font-semibold">Net value bps/yr</th>
-                  <th className="px-5 py-2.5 font-semibold">AUM $B</th>
+                  <th className="px-5 py-2.5 font-semibold">AUM</th>
                   <th className="px-5 py-2.5 font-semibold">Passive alt</th>
                   <th className="px-5 py-2.5 font-semibold">3Y α bps/yr (β-adj)</th>
                 </tr>
@@ -206,7 +217,8 @@ export function FundFamily({
                       {fmtSignedBps(fund.value_bps)}
                     </td>
                     <td className="px-5 py-2.5 text-gray-600">
-                      {fund.aum_usd != null ? (fund.aum_usd / 1e9).toFixed(1) : EM_DASH}
+                      {/* Unit-aware — a $105M fund must not render as "0.1". */}
+                      {fund.aum_usd != null ? fmtAum(fund.aum_usd) : EM_DASH}
                     </td>
                     <td className="px-5 py-2.5 text-gray-600">{fund.passive_alt_label ?? EM_DASH}</td>
                     <td className={`px-5 py-2.5 font-bold ${bpsCls(fund.value_bps_3y)}`}>

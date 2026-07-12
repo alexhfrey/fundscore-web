@@ -50,6 +50,8 @@ export function HistoricalPerformance({
   headlineBetaNote?: string | null;
   isPassive?: boolean;
 }) {
+  const hasNavTable =
+    navSeries != null && (navSeries.points?.length ?? 0) > 0 && showComparison;
   const riskDetail = (
     <RiskDetail3Y
       riskBehavior={riskBehavior ?? null}
@@ -58,6 +60,7 @@ export function HistoricalPerformance({
       headlineTeNote={headlineTeNote ?? null}
       headlineBetaNote={headlineBetaNote ?? null}
       isPassive={isPassive}
+      hasNavTable={hasNavTable}
     />
   );
 
@@ -102,8 +105,11 @@ export function HistoricalPerformance({
           {bpsSigned(si.beta_adj_diff_bps)} bps/yr
         </span>
         .
-        {beta != null && beta < 1 && (
+        {beta != null && beta < 0.97 && (
           <span className="font-normal text-gray-500"> Raw excess understates the manager.</span>
+        )}
+        {beta != null && beta > 1.03 && (
+          <span className="font-normal text-gray-500"> Raw excess flatters the manager.</span>
         )}
       </>
     ) : proofRow != null && proofRow.fund_ann_pct != null ? (
@@ -232,8 +238,13 @@ export function HistoricalPerformance({
           Single coherent monthly basis for all columns (fund and {passive}, both
           after fees; the series pairs both legs from {seriesStart ?? "the first common month"},
           not the fund&apos;s inception). <b>Excess</b> = fund − {passive};{" "}
-          <b>Alpha</b> = fund − a β-scaled {passive} position. Hover or tap the ⓘ on
-          the column headers for plain-language definitions.
+          <b>Alpha</b> = fund − a β-scaled {passive} position.
+          {showComparison && (
+            <>
+              {" "}
+              Hover or tap the ⓘ on the column headers for plain-language definitions.
+            </>
+          )}
         </PanelNote>
       </Panel>
 

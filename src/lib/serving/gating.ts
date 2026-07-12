@@ -1004,6 +1004,23 @@ export function holdingsFullEntitled(
   return TIER_RANK[userState] >= GATE_RANK[gates!["holdings_full"]];
 }
 
+/**
+ * Generic fail-closed entitlement check for a presence-gated section key (the
+ * holdings_full pattern, reusable): true ONLY when the key exists, carries a
+ * known tier, and the caller's tier meets it. Missing key = no served payload
+ * (never tease); malformed value = fail closed. Used by lazy-table readers
+ * (e.g. attribution blocks) BEFORE any row leaves the server.
+ */
+export function sectionEntitled(
+  gates: Record<string, string> | null | undefined,
+  gateKey: string,
+  userState: UserState,
+): boolean {
+  const gate = gates?.[gateKey];
+  if (gate == null || GATE_RANK[gate] == null) return false;
+  return TIER_RANK[userState] >= GATE_RANK[gate];
+}
+
 /** Return the rows only when entitled, else an empty array. Runs on the lazy
  *  fetch path before any row reaches the client. Generic so this module stays
  *  db-free and contract-free. */

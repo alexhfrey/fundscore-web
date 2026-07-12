@@ -15,7 +15,6 @@
 import raw from "./profile-v2-fcntx.json";
 import type {
   AiSummary,
-  AttributionWindowSummary,
   PositioningBetBridges,
   RecentChangesTe,
   Top10VsIwf,
@@ -24,7 +23,6 @@ import type {
 export interface V2Fixtures {
   recentChangesTe: RecentChangesTe;
   aiSummary: AiSummary;
-  attributionWindowSummary: AttributionWindowSummary;
   top10VsIwf: Top10VsIwf;
   positioningBetBridges: PositioningBetBridges;
 }
@@ -80,30 +78,11 @@ const aiSummary: AiSummary = {
   facts_hash: null,
 };
 
-const attributionWindowSummary: AttributionWindowSummary = {
-  __sample: true,
-  sample_label:
-    "real full-window decomposition (served riskAttribution basis); per-quarter recomputation pending specs attribution-quarter-blocks + attribution-factor-path-serving",
-  window: j.combined_decomposition.window,
-  quarter_grid: j.attribution_explorer.quarter_grid,
-  default_window: j.attribution_explorer.default_window,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  factor_contributions: j.combined_decomposition.factor_contributions.map((f: any) => ({
-    factor_id: f.factor,
-    factor_type: f.type,
-    total_bps: f.total_bps,
-    bias_bps: f.bias_bps,
-    timing_bps: f.timing_bps,
-    avg_active_beta: f.avg_active_beta,
-  })),
-  stock_selection_idio_bps: j.combined_decomposition.stock_selection_idio_bps,
-  realised_active_bps: j.combined_decomposition.realised_active_bps,
-  residual_reconciliation_bps: j.combined_decomposition.residual_reconciliation_bps,
-  beta_tilt: j.attribution_explorer.beta_tilt ?? null,
-  n_quarters: j.combined_decomposition.n_quarters,
-  basis_migration_note: j.attribution_explorer.basis_migration_note ?? null,
-  residual_explainer: j.attribution_explorer.residual_explainer ?? null,
-};
+// attribution_window_summary is now SERVED (built from
+// riskAttribution.active_return_attribution, exposure_path_v0.2, via
+// buildAttributionWindowSummary + the lazy fund_attribution_blocks quarter
+// grid) — its fixture was removed at the production flip; a fixture never
+// coexists with a served section. The type lives in serving/profile-v2.ts.
 
 const top10VsIwf: Top10VsIwf = {
   __sample: true,
@@ -142,7 +121,6 @@ const FIXTURES: Record<string, V2Fixtures> = {
   FCNTX: {
     recentChangesTe,
     aiSummary,
-    attributionWindowSummary,
     top10VsIwf,
     positioningBetBridges,
   },

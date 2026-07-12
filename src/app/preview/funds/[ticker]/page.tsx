@@ -16,7 +16,9 @@ import {
 import { resolveSession } from "@/lib/serving/session";
 import { readHoldingsFullTeaser } from "@/lib/serving/holdings-full";
 import { loadHoldingsFullRows as loadHoldingsFullRowsAction } from "@/lib/serving/holdings-full-actions";
+import { getAttributionBlocksMeta } from "@/lib/serving/attribution-blocks";
 import {
+  buildAttributionWindowSummary,
   buildRiskExplainers,
   overlayV2Fixtures,
   tierAllows,
@@ -111,28 +113,27 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
   // No in-page strip — the gating module is the single owner of the contract.
   const navSeries = (row.navSeries as NavSeries | null) ?? null;
 
-  // Attribution window summary — the full decomposition is paid; below the gate
-  // keep only the header/teaser scaffolding (window/n_quarters/label).
-  const attrFx = row.attributionWindowSummary ?? null;
-  const attrSummary = attrFx
-    ? paid
-      ? attrFx
-      : {
-          __sample: attrFx.__sample,
-          sample_label: attrFx.sample_label,
-          window: attrFx.window,
-          n_quarters: attrFx.n_quarters,
-          quarter_grid: [],
-          default_window: null,
-          factor_contributions: [],
-          stock_selection_idio_bps: null,
-          realised_active_bps: null,
-          residual_reconciliation_bps: null,
-          beta_tilt: null,
-          basis_migration_note: null,
-          residual_explainer: null,
-        }
-    : null;
+  // Attribution window summary — SERVED: the riskAttribution
+  // active_return_attribution sub-panel (paid, applyGates strips it to
+  // {locked} below) + the lazy blocks payload's quarter grid (paid,
+  // presence-gated, fetched server-side only when entitled). The summary is
+  // built only for paid; below the gate the section renders its proof point +
+  // unlock off `attrPresent` — never the numbers.
+  const ra = isLocked(row.riskAttribution) ? null : row.riskAttribution;
+  const ara = ra?.active_return_attribution ?? null;
+  // Presence comes from the RAW (pre-gate) row: a locked riskAttribution
+  // section does NOT prove a decomposition exists (passive/short-history funds
+  // carry factor/divergence data but a null sub-panel) — never tease an
+  // unlock for data that isn't there (codex P2). Only the boolean crosses.
+  const attrPresent = raw.riskAttribution?.active_return_attribution != null;
+  const blocksMeta =
+    paid && ara != null && !isLocked(ara)
+      ? await getAttributionBlocksMeta(ticker, raw.gates, userState)
+      : null;
+  const attrSummary =
+    paid && ara != null && !isLocked(ara)
+      ? buildAttributionWindowSummary(ara, blocksMeta)
+      : null;
 
   // Positioning gauges — SERVED positioning_context (gate: free, owned by
   // applyGates; anon holds a {locked} marker). `free ?` is belt-and-braces.
@@ -313,6 +314,7 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
           {/* 04 · Performance attribution */}
           <AttributionSection
             summary={attrSummary}
+            present={attrPresent}
             returnAttribution={row.returnAttribution as { rows?: unknown[] } | Locked | null}
             riskExplainers={riskExplainers}
             paid={paid}

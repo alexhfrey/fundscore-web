@@ -47,6 +47,13 @@ export function GrowthChart({
   const [period, setPeriod] = useState<Period>("SI");
   const pass = passiveLabel ?? "the index";
 
+  // Only offer ranges the served paired window can actually fill — a 4-year
+  // series must never render under a "10Y" label (window suppression is the
+  // methodology contract; the table suppresses gold-side, the chart here).
+  const periods = PERIODS.filter(
+    (p) => p === "SI" || points.length >= MONTHS[p] + 1,
+  );
+
   const data = useMemo(() => {
     if (points.length === 0) return [];
     const start = period === "SI" ? 0 : Math.max(0, points.length - 1 - MONTHS[period]);
@@ -88,7 +95,7 @@ export function GrowthChart({
           )}
         </div>
         <div className="inline-flex overflow-hidden rounded-lg border border-gray-200">
-          {PERIODS.map((p) => (
+          {periods.map((p) => (
             <button
               key={p}
               type="button"

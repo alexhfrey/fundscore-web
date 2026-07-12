@@ -48,6 +48,29 @@ A v2 section may switch from fixture to served data ONLY when ALL of:
   flip first).
 
 ## Flip log
+- **2026-07-12 — attribution window summary FLIPPED to served** (protocol steps 1–4 + flip-3/-4
+  critic fast-follows): fixture DELETED; the summary is built verbatim from the served
+  `riskAttribution.active_return_attribution` (exposure_path_v0.2, 2,479 funds) via
+  `buildAttributionWindowSummary` + the quarter grid read lazily from `fund_attribution_blocks`
+  behind a new fail-closed `sectionEntitled` gate (grid + window only — the factor path never
+  leaves the server). Honesty upgrades: identity-exact "Smaller factor bets (not listed)" waterfall
+  line (the assembler serves top-8; the remainder = realised − idio − Σ listed is exact by the gold
+  identity — the chain always sums); the hardcoded "The bets worked; recent picking didn't"
+  takeaway is now SIGN-DERIVED (FCNTX "+1811 … −1645 → +166 gross → +64 net vs IWF"; DODGX "+219 …
+  −59 → +135 net vs IWD" — both curl-verified vs served); the PROTOTYPE (β−1)×return beta-tilt bar
+  is retired with nothing estimated in its place (per-quarter beta_effect_bps is served in the
+  blocks; the integrated bar ships with attribution-quarter-blocks); the stale "two model
+  generations" note dropped (v0.2 IS the standardized basis); "Since inception" in the window
+  selector → "Earlier history?" with holdings-era copy. Codex P2 advisories APPLIED: presence from
+  the RAW row (a locked riskAttribution never teases a decomposition that isn't there) + the
+  builder requires the idio aggregates (no zero-filled waterfall; 0 such rows served today,
+  fail-honest regardless). Flip-3/-4 fast-follows: window-aware chart range buttons (no 4-year
+  series under a "10Y" label), VOO footnote/free-ⓘ copy conditionals, β>1 "raw excess flatters"
+  counterpart, zero-gap family copy ("the two agree"), unit-aware member AUM (fmtAum), hero
+  identity row relabeled "Trust / registrant" (ends the trust-vs-adviser "Fund family" collision),
+  registry span + risk-attribution artifact updated to v0.2 (+ truncation/remainder limitation).
+  Gates: lint/build/golden ALL PASS + codex high pass 0 P0/P1 (2 deduped P2 advisories applied as
+  above). Step 5 post-commit.
 - **2026-07-12 — fund_family_panel FLIPPED to served** (protocol steps 1–4 + flip-2 critic fixes):
   fixture DELETED; page reads served `fundFamilyPanel` only (the base-row `fundFamily` SEC-trust
   string is unrelated and untouched); fail-closed `defaultGate: "free"` added per codex P2 (+
@@ -62,7 +85,15 @@ A v2 section may switch from fixture to served data ONLY when ALL of:
   single-count prefix — fee-ruler copy stays byte-identical (its cohorts carry no n). Coverage
   2,070 funds (1,549 ranked / 521 too-small). Gates: lint/build/golden (+8 assertions) + codex high
   pass 0 P0/P1 (its 1 deduped P2 advisory = the defaultGate hardening, applied + golden-proven).
-  Step 5 post-commit.
+  **Step 5 VERDICT: flip sound** (2026-07-12 critic, FCNTX/DREVX/ICWIX/VOO): render==DB==staging==
+  gold everywhere; Fidelity aggregates + rank 4/115 + leaderboard recompute exactly from member
+  rows; 3Y identity (value_bps_3y == same row's nav 3Y beta_adj_diff_bps) holds on 4 funds;
+  "115 funds/115 families" verified genuine coincidence; unranked + null-3Y + VOO honesty all pass;
+  section-05 badge scoping + blend-n phrasing confirmed shipped. Escalations: P1 UPSTREAM N-CEN
+  first-adviser pick misassigns DREVX's family to its sub-adviser (filed to backlog, fix-data); P2
+  zero-gap "better/worse" ternary + P3s (member-AUM "$0.1" display, hero trust-vs-family label
+  collision, registry span wording) → fixed in the attribution flip; P3 FY2025 N-CEN AUM staleness
+  filed to backlog.
 - **2026-07-12 — nav_series FLIPPED to served** (protocol steps 1–4 + flip-1 critic fast-follows):
   fixture DELETED; the applyGates field-gate is now the single owner of the public/paid split
   (in-page strip removed — free gets the ONE proof-point row it defines: "3Y · after fees ·
