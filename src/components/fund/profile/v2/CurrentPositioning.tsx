@@ -21,14 +21,16 @@ import type {
 } from "@/lib/serving/profile-v2";
 import type { TeProofPreview, TeRollupRow } from "@/lib/serving/profile";
 import { fmtPct, fmtSignedBps, fmtNum, fmtDate, EM_DASH } from "@/lib/serving/format";
-import { cohortPhrase, ordinal, countryName, ppSigned } from "./format";
+import { cohortIsBlend, cohortPhrase, ordinal, countryName, ppSigned } from "./format";
 import {
   ChapterHeader,
   Panel,
   PanelHead,
   PanelNote,
+  SampleChip,
   SampleProvenance,
 } from "./primitives";
+import { isSample } from "@/lib/serving/profile-v2";
 import { InfoTip } from "./InfoTip";
 import { Unavailable, LockedNotice, ProofPoint, UnlockLine } from "../primitives";
 import { BetsTable, type BetRow } from "./BetsTable";
@@ -209,7 +211,7 @@ export function CurrentPositioning({
   if (!free) {
     return (
       <section id="s5" className="scroll-mt-24">
-        <ChapterHeader index={5} title="Current positioning" sample />
+        <ChapterHeader index={5} title="Current positioning" />
         <LockedNotice tier="free">
           See where this fund&apos;s market sensitivity and benchmark-relative risk
           sit versus its cohort, its active bets, and its holdings versus {pass}.
@@ -237,10 +239,18 @@ export function CurrentPositioning({
   const nFunds = positioning?.cohort?.n_funds ?? null;
   // Shared page-wide cohort phrasing (same helper as the fee ruler): "funds
   // benchmarked to IWF" / blend / peer-group — the raw served label alone would
-  // read "the 160 IWF".
+  // read "the 160 IWF". Blend cohorts weigh SEPARATE ranked populations, so the
+  // single-count prefix ("the 20 …") is dropped for them — the per-constituent
+  // sizes print inside the phrase instead.
   const cohortDesc = positioning?.cohort
     ? cohortPhrase(positioning.cohort)
     : `funds benchmarked to ${pass}`;
+  const cohortWithCount =
+    positioning?.cohort && cohortIsBlend(positioning.cohort)
+      ? cohortDesc
+      : nFunds != null
+        ? `${nFunds} ${cohortDesc}`
+        : cohortDesc;
 
   const takeaway =
     free && positioning ? (
@@ -250,7 +260,7 @@ export function CurrentPositioning({
           <>
             {" "}
             — lower than <span className="tabular-nums">{Math.round(100 - bPct)}%</span> of
-            the {nFunds} {cohortDesc}
+            the {cohortWithCount}
           </>
         )}
         . Tracking error{" "}
@@ -321,8 +331,11 @@ export function CurrentPositioning({
             : undefined
         }
         takeaway={takeaway}
-        sample
       />
+      {/* No section-level Sample badge: the gauges + bets table are SERVED
+          (positioning_context / te_decomposition). Only the top-10 sub-block
+          below is still fixture-backed and carries its own sample marker —
+          a section badge would mislabel served data as sample (DQ-critic P2). */}
 
       {/* Gauges — SERVED positioning_context, free (this branch only runs for
           free+ callers). Percentiles are the page-wide strictly-below
@@ -348,7 +361,7 @@ export function CurrentPositioning({
               percentile={bPct}
               readout={
                 bPct != null && nFunds != null
-                  ? `${ordinal(bPct)} percentile of the ${nFunds} ${cohortDesc} — lower market sensitivity than ${Math.round(100 - bPct)}% of that cohort.`
+                  ? `${ordinal(bPct)} percentile of the ${cohortWithCount} — lower market sensitivity than ${Math.round(100 - bPct)}% of that cohort.`
                   : null
               }
             />
@@ -360,7 +373,7 @@ export function CurrentPositioning({
               percentile={tPct}
               readout={
                 tPct != null && nFunds != null
-                  ? `${ordinal(tPct)} percentile — takes more benchmark-relative risk than ${Math.round(tPct)}% of the ${nFunds} ${cohortDesc}.`
+                  ? `${ordinal(tPct)} percentile — takes more benchmark-relative risk than ${Math.round(tPct)}% of the ${cohortWithCount}.`
                   : null
               }
             />
@@ -455,7 +468,19 @@ export function CurrentPositioning({
       {/* Holdings block — free (this branch only runs for free+ callers) */}
       {(top10 != null || holdingsFullTeaser != null || regions.length > 0) && (
         <Panel className="p-0">
-          <PanelHead title="Holdings" asOf={top10?.as_of ? `N-PORT · as of ${top10.as_of}` : undefined} />
+          <PanelHead
+            title="Holdings"
+            right={
+              <div className="flex items-center gap-2">
+                {/* The top-10 comparison is the one remaining fixture in this
+                    section — sample-marked at the SUB-BLOCK, not the section. */}
+                {top10 != null && isSample(top10) && <SampleChip>Top-10 sample</SampleChip>}
+                {top10?.as_of && (
+                  <span className="text-[11px] text-gray-400">N-PORT · as of {top10.as_of}</span>
+                )}
+              </div>
+            }
+          />
           {top10?.rows && top10.rows.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[440px] text-[13.5px]">

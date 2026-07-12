@@ -136,16 +136,30 @@ export function cohortPhrase(c: {
   kind?: string | null;
   label?: string | null;
   is_blend?: boolean | null;
-  constituents?: { etf?: string | null; weight?: number | null }[] | null;
+  constituents?: { etf?: string | null; weight?: number | null; n?: number | null }[] | null;
 }): string {
   if (c.kind === "peer_group") return `funds in its peer group (${c.label})`;
   if (c.is_blend && c.constituents?.length) {
+    // Owner-approved phrasing ("weighted across …", fee-peer-band PRD). When a
+    // constituent carries its cohort size, append "of n": a blended percentile
+    // weighs SEPARATE ranked populations, so a single "the N funds" prefix
+    // over-implies one ranked list (DQ-critic P3) — callers drop the count
+    // prefix for blends (cohortIsBlend). Fee cohorts carry no n → byte-identical
+    // to the shipped fee-ruler copy.
     const weights = c.constituents
-      .map((k) => `${k.etf ?? EM_DASH} ${Math.round((k.weight ?? 0) * 100)}%`)
+      .map(
+        (k) =>
+          `${k.etf ?? EM_DASH} ${Math.round((k.weight ?? 0) * 100)}%${k.n != null ? ` of ${k.n}` : ""}`,
+      )
       .join(" / ");
     return `funds sharing its blended passive alternative (weighted across ${weights})`;
   }
   return `funds benchmarked to ${c.label}`;
+}
+
+/** True for a blend cohort — callers drop the single-count prefix ("the N …"). */
+export function cohortIsBlend(c: { is_blend?: boolean | null } | null | undefined): boolean {
+  return c?.is_blend === true;
 }
 
 /** Ordinal for a percentile, e.g. 2 → "2nd", 67 → "67th". */

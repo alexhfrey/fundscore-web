@@ -20,6 +20,7 @@ import {
   buildRiskExplainers,
   overlayV2Fixtures,
   tierAllows,
+  type FundFamilyPanel,
   type NavSeries,
   type PositioningContext,
   type RiskBehavior,
@@ -207,17 +208,11 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
           }
       : null;
 
-  // Fund family — free. Prefer the real backend panel. Guard against the base
-  // row's `fundFamily` STRING, which is the DB adviser name colliding with the
-  // fixture panel key; only a real panel object counts as present.
-  const familyPanel =
-    row.fundFamilyPanel != null && typeof row.fundFamilyPanel === "object"
-      ? row.fundFamilyPanel
-      : row.fundFamily != null && typeof row.fundFamily === "object"
-        ? row.fundFamily
-        : null;
-  const familyPresent = familyPanel != null;
-  const fundFamily = free ? familyPanel : null;
+  // Fund family — SERVED fund_family_panel (gate: free, owned by applyGates;
+  // anon holds a {locked} marker). The base row's `fundFamily` STRING (the SEC
+  // trust name) is a different field and never read here.
+  const familyPresent = row.fundFamilyPanel != null;
+  const fundFamily = free ? unlocked<FundFamilyPanel>(row.fundFamilyPanel) : null;
 
   const identity = row.identity as Identity;
   const isPassive = identity.management_style === "passive";

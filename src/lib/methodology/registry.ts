@@ -254,6 +254,38 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     ],
   },
   {
+    anchor: "fund-family",
+    title: "Fund Family Value",
+    tagline:
+      "How a fund's family — its adviser — ranks on after-fee value across its scored funds, and where this fund sits inside it.",
+    methodVersion: "fund_family_panel_v0.1",
+    asOf:
+      "Value as of 2026-05-09; member AUM stamps span 2024-10-31 to 2025-09-30 (the page discloses the range).",
+    measures: [
+      "The family is the fund's ADVISER (from N-CEN filings) — the firm actually running the money — not the SEC trust name, which splits one brand across dozens of registrants. For each family we show the average and the AUM-weighted net value per year across its scored funds (each fund read against its OWN passive alternative), and a rank among families with at least five scored funds.",
+      "Showing both averages is deliberate: the AUM-weighted figure counts every invested dollar equally, the simple average counts every fund equally — the gap between them says whether the family's biggest funds do better or worse than its typical fund.",
+    ],
+    method: [
+      "Scored funds are grouped by cleaned adviser name (a small alias map merges spelling variants; sub-advised funds group under the adviser). Each fund's net value is its Value Score read — after fees, versus its own closest passive alternative — so the family aggregate is an average of per-fund comparisons, never a single-benchmark claim.",
+      "The family rank uses the AUM-weighted since-inception figure (the payload names the rank basis); families with fewer than five scored funds are shown but never ranked. The member table lists the family's largest scored funds by AUM, always including the fund you are viewing.",
+      "The 3-year column is a different, realized basis: each fund's beta-adjusted after-fee excess over its passive alternative across the last three years of the matched monthly window — commensurately beta-adjusted like the Value Score, but a raw realized read, not a shrunk score. Funds without a 3-year matched window are excluded from the 3-year aggregates, never imputed.",
+    ],
+    sources: [
+      "Value Score panel (per-fund net value vs its own passive alternative)",
+      "Fund metadata (N-CEN adviser name, monthly average net assets)",
+      "The matched-window period table behind the Growth & After-Fee Returns section (the 3-year column)",
+    ],
+    notMeaning: [
+      "A family's rank describes its scored funds' past after-fee value — it is not a prediction for any fund, and not a claim about funds we don't score.",
+      "The since-inception and 3-year columns are different statistics on different bases (shrunk score vs realized excess) — they are shown side by side, never added or averaged together.",
+    ],
+    limitations: [
+      "Coverage is scored funds only (about 2,100 member funds across 412 families; 115 families reach the 5-fund ranking bar) — the page says 'scored funds', never 'all funds'.",
+      "Member AUM stamps come from filings and span a date range rather than one day; the page discloses the range.",
+      "Adviser-name grouping can fragment a family whose filings spell the adviser differently; known variants are merged and the top families were eyeballed, but a residual split is possible.",
+    ],
+  },
+  {
     anchor: "nav-series",
     title: "Growth & After-Fee Returns (Matched Windows)",
     tagline:

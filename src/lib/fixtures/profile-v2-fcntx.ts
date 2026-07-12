@@ -16,7 +16,6 @@ import raw from "./profile-v2-fcntx.json";
 import type {
   AiSummary,
   AttributionWindowSummary,
-  FundFamilyPanel,
   PositioningBetBridges,
   RecentChangesTe,
   Top10VsIwf,
@@ -24,7 +23,6 @@ import type {
 
 export interface V2Fixtures {
   recentChangesTe: RecentChangesTe;
-  fundFamily: FundFamilyPanel;
   aiSummary: AiSummary;
   attributionWindowSummary: AttributionWindowSummary;
   top10VsIwf: Top10VsIwf;
@@ -69,33 +67,9 @@ const recentChangesTe: RecentChangesTe = {
   })),
 };
 
-const fundFamily: FundFamilyPanel = {
-  __sample: true,
-  sample_label:
-    "real adviser-level aggregation (value_score × fund_metadata) from the design-mock prep; pending spec fund-family-panel",
-  family: j.fund_family.family,
-  family_display: j.fund_family.family_display,
-  n_funds_scored: j.fund_family.n_funds_scored,
-  total_scored_aum_usd: j.fund_family.total_scored_aum_bn * 1e9,
-  avg_value_bps: j.fund_family.avg_value_bps,
-  aum_weighted_value_bps: j.fund_family.aum_weighted_value_bps,
-  avg_value_bps_3y: null, // pending profile-nav-series — do not invent
-  aum_weighted_value_bps_3y: null,
-  family_rank: j.fund_family.family_rank,
-  n_families_ranked: j.fund_family.n_families_ranked,
-  rank_basis: j.fund_family.rank_basis,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  funds: j.fund_family.fidelity_top_funds_by_aum.map((f: any) => ({
-    ticker: f.ticker,
-    name: f.name,
-    value_bps: f.value_bps,
-    aum_usd: f.aum_bn * 1e9,
-    passive_alt_label: f.passive_alt,
-    is_this_fund: f.is_this_fund === true,
-  })),
-  leaders: j.fund_family.leaders,
-  as_of: j.fund_family.as_of,
-};
+// fund_family_panel is now SERVED (fund-family-panel, fund_family_panel_v0.1) —
+// its fixture was removed at the production flip; a fixture never coexists with
+// a served section. The type lives in serving/profile-v2.ts.
 
 const aiSummary: AiSummary = {
   __sample: true,
@@ -167,7 +141,6 @@ const positioningBetBridges: PositioningBetBridges = {
 const FIXTURES: Record<string, V2Fixtures> = {
   FCNTX: {
     recentChangesTe,
-    fundFamily,
     aiSummary,
     attributionWindowSummary,
     top10VsIwf,

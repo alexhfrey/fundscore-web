@@ -48,6 +48,21 @@ A v2 section may switch from fixture to served data ONLY when ALL of:
   flip first).
 
 ## Flip log
+- **2026-07-12 — fund_family_panel FLIPPED to served** (protocol steps 1–4 + flip-2 critic fixes):
+  fixture DELETED; page reads served `fundFamilyPanel` only (the base-row `fundFamily` SEC-trust
+  string is unrelated and untouched); fail-closed `defaultGate: "free"` added per codex P2 (+
+  missing-gate golden assertions). Served 3Y columns REPLACE the "3-year value in development" gap
+  chip (member `value_bps_3y`, family 3Y aggregates) with an explicit two-bases note (SI = shrunk
+  Value Score; 3Y = realized β-adj after-fee excess — never added). Unranked families render
+  honestly ("too small a family to rank", ranking needs ≥5 — DREVX verified; board note added).
+  AUM as-of RANGE disclosed in the header ("AUM as of 2024-10-31–2025-09-30"). Methodology artifact
+  `fund-family` (fund_family_panel_v0.1). Flip-2 critic fixes folded in: section-05 Sample badge
+  removed (scoped "Top-10 sample" chip on the one remaining fixture sub-block); blend cohorts
+  phrase per-constituent sizes ("weighted across IXN 50% of 20 / FDN 50% of 21") and drop the
+  single-count prefix — fee-ruler copy stays byte-identical (its cohorts carry no n). Coverage
+  2,070 funds (1,549 ranked / 521 too-small). Gates: lint/build/golden (+8 assertions) + codex high
+  pass 0 P0/P1 (its 1 deduped P2 advisory = the defaultGate hardening, applied + golden-proven).
+  Step 5 post-commit.
 - **2026-07-12 — nav_series FLIPPED to served** (protocol steps 1–4 + flip-1 critic fast-follows):
   fixture DELETED; the applyGates field-gate is now the single owner of the public/paid split
   (in-page strip removed — free gets the ONE proof-point row it defines: "3Y · after fees ·
@@ -61,7 +76,16 @@ A v2 section may switch from fixture to served data ONLY when ALL of:
   VOO index-fund filed-benchmark one-liner, IR typographic minus, registry per-fund as-of +
   missing-proxy limitation wording. Coverage 3,190 funds; VOO honest-null (risk expander still
   renders). Gates: lint/build/golden ALL PASS + codex high pass 0 P0/P1 ("no discrete introduced
-  bugs"; 2 counted advisories are pre-existing comment strings in diff context). Step 5 post-commit.
+  bugs"; 2 counted advisories are pre-existing comment strings in diff context). **Step 5 VERDICT:
+  PASS — ship-quality** (2026-07-12 critic, FCNTX/DODGX/VOO): all 16 period cells + chart endpoints
+  byte-exact through capture→Postgres→staging→gold AND reproduced from the raw daily parquets
+  (β-adj leg provably uses value_score.beta exactly); free-tier stripped at the PAYLOAD level (217
+  points passive:null, one proof row); zero "since inception" in section 03; VOO honest-null;
+  external sanity consistent. Escalations: P2 GrowthChart range buttons don't suppress ranges
+  longer than the paired window (latent — up to 1,553/3,190 funds' 10Y button) + P3s (partial-month
+  final point labeled month-end, VOO footnote references an absent table, free-tier ⓘ copy, β≥1
+  takeaway asymmetry, section-04 "Since inception" survivor) → all folded into the attribution
+  flip.
 - **2026-07-12 — positioning_context FLIPPED to served** (protocol steps 1–4 + the TE bets-table
   presentation batch folded in): fixture DELETED; `applyGates` now owns the section
   (`positioningContext` was MISSING from GATED_SECTIONS — added with fail-closed
@@ -75,7 +99,14 @@ A v2 section may switch from fixture to served data ONLY when ALL of:
   freshness stamp "returns through window_end · built as_of" (window_end added to the TE proof
   point). Methodology artifact `positioning-context` (positioning_context_v0.1). Coverage 1,961
   funds (1,904 same-passive-alt / 57 peer-group). Gates: lint/build/golden (+7 assertions incl.
-  missing-gate-key fail-closed) + codex high pass 0 P0/P1 (0 advisories). Step 5 post-commit.
+  missing-gate-key fail-closed) + codex high pass 0 P0/P1 (0 advisories). **Step 5 VERDICT: PASS**
+  (2026-07-12 critic, FCNTX/DTEYX/GGHCX/IENAX): byte-exact chain + every percentile independently
+  recomputed to the digit incl. blend definition-C (DTEYX 85.6300/73.7692 exact) and peer fallback
+  (GGHCX); "160 not 158" confirmed correct under definition C; honest-null IENAX end-to-end;
+  one-TE-per-page holds on all 4. Findings: P1 = the pre-existing vs_benchmark item (mitigation
+  confirmed shipped as designed); P2 section-05 "Sample" badge now mislabels served data + P3
+  blend-cohort n phrasing → both fixed in the fund-family flip; P3s noted (fixture AI-summary says
+  158, peer-group raw taxonomy code).
 - **2026-07-12 — riskExplainers retired to DERIVED copy + 3Y risk expander wired to served
   riskBehavior** (protocol steps 1–4; no backend dep): `buildRiskExplainers` templates the ⓘ
   explainer strings from the SAME numbers the gauges display (fixture strings hardcoded FCNTX's

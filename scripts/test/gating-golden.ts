@@ -63,6 +63,7 @@ const FCNTX_ROW = {
     nav_series: "public",
     te_decomposition: "paid",
     positioning_context: "free",
+    fund_family_panel: "free",
   },
   identity: {
     ticker: "FCNTX",
@@ -208,6 +209,33 @@ const FCNTX_ROW = {
     as_of: "2026-05-09",
     blend_asof: "2026-02-28",
     method_version: "positioning_context_v0.1",
+  },
+  // fund_family_panel gate=free — the adviser-level family panel. Whole section
+  // must lock for anon and open for free (no field-level strip, no projector).
+  fundFamilyPanel: {
+    family: "fidelity management and research company llc",
+    family_display: "Fidelity Management & Research Company LLC",
+    n_funds_scored: 115,
+    aum_weighted_value_bps: 35.5,
+    avg_value_bps: 8.35,
+    avg_value_bps_3y: 202.94,
+    aum_weighted_value_bps_3y: 369.02,
+    family_rank: 4,
+    n_families_ranked: 115,
+    ranking_status: "ranked",
+    funds: [
+      {
+        ticker: "FCNTX",
+        name: "Fidelity Contrafund",
+        value_bps: 10,
+        value_bps_3y: 472.15,
+        aum_usd: 140604345484,
+        passive_alt_label: "IWF",
+        is_this_fund: true,
+      },
+    ],
+    as_of: "2026-05-09",
+    method_version: "fund_family_panel_v0.1",
   },
   // risk_behavior gate=free — the 3Y risk-detail expander's payload. Whole
   // section must lock for anon and open for free (no field-level strip).
@@ -398,6 +426,29 @@ check(
   "risk_behavior sharpe_3y does not survive in anon payload",
   !hasLiveNumber(anon.riskBehavior, "sharpe_3y"),
 );
+// fund_family_panel (free): the family panel must lock for anon — its
+// rank/aggregate figures never ship below the free gate.
+check("fund_family_panel (free) is {locked} for anon", isLocked(anon.fundFamilyPanel));
+check(
+  "fund_family_panel aggregates do not survive in anon payload",
+  !hasLiveNumber(anon.fundFamilyPanel, "aum_weighted_value_bps") &&
+    !hasLiveNumber(anon.fundFamilyPanel, "value_bps_3y"),
+);
+// FAIL-CLOSED default: a row whose gates JSONB is MISSING the fund_family_panel
+// key must still gate the populated panel at free (codex P2 — never public).
+{
+  const gatesSansFam = { ...(FCNTX_ROW.gates as Record<string, unknown>) };
+  delete gatesSansFam.fund_family_panel;
+  const rowSansFamGate = { ...FCNTX_ROW, gates: gatesSansFam } as typeof FCNTX_ROW;
+  check(
+    "fund_family_panel with MISSING gate key fails CLOSED for anon (default free)",
+    isLocked(applyGates(rowSansFamGate, "anonymous").fundFamilyPanel),
+  );
+  check(
+    "fund_family_panel with MISSING gate key still opens for free",
+    !isLocked(applyGates(rowSansFamGate, "free").fundFamilyPanel),
+  );
+}
 // positioning_context (free): the cohort percentiles must lock for anon.
 check(
   "positioning_context (free) is {locked} for anon",
@@ -541,6 +592,11 @@ check(
 check(
   "risk_behavior null relative fields stay null for free (never defaulted)",
   (freeRow.riskBehavior as { beta_3y?: number | null })?.beta_3y === null,
+);
+check("fund_family_panel unlocked for free", !isLocked(freeRow.fundFamilyPanel));
+check(
+  "fund_family_panel 3Y member value present for free (positive control)",
+  hasLiveNumber(freeRow.fundFamilyPanel, "value_bps_3y"),
 );
 
 // te_decomposition: the paid tier holds the full per-bet table, and the negative

@@ -200,12 +200,20 @@ export interface RecentChangesTe extends SampleTag {
   method_version?: string | null;
 }
 
-// --- fund_family (spec: fund-family-panel) -----------------------------------
+// --- fund_family_panel (SERVED — fund-family-panel, fund_family_panel_v0.1).
+//     Adviser-level (N-CEN adviser, NOT the SEC trust) family aggregation.
+//     Ranking needs ≥5 scored funds (ranking_status names the honest state);
+//     the SI aggregates are Value Score bps (shrunk, net); the 3Y variants are
+//     realized after-fee β-adjusted excess from the nav-series period table —
+//     a REALIZED-return basis, related but not the same statistic. Two separate
+//     columns, never blended. ---------------------------------------------------
 export interface FamilyFundRow {
   ticker: string;
   name: string | null;
-  value_bps: number | null; // vs the fund's OWN passive alternative
+  value_bps: number | null; // vs the fund's OWN passive alternative (SI, Value Score)
+  value_bps_3y?: number | null; // realized 3Y after-fee β-adj excess (nav-series basis)
   aum_usd: number | null;
+  aum_as_of_date?: string | null;
   passive_alt_label: string | null;
   is_this_fund?: boolean;
 }
@@ -216,21 +224,27 @@ export interface FamilyLeaderRow {
   aum_weighted_bps: number | null;
   avg_bps: number | null;
 }
-export interface FundFamilyPanel extends SampleTag {
+export interface FundFamilyPanel {
   family: string | null; // cleaned adviser name (grouping key)
   family_display: string | null; // short brand label for copy
   n_funds_scored: number | null;
+  n_funds_3y?: number | null; // members with a 3Y matched window (never imputed)
   total_scored_aum_usd: number | null;
   avg_value_bps: number | null;
   aum_weighted_value_bps: number | null;
-  avg_value_bps_3y: number | null; // null until profile-nav-series lands
+  avg_value_bps_3y: number | null;
   aum_weighted_value_bps_3y: number | null;
-  family_rank: number | null;
+  family_rank: number | null; // null when the family is too small to rank
   n_families_ranked: number | null;
   rank_basis: string | null;
+  ranking_status?: string | null; // "ranked" | "family_too_small_to_rank"
   funds: FamilyFundRow[]; // top-N by AUM; the fund's own row always present
   leaders?: FamilyLeaderRow[];
   as_of: string | null;
+  aum_as_of_date_min?: string | null; // AUM stamps span a range — disclose it
+  aum_as_of_date_max?: string | null;
+  value_as_of_date_min?: string | null;
+  value_as_of_date_max?: string | null;
   method_version?: string | null;
 }
 
@@ -460,8 +474,10 @@ export interface FactRowV2 extends FactRow {
   // narrowed type includes Locked.
   teDecomposition?: TeDecomposition | Locked | null;
   recentChangesTe?: RecentChangesTe | null;
-  fundFamily?: FundFamilyPanel | null;
-  fundFamilyPanel?: FundFamilyPanel | null;
+  // SERVED + tier-gated (fund_family_panel=free): applyGates leaves the full
+  // object for free+ and a { locked } marker for anon. (`fundFamily` on the
+  // base row is the SEC-trust STRING scalar — not this panel.)
+  fundFamilyPanel?: FundFamilyPanel | Locked | null;
   aiSummary?: AiSummary | null;
   attributionBlocks?: AttributionBlocks | null;
   attributionWindowSummary?: AttributionWindowSummary | null;
@@ -494,13 +510,9 @@ export async function overlayV2Fixtures(
   // teDecomposition is SERVED (te-decomposition-by-bet shipped) — no fixture
   // overlay; applyGates already resolved the row's full/locked/absent value.
   out.recentChangesTe = out.recentChangesTe ?? fx.recentChangesTe;
-  const servedFamily =
-    out.fundFamilyPanel != null && typeof out.fundFamilyPanel === "object"
-      ? out.fundFamilyPanel
-      : out.fundFamily != null && typeof out.fundFamily === "object"
-        ? out.fundFamily
-        : null;
-  out.fundFamily = servedFamily ?? fx.fundFamily;
+  // fundFamilyPanel is SERVED (fund-family-panel shipped) — no fixture overlay;
+  // applyGates owns its free gate on the base row. (The base row's fundFamily
+  // STRING — the SEC trust name — is untouched and unrelated.)
   out.aiSummary = out.aiSummary ?? fx.aiSummary;
   out.attributionWindowSummary =
     out.attributionWindowSummary ?? fx.attributionWindowSummary;

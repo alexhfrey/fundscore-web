@@ -360,7 +360,9 @@ const GATED_SECTIONS: { col: string; gate: string; defaultGate?: string }[] = [
   // positioning-context-percentiles — contract gate is "free"; fail CLOSED to
   // free (never public) if the gates key ever goes missing on a load drift.
   { col: "positioningContext", gate: "positioning_context", defaultGate: "free" },
-  { col: "fundFamilyPanel", gate: "fund_family_panel" },
+  // fund-family-panel — contract gate is "free"; fail CLOSED to free (never
+  // public) if the gates key ever goes missing on a load drift (codex P2).
+  { col: "fundFamilyPanel", gate: "fund_family_panel", defaultGate: "free" },
   { col: "teDecomposition", gate: "te_decomposition", defaultGate: "paid" },
   { col: "alternatives", gate: "alternatives" },
   { col: "takeaways", gate: "takeaways" },
