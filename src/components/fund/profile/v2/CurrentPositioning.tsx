@@ -21,7 +21,7 @@ import type {
 } from "@/lib/serving/profile-v2";
 import type { TeProofPreview, TeRollupRow } from "@/lib/serving/profile";
 import { fmtPct, fmtSignedBps, fmtNum, fmtDate, EM_DASH } from "@/lib/serving/format";
-import { ordinal, countryName, ppSigned } from "./format";
+import { cohortPhrase, ordinal, countryName, ppSigned } from "./format";
 import {
   ChapterHeader,
   Panel,
@@ -157,7 +157,9 @@ export function CurrentPositioning({
   free,
   paid,
   passiveLabel,
+  l2BlendEtfs,
 }: {
+  // SERVED positioning_context (gate: free) — passed only when entitled.
   positioning: PositioningContext | null;
   riskExplainers: RiskExplainers | null;
   // The FULL served bets table (paid only — the 12 bets never ship below paid).
@@ -183,6 +185,10 @@ export function CurrentPositioning({
   free: boolean;
   paid: boolean;
   passiveLabel: string | null;
+  // The fund's L2 blend constituent ETF names (public l2_blend_etfs) — drives
+  // the blend-aware "Active vs" header + the baseline-composition chip so a
+  // blend baseline is never presented as the lead ETF alone.
+  l2BlendEtfs?: string[] | null;
 }) {
   const pass = passiveLabel ?? "IWF";
 
@@ -229,17 +235,34 @@ export function CurrentPositioning({
   const bPct = positioning?.beta_percentile ?? null;
   const tPct = positioning?.te_percentile ?? null;
   const nFunds = positioning?.cohort?.n_funds ?? null;
-  const cohortLabel = positioning?.cohort?.label ?? `funds benchmarked to ${pass}`;
+  // Shared page-wide cohort phrasing (same helper as the fee ruler): "funds
+  // benchmarked to IWF" / blend / peer-group — the raw served label alone would
+  // read "the 160 IWF".
+  const cohortDesc = positioning?.cohort
+    ? cohortPhrase(positioning.cohort)
+    : `funds benchmarked to ${pass}`;
 
   const takeaway =
     free && positioning ? (
       <>
-        Beta <span className="tabular-nums">{beta?.toFixed(2)}</span> vs {pass} — lower
-        than <span className="tabular-nums">{bPct != null ? 100 - bPct : EM_DASH}%</span>{" "}
-        of the {nFunds} {cohortLabel}. Tracking error{" "}
-        <span className="tabular-nums">{teBps != null ? `${(teBps / 100).toFixed(1)}%/yr` : EM_DASH}</span>{" "}
-        — higher than <span className="tabular-nums">{tPct ?? EM_DASH}%</span> of that
-        cohort.
+        Beta <span className="tabular-nums">{beta != null ? beta.toFixed(2) : EM_DASH}</span> vs {pass}
+        {bPct != null && nFunds != null && (
+          <>
+            {" "}
+            — lower than <span className="tabular-nums">{Math.round(100 - bPct)}%</span> of
+            the {nFunds} {cohortDesc}
+          </>
+        )}
+        . Tracking error{" "}
+        <span className="tabular-nums">{teBps != null ? `${(teBps / 100).toFixed(1)}%/yr` : EM_DASH}</span>
+        {tPct != null && (
+          <>
+            {" "}
+            — higher than <span className="tabular-nums">{Math.round(tPct)}%</span> of that
+            cohort
+          </>
+        )}
+        .
       </>
     ) : (
       <>How this fund is positioned today — its market sensitivity, benchmark-relative risk, active bets and holdings vs {pass}.</>
@@ -254,8 +277,29 @@ export function CurrentPositioning({
   const teIdioShare = teDecomposition?.idio_risk_share ?? teProof?.idio_risk_share ?? null;
   const teBasisNote = teDecomposition?.basis_note ?? teProof?.basis_note ?? null;
   const teAsOf = teDecomposition?.as_of ?? teProof?.as_of ?? null;
+  const teWindowEnd = teDecomposition?.window_end ?? teProof?.window_end ?? null;
   const tePassive = teDecomposition?.passive_alt_label ?? teProof?.passive_alt_label ?? pass;
   const teAvailable = teDecomposition != null || teProof != null || teLocked;
+
+  // Blend-aware baseline: when the passive alternative is an L2 BLEND, the
+  // bets table's held/active differences are vs the blend, not the lead ETF —
+  // the header must not name the lead alone. Weights print only when the
+  // positioning cohort covers the FULL blend (qualifying_weight === 1, so its
+  // renormalized weights ARE the blend weights); otherwise names only — never
+  // fabricated weights.
+  const isBlendBaseline = (l2BlendEtfs?.length ?? 0) > 1;
+  const cohortCoversBlend =
+    positioning?.cohort?.kind === "same_passive_alt" &&
+    positioning.cohort.is_blend === true &&
+    positioning.cohort.qualifying_weight === 1 &&
+    (positioning.cohort.constituents?.length ?? 0) === (l2BlendEtfs?.length ?? 0);
+  const blendComposition = isBlendBaseline
+    ? cohortCoversBlend && positioning?.cohort?.constituents
+      ? positioning.cohort.constituents
+          .map((c) => `${c.etf} ${Math.round((c.weight ?? 0) * 100)}%`)
+          .join(" + ")
+      : l2BlendEtfs!.join(" + ")
+    : null;
 
   const xrows = (exposureXray?.rows ?? []) as XrayRow[];
   const activeShare = conc(xrows, "concentration::active_share");
@@ -280,38 +324,48 @@ export function CurrentPositioning({
         sample
       />
 
-      {/* Gauges — free (this branch only runs for free+ callers) */}
+      {/* Gauges — SERVED positioning_context, free (this branch only runs for
+          free+ callers). Percentiles are the page-wide strictly-below
+          convention; displayed values are rounded (the raw served precision —
+          "98.125%" — over-implies exactness). */}
       {positioning != null && (
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <Gauge
-            label={`Beta vs ${pass}`}
-            tip={riskExplainers?.beta}
-            value={beta != null ? beta.toFixed(2) : EM_DASH}
-            median={positioning?.beta_cohort_median != null ? `cohort median ${positioning.beta_cohort_median.toFixed(2)}` : null}
-            percentile={bPct}
-            readout={
-              bPct != null && nFunds != null
-                ? `${ordinal(bPct)} percentile of the ${nFunds} ${cohortLabel} — lower market sensitivity than ${100 - bPct}% of that cohort.`
-                : null
-            }
-          />
-          <Gauge
-            label={`Tracking error vs ${pass}`}
-            tip={riskExplainers?.tracking_error}
-            value={teBps != null ? `${(teBps / 100).toFixed(1)}%` : EM_DASH}
-            median={
-              positioning?.te_cohort_median_bps != null
-                ? `weekly, β-adj, 3Y · cohort median ${(positioning.te_cohort_median_bps / 100).toFixed(1)}%`
-                : null
-            }
-            percentile={tPct}
-            readout={
-              tPct != null && nFunds != null
-                ? `${ordinal(tPct)} percentile — takes more benchmark-relative risk than ${tPct}% of the ${nFunds} ${cohortLabel}.`
-                : null
-            }
-          />
-        </div>
+        <>
+          <div className="mt-4 flex items-baseline justify-end gap-3 text-[11px] text-gray-400">
+            {positioning.as_of && <span>cohort percentiles as of {fmtDate(positioning.as_of)}</span>}
+            <Link
+              href="/methodology#positioning-context"
+              className="shrink-0 hover:text-[#1466b8] hover:underline"
+            >
+              How we calculate this →
+            </Link>
+          </div>
+          <div className="mt-1.5 grid gap-4 sm:grid-cols-2">
+            <Gauge
+              label={`Beta vs ${pass}`}
+              tip={riskExplainers?.beta}
+              value={beta != null ? beta.toFixed(2) : EM_DASH}
+              basis={null}
+              percentile={bPct}
+              readout={
+                bPct != null && nFunds != null
+                  ? `${ordinal(bPct)} percentile of the ${nFunds} ${cohortDesc} — lower market sensitivity than ${Math.round(100 - bPct)}% of that cohort.`
+                  : null
+              }
+            />
+            <Gauge
+              label={`Tracking error vs ${pass}`}
+              tip={riskExplainers?.tracking_error}
+              value={teBps != null ? `${(teBps / 100).toFixed(1)}%` : EM_DASH}
+              basis="weekly, β-adjusted, 3Y"
+              percentile={tPct}
+              readout={
+                tPct != null && nFunds != null
+                  ? `${ordinal(tPct)} percentile — takes more benchmark-relative risk than ${Math.round(tPct)}% of the ${nFunds} ${cohortDesc}.`
+                  : null
+              }
+            />
+          </div>
+        </>
       )}
 
       {/* Bets table (SERVED te_decomposition) — full table paid, grouped rollup
@@ -322,7 +376,15 @@ export function CurrentPositioning({
             title="The bets, in one table"
             right={
               <div className="flex items-center gap-3 text-[11px] text-gray-400">
-                {teAsOf && <span>tracking error as of {fmtDate(teAsOf)}</span>}
+                {/* Split freshness stamp: the build date alone overstates
+                    freshness — the returns window ends earlier. */}
+                {teWindowEnd != null && teAsOf != null ? (
+                  <span>
+                    returns through {fmtDate(teWindowEnd)} · built {fmtDate(teAsOf)}
+                  </span>
+                ) : (
+                  teAsOf && <span>built {fmtDate(teAsOf)}</span>
+                )}
                 <Link
                   href="/methodology#te-decomposition"
                   className="shrink-0 text-gray-400 hover:text-[#1466b8] hover:underline"
@@ -333,11 +395,27 @@ export function CurrentPositioning({
             }
           />
 
+          {/* Baseline-composition chip — a blend baseline is never presented as
+              the lead ETF alone (weights only when truly known). */}
+          {blendComposition && (
+            <div className="px-5 pb-1 pt-0.5 text-[11.5px] leading-relaxed text-gray-500">
+              <span className="rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-medium">
+                Baseline = L2 blend: {blendComposition}
+              </span>{" "}
+              &ldquo;Active&rdquo; weights compare against this weighted blend, not{" "}
+              {tePassive} alone.
+            </div>
+          )}
+
           {/* Grouped sleeve rollup — the free proof-point headline (all free+ tiers). */}
           <TeRollupHeadline rollup={teRollup} totalBps={teTotalBps} />
 
           {paid && teDecomposition ? (
-            <BetsTable rows={betRows} passiveLabel={tePassive} />
+            <BetsTable
+              rows={betRows}
+              passiveLabel={tePassive}
+              baselineLabel={isBlendBaseline ? "blend" : tePassive}
+            />
           ) : (
             <div className="border-t border-gray-100 px-5 py-4">
               {topBet && (
@@ -557,14 +635,16 @@ function Gauge({
   label,
   tip,
   value,
-  median,
+  basis,
   percentile,
   readout,
 }: {
   label: string;
   tip?: string | null;
   value: string;
-  median: string | null;
+  // Short basis line beside the value (e.g. "weekly, β-adjusted, 3Y") — the
+  // served payload carries no cohort medians, so nothing else prints here.
+  basis: string | null;
   percentile: number | null;
   readout: string | null;
 }) {
@@ -577,7 +657,7 @@ function Gauge({
       </div>
       <div className="mt-1.5 flex items-baseline gap-2">
         <span className="text-3xl font-bold tabular-nums text-gray-900">{value}</span>
-        {median && <span className="text-[12px] text-gray-400">{median}</span>}
+        {basis && <span className="text-[12px] text-gray-400">{basis}</span>}
       </div>
       <div className="relative mt-4 h-2 rounded-full bg-gray-200">
         <span className="absolute -top-1 h-4 w-px bg-gray-400" style={{ left: "50%" }} />

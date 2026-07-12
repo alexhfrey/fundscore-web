@@ -20,6 +20,7 @@ import {
   buildRiskExplainers,
   overlayV2Fixtures,
   tierAllows,
+  type PositioningContext,
   type RiskBehavior,
   type TeDecomposition,
 } from "@/lib/serving/profile-v2";
@@ -149,8 +150,23 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
         }
     : null;
 
-  // Positioning gauges — free.
-  const positioningContext = free ? (row.positioningContext ?? null) : null;
+  // Positioning gauges — SERVED positioning_context (gate: free, owned by
+  // applyGates; anon holds a {locked} marker). `free ?` is belt-and-braces.
+  const positioningContext = free
+    ? unlocked<PositioningContext>(row.positioningContext)
+    : null;
+  const positioningPresent = row.positioningContext != null;
+
+  // The fund's L2 blend constituents (public l2_blend_etfs, comma-joined) —
+  // names only; weights come from the positioning cohort when it covers the
+  // full blend. Drives the blend-aware bets-table baseline.
+  const vor = isLocked(row.valueOfferingReframed)
+    ? null
+    : (row.valueOfferingReframed as { l2_blend_etfs?: string | null } | null);
+  const l2BlendEtfs =
+    vor?.l2_blend_etfs != null && vor.l2_blend_etfs !== ""
+      ? vor.l2_blend_etfs.split(",").map((s) => s.trim()).filter(Boolean)
+      : null;
 
   // TE decomposition (SERVED — te-decomposition-by-bet, gated 'paid' by
   // applyGates): paid → the full object; free/anon → { preview: proofPoint,
@@ -331,10 +347,11 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
             holdingsFullTeaser={holdingsFullTeaser}
             loadHoldingsFullRows={loadHoldingsFullRows}
             exposureXray={exposureXray}
-            present={tePresent || row.top10VsIwf != null || row.positioningContext != null || holdingsFullTeaser != null}
+            present={tePresent || row.top10VsIwf != null || positioningPresent || holdingsFullTeaser != null}
             free={free}
             paid={paid}
             passiveLabel={passiveLabel}
+            l2BlendEtfs={l2BlendEtfs}
           />
 
           {/* 06 · Recent changes */}

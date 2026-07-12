@@ -254,6 +254,39 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     ],
   },
   {
+    anchor: "positioning-context",
+    title: "Positioning Context (Cohort Percentiles)",
+    tagline:
+      "Where a fund's beta and tracking error sit among funds benchmarked to the same passive alternative.",
+    methodVersion: "positioning_context_v0.1",
+    asOf:
+      "Computed as of 2026-05-09, from the same beta and tracking-error reads as the Value Score; blend membership as of 2026-02-28.",
+    measures: [
+      "A beta of 0.90 or a tracking error of 4.8%/yr means little on its own. This context places each next to funds sharing the same passive alternative: the percentile says what fraction of that named cohort sits strictly below the fund on that measure.",
+      "The cohort is always named with its size — a percentile is never shown against an unnamed population. When the same-passive-alternative cohort is too small, the fund's peer group stands in (and the copy says so).",
+    ],
+    method: [
+      "Percentile = the share of cohort members strictly below the fund's value (the fund itself counts in the denominator; ties share the same percentile, never ranked above one another). This is the one percentile convention used page-wide — the fee ruler's peer percentile uses the same rule.",
+      "Cohorts need at least 20 members to produce a percentile; smaller cohorts show nothing rather than a percentile over a handful of funds. Funds whose passive alternative is a blend of ETFs get a blend-weighted percentile: the fund is read within each constituent ETF's cohort and the percentiles combine by the blend weights, renormalized over the constituents whose cohorts qualify.",
+      "Beta and tracking error are consumed exactly as the Value Score computed them (weekly returns, beta-adjusted, trailing three years, versus the fund's own passive alternative) — no recomputation, no mixing of bases.",
+    ],
+    sources: [
+      "Value Score panel (beta, current tracking error, passive-alternative label)",
+      "L2 passive-blend membership (which ETFs, and their weights, form each fund's alternative)",
+      "Fund taxonomy peer groups (the small-cohort fallback)",
+    ],
+    notMeaning: [
+      "A percentile is position, not quality — a low beta is not better or worse, it is just less market sensitivity than most of the cohort.",
+      "A high tracking-error percentile does not mean more (or less) skill — it means the fund takes more benchmark-relative risk than most funds read against the same alternative.",
+      "These are descriptions of current positioning, not forecasts.",
+    ],
+    limitations: [
+      "Only scored funds get percentiles (about 2,000 funds); funds whose cohort stays under 20 members even after the peer-group fallback show no percentile at all.",
+      "At the minimum cohort size percentiles quantise to roughly 5-point steps — displayed values are rounded so the precision isn't over-read.",
+      "For blend-baseline funds whose constituent cohorts don't all qualify, the percentile reads against the qualifying part of the blend (the copy names the constituents and weights actually used).",
+    ],
+  },
+  {
     anchor: "risk-behavior",
     title: "3-Year Risk Detail",
     tagline:

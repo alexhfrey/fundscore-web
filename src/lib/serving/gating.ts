@@ -357,6 +357,9 @@ const GATED_SECTIONS: { col: string; gate: string; defaultGate?: string }[] = [
   { col: "returnAttribution", gate: "return_attribution" },
   { col: "riskAttribution", gate: "risk_attribution" },
   { col: "positioningChanges", gate: "positioning_changes" },
+  // positioning-context-percentiles — contract gate is "free"; fail CLOSED to
+  // free (never public) if the gates key ever goes missing on a load drift.
+  { col: "positioningContext", gate: "positioning_context", defaultGate: "free" },
   { col: "fundFamilyPanel", gate: "fund_family_panel" },
   { col: "teDecomposition", gate: "te_decomposition", defaultGate: "paid" },
   { col: "alternatives", gate: "alternatives" },
@@ -476,6 +479,9 @@ export interface TeProofPreview {
   basis_note: string | null;
   passive_alt_label: string | null;
   as_of: string | null;
+  // Returns window end — the honest freshness stamp ("returns through X ·
+  // built as_of"); the build as_of alone overstates freshness (~2 weeks).
+  window_end: string | null;
 }
 
 export type Preview =
@@ -781,6 +787,7 @@ function pickTeProofPoint(s: AnyObj): TeProofPreview | null {
     basis_note: (s.basis_note as string | null) ?? null,
     passive_alt_label: (s.passive_alt_label as string | null) ?? null,
     as_of: (s.as_of as string | null) ?? null,
+    window_end: (s.window_end as string | null) ?? null,
   };
 }
 

@@ -126,6 +126,28 @@ export function assetCatLabel(code: string | null | undefined): string {
   return ASSET_CAT_LABELS[code] ?? code;
 }
 
+// --- shared cohort-phrase convention (ONE percentile convention page-wide) ---
+// Used by the fee ruler (fee-peer-band-web) and the positioning gauges. Blend
+// cohorts get the owner-decided honest phrasing (constituent ETFs + their
+// renormalized-over-qualifying weights — the weights the percentile actually
+// used); peer-group cohorts name the taxonomy cohort; single-ETF cohorts name
+// the ETF. Cohort name is ALWAYS in the copy — never an unnamed population.
+export function cohortPhrase(c: {
+  kind?: string | null;
+  label?: string | null;
+  is_blend?: boolean | null;
+  constituents?: { etf?: string | null; weight?: number | null }[] | null;
+}): string {
+  if (c.kind === "peer_group") return `funds in its peer group (${c.label})`;
+  if (c.is_blend && c.constituents?.length) {
+    const weights = c.constituents
+      .map((k) => `${k.etf ?? EM_DASH} ${Math.round((k.weight ?? 0) * 100)}%`)
+      .join(" / ");
+    return `funds sharing its blended passive alternative (weighted across ${weights})`;
+  }
+  return `funds benchmarked to ${c.label}`;
+}
+
 /** Ordinal for a percentile, e.g. 2 → "2nd", 67 → "67th". */
 export function ordinal(n: number | null | undefined): string {
   if (n == null || !isFinite(n)) return EM_DASH;

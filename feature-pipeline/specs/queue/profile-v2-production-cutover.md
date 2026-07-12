@@ -48,6 +48,20 @@ A v2 section may switch from fixture to served data ONLY when ALL of:
   flip first).
 
 ## Flip log
+- **2026-07-12 — positioning_context FLIPPED to served** (protocol steps 1–4 + the TE bets-table
+  presentation batch folded in): fixture DELETED; `applyGates` now owns the section
+  (`positioningContext` was MISSING from GATED_SECTIONS — added with fail-closed
+  `defaultGate: "free"` + golden assertions); type mirrors the served contract (no cohort medians;
+  blend constituents carry renormalized-over-qualifying weights and are never presented as the full
+  blend unless qualifying_weight === 1). Copy: shared `cohortPhrase` (fee ruler + gauges now import
+  ONE convention — single/blend/peer-group), rounded percentiles ("98%", not "98.125%"),
+  "2nd percentile of the 160 funds benchmarked to IWF". Presentation batch: blend-aware
+  "Active vs blend (pp)" header + baseline-composition chip (DTEYX "IXN 50% + FDN 50%"; IENAX
+  names-only "IXC + XOP" — also mitigates the vs_benchmark P1 until the panel fix), split
+  freshness stamp "returns through window_end · built as_of" (window_end added to the TE proof
+  point). Methodology artifact `positioning-context` (positioning_context_v0.1). Coverage 1,961
+  funds (1,904 same-passive-alt / 57 peer-group). Gates: lint/build/golden (+7 assertions incl.
+  missing-gate-key fail-closed) + codex high pass 0 P0/P1 (0 advisories). Step 5 post-commit.
 - **2026-07-12 — riskExplainers retired to DERIVED copy + 3Y risk expander wired to served
   riskBehavior** (protocol steps 1–4; no backend dep): `buildRiskExplainers` templates the ⓘ
   explainer strings from the SAME numbers the gauges display (fixture strings hardcoded FCNTX's
@@ -59,7 +73,14 @@ A v2 section may switch from fixture to served data ONLY when ALL of:
   "stale" state. Methodology artifact `risk-behavior` (honestly "unversioned — fund_metadata risk
   fields"; method verified against build_gold_metadata). Renders for funds without a nav series
   (VOO). Gates: lint/build/golden (+4 risk_behavior assertions) + codex high pass 0 P0/P1/P2.
-  Step 5 (capture + data-quality-critic) run post-commit.
+  **Step 5 VERDICT: PASS** (2026-07-12 data-quality-critic, FCNTX/DODGX/VOO): chain byte-identical
+  gold==staging==Postgres==rendered, units clean, nulls honest, per-fund stale stamps correct,
+  external sanity consistent (Fidelity/D&C/PortfoliosLab; VOO's odd-looking DJ US TSM benchmark is
+  its real filed benchmark). Escalations: P1 SPY/DBC missing from the Tiingo pricing store (1,477
+  funds' relative group honestly null but trivially recoverable — filed to backlog); P2 latent
+  rf fill_null(0) in build_gold_metadata (filed); P2 fast-follows folded into the nav-series flip
+  (DODGX two-beta cross-basis note, VOO index-fund benchmark one-liner, IR minus glyph, registry
+  per-fund as-of wording).
 - **2026-07-12 — te_decomposition FLIPPED to served** (protocol steps 1–4): payload-gated
   `paid` (fail-closed `defaultGate` if the gates key ever goes missing), free proof point =
   grouped sleeve rollup + top bet (`pickTeProofPoint`; the other bets never leave the server;

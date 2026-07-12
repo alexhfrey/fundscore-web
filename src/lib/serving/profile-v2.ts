@@ -84,20 +84,34 @@ export interface NavSeries extends SampleTag {
   method_version: string | null;
 }
 
-// --- positioning_context (spec: positioning-context-percentiles) ------------
-export interface PositioningContext extends SampleTag {
+// --- positioning_context (SERVED — positioning-context-percentiles,
+//     positioning_context_v0.1). Percentiles use the page-wide strictly-below
+//     convention (cohort_percentiles.py, self-in-n, N_MIN=20); blend-baseline
+//     funds get the blend-weighted definition-C percentile. `constituents` are
+//     the COHORT constituents with weights RENORMALIZED over qualifying ETFs
+//     (qualifying_weight < 1 ⇒ part of the true blend didn't qualify) — never
+//     present them as the fund's full blend composition unless
+//     qualifying_weight === 1. ---------------------------------------------------
+export interface PositioningCohortConstituent {
+  etf: string;
+  weight: number; // renormalized over QUALIFYING constituents
+  n: number | null; // that constituent-ETF cohort's size
+}
+export interface PositioningContext {
   beta: number | null;
   beta_percentile: number | null; // strictly-below convention
-  beta_cohort_median: number | null;
   te_bps: number | null;
   te_percentile: number | null;
-  te_cohort_median_bps: number | null;
   cohort: {
     kind: "same_passive_alt" | "peer_group";
-    label: string; // e.g. "funds benchmarked to IWF"
+    label: string; // lead ETF ("IWF") or peer-group code ("EQ.US.HEALTH.ALLCAP")
     n_funds: number;
+    is_blend?: boolean | null;
+    constituents?: PositioningCohortConstituent[] | null;
+    qualifying_weight?: number | null;
   } | null;
   as_of: string | null;
+  blend_asof?: string | null;
   method_version?: string | null;
 }
 
@@ -414,7 +428,9 @@ export function buildRiskExplainers({
 // column + assembler section. The preview route overlays fixtures for FCNTX.
 export interface FactRowV2 extends FactRow {
   navSeries?: NavSeries | null;
-  positioningContext?: PositioningContext | null;
+  // SERVED + tier-gated (positioning_context=free): applyGates leaves the full
+  // object for free+ and a { locked } marker for anon.
+  positioningContext?: PositioningContext | Locked | null;
   // SERVED + tier-gated (te_decomposition=paid): applyGates leaves the full
   // object for paid and a { preview, locked } marker for free/anon — so the
   // narrowed type includes Locked.
@@ -448,7 +464,8 @@ export async function overlayV2Fixtures(
   const out: FactRowV2 = { ...row };
   if (!fx) return out;
   out.navSeries = out.navSeries ?? fx.navSeries;
-  out.positioningContext = out.positioningContext ?? fx.positioningContext;
+  // positioningContext is SERVED (positioning-context-percentiles shipped) — no
+  // fixture overlay; applyGates owns its free gate on the base row.
   // teDecomposition is SERVED (te-decomposition-by-bet shipped) — no fixture
   // overlay; applyGates already resolved the row's full/locked/absent value.
   out.recentChangesTe = out.recentChangesTe ?? fx.recentChangesTe;

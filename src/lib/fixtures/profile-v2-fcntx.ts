@@ -19,14 +19,12 @@ import type {
   FundFamilyPanel,
   NavSeries,
   PositioningBetBridges,
-  PositioningContext,
   RecentChangesTe,
   Top10VsIwf,
 } from "../serving/profile-v2";
 
 export interface V2Fixtures {
   navSeries: NavSeries;
-  positioningContext: PositioningContext;
   recentChangesTe: RecentChangesTe;
   fundFamily: FundFamilyPanel;
   aiSummary: AiSummary;
@@ -52,25 +50,10 @@ const navSeries: NavSeries = {
   method_version: j.nav_series.method_version,
 };
 
-const positioningContext: PositioningContext = {
-  __sample: true,
-  sample_label:
-    "real percentiles (value_score.parquet, IWF cohort) from the design-mock prep; pending spec positioning-context-percentiles",
-  beta: j.positioning_context.beta.value,
-  beta_percentile: j.positioning_context.beta.percentile,
-  beta_cohort_median: j.positioning_context.beta.cohort_median,
-  te_bps: Math.round(j.positioning_context.tracking_error.value_pct * 100),
-  te_percentile: j.positioning_context.tracking_error.percentile,
-  te_cohort_median_bps: Math.round(
-    j.positioning_context.tracking_error.cohort_median_pct * 100,
-  ),
-  cohort: {
-    kind: j.positioning_context.cohort.kind,
-    label: j.positioning_context.cohort.label,
-    n_funds: j.positioning_context.cohort.n_funds,
-  },
-  as_of: j.positioning_context.as_of,
-};
+// positioning_context is now SERVED (positioning-context-percentiles,
+// positioning_context_v0.1) — its fixture was removed at the production flip; a
+// fixture never coexists with a served section. The type lives in
+// serving/profile-v2.ts.
 
 // te_decomposition is now SERVED (te-decomposition-by-bet, te_decomp_v0.1) — its
 // fixture was removed at the production flip; a fixture never coexists with a
@@ -196,7 +179,6 @@ const positioningBetBridges: PositioningBetBridges = {
 const FIXTURES: Record<string, V2Fixtures> = {
   FCNTX: {
     navSeries,
-    positioningContext,
     recentChangesTe,
     fundFamily,
     aiSummary,
