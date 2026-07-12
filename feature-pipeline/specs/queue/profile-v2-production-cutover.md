@@ -47,6 +47,17 @@ A v2 section may switch from fixture to served data ONLY when ALL of:
 - 3Y risk expander wires the already-served `riskBehavior` section (no backend dependency — may
   flip first).
 
+## Flip log
+- **2026-07-12 — te_decomposition FLIPPED to served** (protocol steps 1–4): payload-gated
+  `paid` (fail-closed `defaultGate` if the gates key ever goes missing), free proof point =
+  grouped sleeve rollup + top bet (`pickTeProofPoint`; the other bets never leave the server;
+  locked state survives a null proof point), methodology artifact `te-decomposition`
+  (te_decomp_v0.1) live, fixture export DELETED, BetsTable joins served exposureXray held/active
+  weights, copy derives from data (FCNTX top factor = Financial Services). Coverage 2,043 funds;
+  VOO degrades honestly. Gates: lint/build/golden (incl. missing-gate-key fail-closed + negative
+  te_alloc unclamped assertions) + codex ×2 pass 0 P0/P1. Step 5 (capture + data-quality-critic)
+  run post-commit.
+
 ## Scope decision 2026-07-11 (owner)
 **AI Summary is de-scoped from V1 to a fast-follow.** The cutover ships with seven live
 sections; `ai-summary-generation` stays queued and its section flips post-launch under the same

@@ -1,4 +1,4 @@
-import type { FactRow, UserState } from "./profile";
+import type { FactRow, UserState, Locked, TeRollupRow } from "./profile";
 
 // ============================================================================
 // Profile v2 (eight-section redesign) — payload types for the SEVEN data
@@ -101,25 +101,43 @@ export interface PositioningContext extends SampleTag {
   method_version?: string | null;
 }
 
-// --- te_decomposition (spec: te-decomposition-by-bet) -----------------------
+// --- te_decomposition (spec: te-decomposition-by-bet, te_decomp_v0.1) --------
+// SERVED contract (fund_profile_facts.te_decomposition JSONB). Per-bet rows are
+// the fund's active factor bets ranked by tracking-error contribution; `rollup`
+// is the grouped sleeve split (factor tilts vs stock selection) that leads the
+// section. Negative te_alloc_bps are REAL diversifying bets — NEVER clamped.
+// Only sleeve-scaled variance SHARES are meaningful (see basis_note); per-bet
+// betas are single-factor (FWL) reads that double-count on collinear factor sets.
+// TeRollupRow lives in gating.ts (re-exported via ./profile) so the free
+// proof-point projector and this served type share one shape.
 export interface TeBet {
   label: string;
-  bet_type: "stock" | "sector" | "theme" | "macro";
-  beta: number | null;
+  bet_type: "sector" | "theme" | "macro"; // v1 fakes no per-stock TE (stocks come from the X-ray)
+  factor_id: string;
+  beta: number | null; // single-factor (FWL) read on the standardized basis
+  beta_tstat: number | null;
   var_share: number | null; // share of factor-explained variance (can be < 0)
   te_alloc_bps: number | null; // var_share × factor sleeve (negative = diversifying)
+  diversifying: boolean;
   confidence_state: string | null;
-  diversifying?: boolean;
 }
-export interface TeDecomposition extends SampleTag {
-  total_te_bps: number | null; // anchors to the served te_current — one TE per page
-  factor_sleeve_te_bps: number | null;
-  stock_selection_te_bps: number | null; // the idio sleeve
-  idio_risk_share: number | null; // fraction of active variance
-  basis_label: string | null; // which baseline the bet betas are measured against
+export interface TeDecomposition {
+  as_of: string | null;
+  n_obs: number | null;
+  n_bets: number | null;
   bets: TeBet[];
-  as_of?: string | null;
-  method_version?: string | null;
+  rollup: TeRollupRow[]; // grouped sleeve split: sector / theme / macro / selection
+  basis_note: string | null; // the basis disclosure (shares-not-levels honesty note)
+  basis_source: string | null;
+  te_total_bps: number | null; // anchors to the served te_current — one TE per page
+  factor_sleeve_te_bps: number | null;
+  selection_te_bps: number | null; // the idio (stock-selection) sleeve
+  idio_risk_share: number | null; // fraction of active variance
+  passive_alt_label: string | null;
+  window_start: string | null;
+  window_end: string | null;
+  no_named_bets?: boolean;
+  method_version: string | null;
 }
 
 // --- recent changes enrichment (spec: recent-changes-te-ranked) -------------
@@ -325,7 +343,10 @@ export interface RiskExplainers extends SampleTag {
 export interface FactRowV2 extends FactRow {
   navSeries?: NavSeries | null;
   positioningContext?: PositioningContext | null;
-  teDecomposition?: TeDecomposition | null;
+  // SERVED + tier-gated (te_decomposition=paid): applyGates leaves the full
+  // object for paid and a { preview, locked } marker for free/anon — so the
+  // narrowed type includes Locked.
+  teDecomposition?: TeDecomposition | Locked | null;
   recentChangesTe?: RecentChangesTe | null;
   fundFamily?: FundFamilyPanel | null;
   fundFamilyPanel?: FundFamilyPanel | null;
@@ -353,7 +374,8 @@ export async function overlayV2Fixtures(
   if (!fx) return out;
   out.navSeries = out.navSeries ?? fx.navSeries;
   out.positioningContext = out.positioningContext ?? fx.positioningContext;
-  out.teDecomposition = out.teDecomposition ?? fx.teDecomposition;
+  // teDecomposition is SERVED (te-decomposition-by-bet shipped) — no fixture
+  // overlay; applyGates already resolved the row's full/locked/absent value.
   out.recentChangesTe = out.recentChangesTe ?? fx.recentChangesTe;
   const servedFamily =
     out.fundFamilyPanel != null && typeof out.fundFamilyPanel === "object"

@@ -1,11 +1,12 @@
 "use client";
 // ============================================================================
 // The bets, in one table — a client island with type filters + top-8 / show-all.
-// Rows are BUILT SERVER-SIDE from the fixture te_decomposition (attributed bets,
-// carry a TE contribution), the top10_vs_iwf snapshot (stock bets, carry held /
-// active), and the positioning_bet_bridges (non-attributed bridge rows). TE is
-// an em-dash for non-attributed rows; held/active are em-dash where the fixture
-// doesn't carry them. Nothing is computed here beyond formatting.
+// Rows are BUILT SERVER-SIDE from the SERVED te_decomposition (attributed factor
+// bets, carry a real TE contribution + t-stat, with held / active joined from the
+// matched Exposure X-Ray row), the top10_vs_iwf snapshot (stock bets, carry held /
+// active), and the positioning_bet_bridges (non-attributed bridge rows). TE is an
+// em-dash for non-attributed rows; held/active are em-dash where no source row
+// matches. Nothing is computed here beyond formatting.
 // ============================================================================
 import { useState } from "react";
 import { EM_DASH } from "@/lib/serving/format";
@@ -32,7 +33,13 @@ const TYPES: { key: string; label: string }[] = [
 ];
 const LIMIT = 8;
 
-export function BetsTable({ rows }: { rows: BetRow[] }) {
+export function BetsTable({
+  rows,
+  passiveLabel = "IWF",
+}: {
+  rows: BetRow[];
+  passiveLabel?: string;
+}) {
   const [type, setType] = useState("all");
   const [open, setOpen] = useState(false);
 
@@ -66,7 +73,7 @@ export function BetsTable({ rows }: { rows: BetRow[] }) {
               <th className="px-4 py-2.5 text-left font-semibold">Bet</th>
               <th className="hidden px-4 py-2.5 text-left font-semibold sm:table-cell">Type</th>
               <th className="px-4 py-2.5 font-semibold">Held (% of fund)</th>
-              <th className="px-4 py-2.5 font-semibold">Active vs IWF (pp)</th>
+              <th className="px-4 py-2.5 font-semibold">Active vs {passiveLabel} (pp)</th>
               <th className="px-4 py-2.5 font-semibold">TE contribution (bps)*</th>
               <th className="hidden px-4 py-2.5 text-left font-semibold md:table-cell">In the attribution</th>
             </tr>

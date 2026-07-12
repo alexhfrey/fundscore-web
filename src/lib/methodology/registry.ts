@@ -254,6 +254,39 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     ],
   },
   {
+    anchor: "te-decomposition",
+    title: "Tracking-Error Decomposition",
+    tagline:
+      "Where a fund's benchmark-relative risk (tracking error) comes from — split into its factor tilts and its stock selection, ranked bet by bet.",
+    methodVersion: "te_decomp_v0.1",
+    asOf:
+      "Computed as of 2026-05-09, from each fund's trailing three-year weekly returns.",
+    measures: [
+      "Tracking error is how much a fund's returns swing away from its passive alternative. This decomposition answers where that risk comes from: how much is the fund's factor and sector/theme tilts, and how much is its stock selection — the part no factor explains.",
+      "It leads with a grouped rollup (for example, about half of a fund's tracking error is stock-specific and its biggest factor source is a sector tilt), then lists the individual bets ranked by how much each contributes to tracking error. A bet with a negative contribution is diversifying: it moves against the rest of the book and reduces tracking error.",
+    ],
+    method: [
+      "We measure tracking error on the same series as the fund's headline tracking error: its beta-adjusted weekly return versus its own closest passive blend, over a trailing three-year window, with Fama-French style controls — so the page shows a single tracking-error number.",
+      "That variance is split into a factor sleeve and a stock-selection sleeve. The factor sleeve is allocated across the fund's active factor bets by each bet's share of factor variance; the stock-selection sleeve is the residual left after the factor bets. The two sleeves combine in quadrature back to the total, and the per-bet allocations sum to the factor sleeve.",
+      "Each bet's beta is a single-factor read that carries a confidence state from its t-statistic. Only the variance shares scaled into the sleeve split are meaningful — the raw beta levels double-count on overlapping bets, so we never present them as standalone risk contributions.",
+    ],
+    sources: [
+      "Beta-adjusted weekly fund and passive-blend active returns (the tracking-error basis)",
+      "The standardized factor-exposure model (sector, theme and macro factors, cluster-representative selection)",
+      "The fund's matched passive ETF blend (its passive alternative)",
+    ],
+    notMeaning: [
+      "A bet's tracking-error contribution is a risk reading, not a return — it does not say the bet made or lost money.",
+      "The per-bet betas are single-factor reads on a collinear factor set; only the sleeve-scaled variance shares are meaningful, so we lead with the grouped rollup rather than the individual beta levels.",
+      "There is no per-stock tracking-error number — individual stock bets are listed by their active weight, not given a fabricated risk contribution.",
+    ],
+    limitations: [
+      "Estimated for about 2,000 funds with enough aligned weekly return history; funds with too short a shared window are shown as unavailable rather than estimated.",
+      "On collinear factor sets the individual per-bet betas are not individually robust — the method honors this by serving only the sleeve-scaled shares and flagging each bet's confidence rather than presenting fragile beta levels.",
+      "Negative (diversifying) contributions are real and served as-is, never clamped to zero; the sleeves always anchor to the fund's headline tracking error.",
+    ],
+  },
+  {
     anchor: "manager-moves",
     title: "Manager Moves",
     tagline:

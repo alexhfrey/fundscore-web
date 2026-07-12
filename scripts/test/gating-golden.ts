@@ -61,6 +61,7 @@ const FCNTX_ROW = {
     positioning_changes: "free",
     value_offering_reframed: "public",
     nav_series: "public",
+    te_decomposition: "paid",
   },
   identity: {
     ticker: "FCNTX",
@@ -188,6 +189,81 @@ const FCNTX_ROW = {
     ],
     method_version: "profile_nav_series_v1",
   },
+  // te_decomposition gate=paid — the full per-bet table is paid; the free proof
+  // point is the grouped sleeve rollup + the single TOP bet. Below the gate the
+  // 11 other bets (here: "Technology", "Consumer Cyclical") must be stripped, and
+  // the negative diversifying te_alloc must never be clamped (positive control on
+  // the paid side). Populated fixture so the new assertions hit real values.
+  teDecomposition: {
+    as_of: "2026-05-09",
+    n_obs: 155,
+    n_bets: 3,
+    bets: [
+      {
+        label: "Financial Services",
+        bet_type: "sector",
+        factor_id: "sector::financial_services",
+        beta: 0.1626,
+        beta_tstat: 2.7884,
+        var_share: 0.2637,
+        te_alloc_bps: 91.96, // TOP bet — surfaces in the free proof point
+        diversifying: false,
+        confidence_state: "high",
+      },
+      {
+        label: "Technology",
+        bet_type: "sector",
+        factor_id: "sector::technology",
+        beta: -0.233,
+        beta_tstat: -4.799,
+        var_share: 0.0091,
+        te_alloc_bps: 3.16, // must NOT ship below the paid gate
+        diversifying: false,
+        confidence_state: "high",
+      },
+      {
+        label: "Consumer Cyclical",
+        bet_type: "sector",
+        factor_id: "sector::consumer_cyclical",
+        beta: -0.0646,
+        beta_tstat: -1.6869,
+        var_share: -0.0723,
+        te_alloc_bps: -25.2, // diversifying: negative, NEVER clamped
+        diversifying: true,
+        confidence_state: "medium",
+      },
+    ],
+    rollup: [
+      {
+        n_bets: 3,
+        bet_type: "sector",
+        var_share: 0.9863,
+        te_alloc_bps: 343.98,
+        share_of_te_var: 0.5194,
+        confidence_state: null,
+      },
+      {
+        n_bets: null,
+        bet_type: "selection",
+        var_share: null,
+        te_alloc_bps: 330.67,
+        share_of_te_var: 0.4734,
+        confidence_state: "high",
+      },
+    ],
+    basis_note:
+      "bets measured on the beta-adjusted weekly active return vs the L2 passive blend",
+    basis_source: "standardized_risk_model_factor_exposure",
+    te_total_bps: 480.58,
+    factor_sleeve_te_bps: 348.74,
+    selection_te_bps: 330.67,
+    idio_risk_share: 0.4734,
+    passive_alt_label: "IWF",
+    window_start: "2023-05-12",
+    window_end: "2026-04-24",
+    no_named_bets: false,
+    method_version: "te_decomp_v0.1",
+  },
   sourceInventory: { source_stamps: [] },
 } as unknown as FactRow;
 
@@ -279,6 +355,54 @@ check("alternatives (paid) is {locked} for anon", isLocked(anon.alternatives));
 check("risk_attribution (free) is {locked} for anon", isLocked(anon.riskAttribution));
 check("manager_parent (free) is {locked} for anon", isLocked(anon.managerParent));
 
+// te_decomposition (paid): the full per-bet table is stripped to a {locked}
+// marker carrying ONLY the free proof point (grouped sleeve rollup + the single
+// top bet). The 11 other bets never ship below the gate.
+check("te_decomposition (paid) is {locked} for anon", isLocked(anon.teDecomposition));
+const anonTe = anon.teDecomposition as {
+  preview?: { rollup?: unknown[]; top_bet?: { label?: string } | null } | null;
+} | null;
+check(
+  "te proof point exposes the grouped sleeve rollup for anon",
+  Array.isArray(anonTe?.preview?.rollup) && (anonTe!.preview!.rollup!.length ?? 0) === 2,
+);
+check(
+  "te proof point exposes the single top bet (Financial Services) for anon",
+  anonTe?.preview?.top_bet?.label === "Financial Services",
+);
+check(
+  "te full per-bet array does NOT ship below the gate for anon",
+  !hasKey(anon.teDecomposition, "bets"),
+);
+check(
+  "non-top te bet 'Technology' stripped for anon",
+  !JSON.stringify(anon.teDecomposition).includes("Technology"),
+);
+check(
+  "diversifying te bet 'Consumer Cyclical' stripped for anon",
+  !JSON.stringify(anon.teDecomposition).includes("Consumer Cyclical"),
+);
+
+// te_decomposition FAIL-CLOSED default: a row whose gates JSONB is MISSING the
+// te_decomposition key (load drift) must still gate the populated section as
+// paid — data never outruns its gate. Positive control: the same missing-key
+// row still unlocks for paid.
+{
+  const gatesSansTe = { ...(FCNTX_ROW.gates as Record<string, unknown>) };
+  delete gatesSansTe.te_decomposition;
+  const rowSansTeGate = { ...FCNTX_ROW, gates: gatesSansTe } as typeof FCNTX_ROW;
+  const anonNoGate = applyGates(rowSansTeGate, "anonymous");
+  check(
+    "te_decomposition with MISSING gate key fails CLOSED for anon (default paid)",
+    isLocked(anonNoGate.teDecomposition) && !hasKey(anonNoGate.teDecomposition, "bets"),
+  );
+  const paidNoGate = applyGates(rowSansTeGate, "paid");
+  check(
+    "te_decomposition with MISSING gate key still unlocks for paid",
+    !isLocked(paidNoGate.teDecomposition) && hasKey(paidNoGate.teDecomposition, "bets"),
+  );
+}
+
 // The public reframed badge itself still ships (badge/bet_tag are public).
 const anonVr = anon.valueOfferingReframed as { badge?: string } | null;
 check("public reframed badge still present for anon", anonVr?.badge === "Selection unproven");
@@ -330,6 +454,16 @@ check(
 
 check("return_attribution unlocked for paid", !isLocked(paid.returnAttribution));
 check("alternatives unlocked for paid", !isLocked(paid.alternatives));
+
+// te_decomposition: the paid tier holds the full per-bet table, and the negative
+// diversifying te_alloc survives UNCLAMPED (data-integrity: never floor to zero).
+check("te_decomposition unlocked for paid", !isLocked(paid.teDecomposition));
+const paidTe = paid.teDecomposition as { bets?: unknown[] } | null;
+check("te full per-bet table present for paid (positive control)", (paidTe?.bets?.length ?? 0) === 3);
+check(
+  "te diversifying negative te_alloc survives unclamped for paid",
+  JSON.stringify(paid.teDecomposition).includes("-25.2"),
+);
 
 const paidRa = paid.riskAttribution;
 check(

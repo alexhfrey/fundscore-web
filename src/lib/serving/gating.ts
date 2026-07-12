@@ -337,7 +337,11 @@ export interface FactRow {
 
 // Each gated section: `col` is the Drizzle (camelCase) column; `gate` is the
 // section_id key inside the `gates` JSONB (snake_case, from the Python loader).
-const GATED_SECTIONS: { col: string; gate: string }[] = [
+// `defaultGate`: tier assumed when the row's `gates` JSONB lacks the key.
+// Legacy sections keep the historical "public" default (their gates are always
+// emitted); a section whose CONTRACT is paid must fail CLOSED if its gate key
+// ever goes missing (load drift) — data must never outrun its gate (codex P2).
+const GATED_SECTIONS: { col: string; gate: string; defaultGate?: string }[] = [
   { col: "identity", gate: "identity" },
   { col: "valueOfferingReframed", gate: "value_offering_reframed" },
   { col: "theTake", gate: "the_take" },
@@ -354,6 +358,7 @@ const GATED_SECTIONS: { col: string; gate: string }[] = [
   { col: "riskAttribution", gate: "risk_attribution" },
   { col: "positioningChanges", gate: "positioning_changes" },
   { col: "fundFamilyPanel", gate: "fund_family_panel" },
+  { col: "teDecomposition", gate: "te_decomposition", defaultGate: "paid" },
   { col: "alternatives", gate: "alternatives" },
   { col: "takeaways", gate: "takeaways" },
 ];
@@ -431,6 +436,48 @@ export interface AlternativePreview {
   wrapper_alternative: string | null;
 }
 
+// --- te_decomposition (te-decomposition-by-bet) ------------------------------
+// A grouped-sleeve rollup row (factor tilts vs stock selection). Shared shape:
+// the served TeDecomposition (profile-v2.ts) imports THIS type for its `rollup`,
+// so the free proof point and the full section never drift.
+export interface TeRollupRow {
+  bet_type: string; // "sector" | "theme" | "macro" | "selection"
+  n_bets: number | null;
+  var_share: number | null;
+  te_alloc_bps: number | null; // negative = a diversifying sleeve — never clamped
+  share_of_te_var: number | null;
+  confidence_state: string | null;
+}
+/** One bet row, carried into the free proof point (the single top contributor). */
+export interface TeTopBet {
+  label: string;
+  bet_type: string;
+  factor_id: string | null;
+  beta: number | null;
+  beta_tstat: number | null;
+  var_share: number | null;
+  te_alloc_bps: number | null;
+  diversifying: boolean;
+  confidence_state: string | null;
+}
+/**
+ * The FREE proof point for the paid TE-decomposition table: the grouped sleeve
+ * rollup + the single top bet + the anchor scalars/basis note. It NEVER carries
+ * the full per-bet array — the 11 other bets stay server-side below the gate.
+ */
+export interface TeProofPreview {
+  kind: "te";
+  rollup: TeRollupRow[];
+  top_bet: TeTopBet | null;
+  te_total_bps: number | null;
+  factor_sleeve_te_bps: number | null;
+  selection_te_bps: number | null;
+  idio_risk_share: number | null;
+  basis_note: string | null;
+  passive_alt_label: string | null;
+  as_of: string | null;
+}
+
 export type Preview =
   | ExposurePreview
   | DivergencePreview
@@ -438,7 +485,8 @@ export type Preview =
   | SkillPreview
   | DetractorPreview
   | ShiftPreview
-  | AlternativePreview;
+  | AlternativePreview
+  | TeProofPreview;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyObj = Record<string, any>;
@@ -684,6 +732,58 @@ function pickCheapestSubstitute(s: AnyObj): AlternativePreview | null {
   return null;
 }
 
+/** Grouped sleeve rollup + the single top bet — the free TE proof point. Copies
+ *  ONLY named fields (rollup rows + one bet + anchor scalars); the full per-bet
+ *  array never leaves the server below the paid gate. Negatives are preserved
+ *  (a diversifying sleeve/bet). Returns null when the section has no bets to
+ *  headline, so the component falls back to the honest locked state. */
+function pickTeProofPoint(s: AnyObj): TeProofPreview | null {
+  const bets: AnyObj[] = Array.isArray(s?.bets) ? s.bets : [];
+  const rollup: AnyObj[] = Array.isArray(s?.rollup) ? s.rollup : [];
+  if (bets.length === 0 && rollup.length === 0) return null;
+  // Top bet = the single largest tracking-error contributor (already ranked in
+  // the served payload; re-max here so ordering is never assumed).
+  const withTe = bets.filter((b) => num(b?.te_alloc_bps) != null);
+  const top =
+    withTe.length > 0
+      ? withTe.reduce((a, b) =>
+          (num(b.te_alloc_bps) ?? 0) > (num(a.te_alloc_bps) ?? 0) ? b : a,
+        )
+      : null;
+  const top_bet: TeTopBet | null = top
+    ? {
+        label: String(top.label ?? ""),
+        bet_type: String(top.bet_type ?? ""),
+        factor_id: (top.factor_id as string | null) ?? null,
+        beta: num(top.beta),
+        beta_tstat: num(top.beta_tstat),
+        var_share: num(top.var_share),
+        te_alloc_bps: num(top.te_alloc_bps),
+        diversifying: top.diversifying === true,
+        confidence_state: (top.confidence_state as string | null) ?? null,
+      }
+    : null;
+  return {
+    kind: "te",
+    rollup: rollup.map((r) => ({
+      bet_type: String(r.bet_type ?? ""),
+      n_bets: num(r.n_bets),
+      var_share: num(r.var_share),
+      te_alloc_bps: num(r.te_alloc_bps),
+      share_of_te_var: num(r.share_of_te_var),
+      confidence_state: (r.confidence_state as string | null) ?? null,
+    })),
+    top_bet,
+    te_total_bps: num(s.te_total_bps),
+    factor_sleeve_te_bps: num(s.factor_sleeve_te_bps),
+    selection_te_bps: num(s.selection_te_bps),
+    idio_risk_share: num(s.idio_risk_share),
+    basis_note: (s.basis_note as string | null) ?? null,
+    passive_alt_label: (s.passive_alt_label as string | null) ?? null,
+    as_of: (s.as_of as string | null) ?? null,
+  };
+}
+
 // section col -> (fullSection) => previewObject (null if no proof point available)
 const PREVIEW_PROJECTORS: Record<string, (s: AnyObj) => Preview | null> = {
   exposureXray: pickTopExposureDiff,
@@ -692,6 +792,7 @@ const PREVIEW_PROJECTORS: Record<string, (s: AnyObj) => Preview | null> = {
   returnAttribution: pickTopDetractor,
   positioningChanges: pickTopShift,
   alternatives: pickCheapestSubstitute,
+  teDecomposition: pickTeProofPoint,
 };
 
 /**
@@ -706,8 +807,8 @@ export function applyGates(row: FactRow, userState: UserState): FactRow {
   const out: FactRow = { ...row };
   const o = out as unknown as Record<string, unknown>;
 
-  for (const { col, gate: gateKey } of GATED_SECTIONS) {
-    const gate = row.gates?.[gateKey] ?? "public";
+  for (const { col, gate: gateKey, defaultGate } of GATED_SECTIONS) {
+    const gate = row.gates?.[gateKey] ?? defaultGate ?? "public";
     // An unknown/malformed gate value fails CLOSED (section stripped for every
     // tier, HARD lock — no preview proof point either: a malformed gate has no
     // valid tier policy to preview against). Live gates carry only

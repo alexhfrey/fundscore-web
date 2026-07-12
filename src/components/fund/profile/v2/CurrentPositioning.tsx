@@ -9,6 +9,7 @@
 // Gated data is only rendered / passed to client islands when the caller is
 // entitled, so anon never receives it.
 // ============================================================================
+import Link from "next/link";
 import type {
   PositioningContext,
   RiskExplainers,
@@ -18,7 +19,8 @@ import type {
   HoldingsFullTeaser,
   HoldingRow,
 } from "@/lib/serving/profile-v2";
-import { fmtPct, fmtSignedBps, fmtDate, EM_DASH } from "@/lib/serving/format";
+import type { TeProofPreview, TeRollupRow } from "@/lib/serving/profile";
+import { fmtPct, fmtSignedBps, fmtNum, fmtDate, EM_DASH } from "@/lib/serving/format";
 import { ordinal, countryName, ppSigned } from "./format";
 import {
   ChapterHeader,
@@ -26,7 +28,6 @@ import {
   PanelHead,
   PanelNote,
   SampleProvenance,
-  GapChip,
 } from "./primitives";
 import { InfoTip } from "./InfoTip";
 import { Unavailable, LockedNotice, ProofPoint, UnlockLine } from "../primitives";
@@ -36,18 +37,57 @@ import { HoldingsFullDrawer } from "./HoldingsFullDrawer";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type XrayRow = Record<string, any>;
 
+/** Map a served exposure-X-ray by factor_id (its `exposure_id`), keeping the
+ *  vs-benchmark rows — the source of a bet's held / passive / active weights. */
+function xrayByFactor(exposureXray: { rows?: unknown[] } | null): Map<string, XrayRow> {
+  const m = new Map<string, XrayRow>();
+  for (const r of (exposureXray?.rows ?? []) as XrayRow[]) {
+    if (r?.holdings_baseline === "vs_benchmark" && typeof r?.exposure_id === "string") {
+      m.set(r.exposure_id, r);
+    }
+  }
+  return m;
+}
+
+/** Plain-language readout for the free top-bet proof point. Appends the bet's
+ *  t-stat / confidence (when served) as a single parenthetical — em-dash never
+ *  fabricated, so a missing stat simply drops from the sentence. */
+function topBetReadout(bet: {
+  label: string;
+  beta_tstat: number | null;
+  confidence_state: string | null;
+}): string {
+  const stats = [
+    bet.beta_tstat != null ? `t ${fmtNum(bet.beta_tstat, 1)}` : null,
+    bet.confidence_state ? `${bet.confidence_state} confidence` : null,
+  ].filter(Boolean);
+  const paren = stats.length > 0 ? ` (${stats.join(", ")})` : "";
+  return `${bet.label} is the single largest contributor to the fund's benchmark-relative risk${paren}. The full bets table — every sector, theme and macro bet, held vs active, with each bet's tracking-error contribution — is a paid detail.`;
+}
+
 function buildBetRows(
   te: TeDecomposition | null,
   bridges: PositioningBetBridges | null,
   top10: Top10VsIwf | null,
+  exposureXray: { rows?: unknown[] } | null,
 ): BetRow[] {
   const rows: BetRow[] = [];
-  // Attributed bets (carry a TE contribution + basis β; no held/active in the fixture).
+  const xray = xrayByFactor(exposureXray);
+  // Attributed factor bets (SERVED te_decomposition): carry a real TE contribution
+  // + t-stat; held / active come from the matched Exposure X-Ray row where the
+  // bet's factor_id equals the X-ray exposure_id (em-dash when no match — never
+  // fabricated). Only variance SHARES are meaningful, so we show var_share + the
+  // t-stat, not the double-counting per-bet beta level (see the panel's note).
   for (const b of te?.bets ?? []) {
-    const varPct = b.var_share != null ? `${Math.round(b.var_share * 100)}% of active variance` : null;
+    const x = b.factor_id ? xray.get(b.factor_id) : undefined;
+    const held = typeof x?.fund_exposure === "number" ? x.fund_exposure * 100 : null;
+    const passive = typeof x?.passive_exposure === "number" ? x.passive_exposure * 100 : null;
+    const active = typeof x?.difference === "number" ? x.difference * 100 : null;
+    const varPct =
+      b.var_share != null ? `${Math.round(b.var_share * 100)}% of factor variance` : null;
     const sub = [
-      b.beta != null ? `basis β ${b.beta >= 0 ? "+" : "−"}${Math.abs(b.beta).toFixed(2)}` : null,
       varPct,
+      b.beta_tstat != null ? `t ${fmtNum(b.beta_tstat, 1)}` : null,
       b.confidence_state ? `${b.confidence_state} confidence` : null,
     ]
       .filter(Boolean)
@@ -55,9 +95,9 @@ function buildBetRows(
     rows.push({
       name: b.label,
       type: b.bet_type,
-      heldPct: null,
-      iwfPct: null,
-      activePp: null,
+      heldPct: held,
+      iwfPct: passive,
+      activePp: active,
       teBps: b.te_alloc_bps,
       diversifying: b.diversifying === true,
       bridge: "own row in attribution",
@@ -106,6 +146,8 @@ export function CurrentPositioning({
   positioning,
   riskExplainers,
   teDecomposition,
+  teProof,
+  teLocked = false,
   bridges,
   top10,
   holdingsFullTeaser,
@@ -118,7 +160,14 @@ export function CurrentPositioning({
 }: {
   positioning: PositioningContext | null;
   riskExplainers: RiskExplainers | null;
+  // The FULL served bets table (paid only — the 12 bets never ship below paid).
   teDecomposition: TeDecomposition | null;
+  // The free proof point (grouped sleeve rollup + the single top bet) surfaced
+  // for free callers below the paid gate; null for paid (uses the full table).
+  teProof: TeProofPreview | null;
+  // True when a paid decomposition EXISTS for this fund but the caller is below
+  // the gate — keeps the honest lock rendered even if the proof point is null.
+  teLocked?: boolean;
   bridges: PositioningBetBridges | null;
   top10: Top10VsIwf | null;
   // The teaser (count + as-of) off the public holdings section — present iff the
@@ -196,8 +245,17 @@ export function CurrentPositioning({
       <>How this fund is positioned today — its market sensitivity, benchmark-relative risk, active bets and holdings vs {pass}.</>
     );
 
-  const betRows = buildBetRows(teDecomposition, bridges, top10);
-  const topBet = teDecomposition?.bets?.[0] ?? null;
+  // TE decomposition (SERVED, gated paid): paid holds the full object; free holds
+  // the proof point (rollup + top bet). Read shared scalars from whichever is set.
+  const betRows = buildBetRows(teDecomposition, bridges, top10, exposureXray);
+  const teRollup: TeRollupRow[] = teDecomposition?.rollup ?? teProof?.rollup ?? [];
+  const topBet = teProof?.top_bet ?? null; // free-tier proof point only
+  const teTotalBps = teDecomposition?.te_total_bps ?? teProof?.te_total_bps ?? null;
+  const teIdioShare = teDecomposition?.idio_risk_share ?? teProof?.idio_risk_share ?? null;
+  const teBasisNote = teDecomposition?.basis_note ?? teProof?.basis_note ?? null;
+  const teAsOf = teDecomposition?.as_of ?? teProof?.as_of ?? null;
+  const tePassive = teDecomposition?.passive_alt_label ?? teProof?.passive_alt_label ?? pass;
+  const teAvailable = teDecomposition != null || teProof != null || teLocked;
 
   const xrows = (exposureXray?.rows ?? []) as XrayRow[];
   const activeShare = conc(xrows, "concentration::active_share");
@@ -256,47 +314,65 @@ export function CurrentPositioning({
         </div>
       )}
 
-      {/* Bets table — paid, top bet free */}
-      <Panel className="p-0">
-        <PanelHead
-          title="The bets, in one table"
-          asOf={top10?.as_of ? `held / active per holdings snapshot · as of ${top10.as_of} · TE contribution per bet*` : undefined}
-        />
-        {paid ? (
-          <BetsTable rows={betRows} />
-        ) : (
-          <div className="px-5 py-4">
-            {topBet && (
-              <ProofPoint
-                label="Top active bet by tracking-error contribution"
-                value={`${topBet.label} ${fmtSignedBps(topBet.te_alloc_bps)}`}
-                readout={`${topBet.label} is the single largest contributor to the fund's benchmark-relative risk. The full bets table — every sector, theme, macro and stock bet, held vs active, with each bet's TE contribution — is a paid detail.`}
-              />
-            )}
-            <UnlockLine tier="paid">
-              See every bet, its held-vs-active weight and its tracking-error
-              contribution.
-            </UnlockLine>
-          </div>
-        )}
-        <PanelNote tone="warn">
-          <b>* TE contribution — estimate, method in development:</b>{" "}
-          {teDecomposition?.basis_label ??
-            "measured against broad market and style factors rather than the named passive alternative; magnitudes and ordering may shift when the shipped feature decomposes tracking error vs the passive alternative."}{" "}
-          {teDecomposition?.total_te_bps != null && (
-            <>
-              Total tracking error <b>{teDecomposition.total_te_bps} bps/yr</b>: roughly
-              {teDecomposition.idio_risk_share != null
-                ? ` ${Math.round(teDecomposition.idio_risk_share * 100)}% stock-specific`
-                : " half stock-specific"}
-              , the rest factor/theme tilts (sleeves combine as variance). A negative TE
-              contribution is <b>diversifying</b> — the bet moves against the rest of the
-              book and reduces tracking error.
-            </>
+      {/* Bets table (SERVED te_decomposition) — full table paid, grouped rollup
+          + top bet free. Rendered only when the fund has a served decomposition. */}
+      {teAvailable && (
+        <Panel className="p-0">
+          <PanelHead
+            title="The bets, in one table"
+            right={
+              <div className="flex items-center gap-3 text-[11px] text-gray-400">
+                {teAsOf && <span>tracking error as of {fmtDate(teAsOf)}</span>}
+                <Link
+                  href="/methodology#te-decomposition"
+                  className="shrink-0 text-gray-400 hover:text-[#1466b8] hover:underline"
+                >
+                  How we calculate this →
+                </Link>
+              </div>
+            }
+          />
+
+          {/* Grouped sleeve rollup — the free proof-point headline (all free+ tiers). */}
+          <TeRollupHeadline rollup={teRollup} totalBps={teTotalBps} />
+
+          {paid && teDecomposition ? (
+            <BetsTable rows={betRows} passiveLabel={tePassive} />
+          ) : (
+            <div className="border-t border-gray-100 px-5 py-4">
+              {topBet && (
+                <ProofPoint
+                  label="Top active bet by tracking-error contribution"
+                  value={`${topBet.label} ${fmtSignedBps(topBet.te_alloc_bps)}`}
+                  readout={topBetReadout(topBet)}
+                />
+              )}
+              <UnlockLine tier="paid">
+                See every bet, its held-vs-active weight and its tracking-error
+                contribution.
+              </UnlockLine>
+            </div>
           )}
-          {teDecomposition && <GapChip>{teDecomposition.sample_label ?? "prototype method"}</GapChip>}
-        </PanelNote>
-      </Panel>
+
+          <PanelNote tone="warn">
+            <b>Read shares, not levels.</b>{" "}
+            {teBasisNote ??
+              "Per-bet betas are single-factor reads that double-count on overlapping bets — only the sleeve-scaled variance shares are meaningful."}{" "}
+            {teTotalBps != null && (
+              <>
+                Total tracking error <b>{Math.round(teTotalBps)} bps/yr</b> vs {tePassive}:
+                {teIdioShare != null
+                  ? ` roughly ${Math.round(teIdioShare * 100)}% stock-specific`
+                  : " part stock-specific"}
+                , the rest factor / theme / macro tilts (the sleeves combine as
+                variance, not by adding). A negative contribution is{" "}
+                <b>diversifying</b> — the bet moves against the rest of the book and
+                reduces tracking error.
+              </>
+            )}
+          </PanelNote>
+        </Panel>
+      )}
 
       {/* Holdings block — free (this branch only runs for free+ callers) */}
       {(top10 != null || holdingsFullTeaser != null || regions.length > 0) && (
@@ -378,6 +454,75 @@ export function CurrentPositioning({
         </Panel>
       )}
     </section>
+  );
+}
+
+// --- grouped sleeve rollup: the free proof-point headline that leads the bets --
+// Factor tilts vs stock selection (+ macro), each with its TE contribution and
+// share of tracking-error variance. Negative contributions render as-is (a
+// diversifying sleeve) — never clamped. Sorted by contribution, descending.
+function rollupLabel(betType: string): string {
+  switch (betType) {
+    case "selection":
+      return "Stock selection";
+    case "sector":
+      return "Sector tilts";
+    case "theme":
+      return "Theme tilts";
+    case "macro":
+      return "Macro tilts";
+    default:
+      return betType;
+  }
+}
+
+function TeRollupHeadline({
+  rollup,
+  totalBps,
+}: {
+  rollup: TeRollupRow[];
+  totalBps: number | null;
+}) {
+  if (rollup.length === 0) return null;
+  const rows = [...rollup].sort(
+    (a, b) => (b.te_alloc_bps ?? -Infinity) - (a.te_alloc_bps ?? -Infinity),
+  );
+  return (
+    <div className="px-5 pb-3 pt-1">
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+        Where the tracking error comes from
+        {totalBps != null && (
+          <span className="ml-2 font-normal normal-case tracking-normal text-gray-400">
+            {Math.round(totalBps)} bps/yr total
+          </span>
+        )}
+      </div>
+      <div className="mt-2 space-y-1.5">
+        {rows.map((r) => (
+          <div
+            key={r.bet_type}
+            className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-[13.5px]"
+          >
+            <span className="min-w-[7.5rem] font-semibold text-gray-900">
+              {rollupLabel(r.bet_type)}
+            </span>
+            <span
+              className={`tabular-nums font-bold ${
+                (r.te_alloc_bps ?? 0) < 0 ? "text-emerald-700" : "text-gray-900"
+              }`}
+            >
+              {fmtSignedBps(r.te_alloc_bps)}
+            </span>
+            <span className="text-[12.5px] text-gray-500">
+              {r.share_of_te_var != null
+                ? `${Math.round(r.share_of_te_var * 100)}% of TE variance`
+                : EM_DASH}
+              {r.n_bets != null ? ` · ${r.n_bets} ${r.n_bets === 1 ? "bet" : "bets"}` : ""}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

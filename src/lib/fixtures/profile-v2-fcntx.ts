@@ -22,14 +22,12 @@ import type {
   PositioningContext,
   RecentChangesTe,
   RiskExplainers,
-  TeDecomposition,
   Top10VsIwf,
 } from "../serving/profile-v2";
 
 export interface V2Fixtures {
   navSeries: NavSeries;
   positioningContext: PositioningContext;
-  teDecomposition: TeDecomposition;
   recentChangesTe: RecentChangesTe;
   fundFamily: FundFamilyPanel;
   aiSummary: AiSummary;
@@ -76,25 +74,9 @@ const positioningContext: PositioningContext = {
   as_of: j.positioning_context.as_of,
 };
 
-const teDecomposition: TeDecomposition = {
-  __sample: true,
-  sample_label: j.te_decomposition.label, // prototype method disclosure
-  total_te_bps: j.te_decomposition.total_te_bps,
-  factor_sleeve_te_bps: j.te_decomposition.factor_sleeve_te_bps,
-  stock_selection_te_bps: j.te_decomposition.stock_selection_te_bps,
-  idio_risk_share: j.te_decomposition.idio_risk_share_pct / 100,
-  basis_label: j.te_decomposition.basis_note,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  bets: j.te_decomposition.bets.map((b: any) => ({
-    label: b.label,
-    bet_type: b.bet_type,
-    beta: b.beta,
-    var_share: b.var_share_pct / 100,
-    te_alloc_bps: b.te_alloc_bps,
-    confidence_state: b.confidence,
-    diversifying: b.diversifying === true,
-  })),
-};
+// te_decomposition is now SERVED (te-decomposition-by-bet, te_decomp_v0.1) — its
+// fixture was removed at the production flip; a fixture never coexists with a
+// served section. The type lives in serving/profile-v2.ts.
 
 const recentChangesTe: RecentChangesTe = {
   __sample: true,
@@ -220,7 +202,6 @@ const FIXTURES: Record<string, V2Fixtures> = {
   FCNTX: {
     navSeries,
     positioningContext,
-    teDecomposition,
     recentChangesTe,
     fundFamily,
     aiSummary,

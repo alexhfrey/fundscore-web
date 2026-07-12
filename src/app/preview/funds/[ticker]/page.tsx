@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import {
   applyGates,
   getFundFactRow,
+  getPreview,
   isLocked,
   stampByDomain,
   type Identity,
@@ -9,12 +10,17 @@ import {
   type PassiveBaseline,
   type SourceStamp,
   type Locked,
+  type TeProofPreview,
   type UserState,
 } from "@/lib/serving/profile";
 import { resolveSession } from "@/lib/serving/session";
 import { readHoldingsFullTeaser } from "@/lib/serving/holdings-full";
 import { loadHoldingsFullRows as loadHoldingsFullRowsAction } from "@/lib/serving/holdings-full-actions";
-import { overlayV2Fixtures, tierAllows } from "@/lib/serving/profile-v2";
+import {
+  overlayV2Fixtures,
+  tierAllows,
+  type TeDecomposition,
+} from "@/lib/serving/profile-v2";
 import { Alternatives, SourceFooter } from "@/components/fund/profile";
 import {
   PreviewBanner,
@@ -147,18 +153,22 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
   // Positioning gauges — free.
   const positioningContext = free ? (row.positioningContext ?? null) : null;
 
-  // TE decomposition — the whole positioning section is free-gated (gauges),
-  // with the full bets table paid and the top bet free. So: paid → full;
-  // free → bets[0] (the free proof) + aggregate sleeve stats; anon → nothing.
-  const teFx = row.teDecomposition ?? null;
-  const teDecomposition = !free
-    ? null
-    : teFx
-      ? paid
-        ? teFx
-        : { ...teFx, bets: teFx.bets?.slice(0, 1) ?? [] }
-      : null;
-  const tePresent = teFx != null;
+  // TE decomposition (SERVED — te-decomposition-by-bet, gated 'paid' by
+  // applyGates): paid → the full object; free/anon → { preview: proofPoint,
+  // locked }. The whole positioning section is itself free-gated (gauges), so
+  // anon sees the section-level lock and NEVER the TE proof point; free sees the
+  // grouped rollup + top bet; paid sees the full bets table. The full 12-bet
+  // array is stripped server-side below the paid gate (only the proof point ships).
+  const teRaw = row.teDecomposition as TeDecomposition | Locked | null | undefined;
+  const tePresent = teRaw != null;
+  const teDecomposition =
+    paid && teRaw != null && !isLocked(teRaw) ? (teRaw as TeDecomposition) : null;
+  const teProof =
+    free && isLocked(teRaw) ? (getPreview(teRaw) as TeProofPreview | null) : null;
+  // Locked state survives a null proof point: paid detail exists but the
+  // projector had nothing eligible — the UI must show the honest lock, never
+  // a blank (codex P2).
+  const teLocked = free && isLocked(teRaw);
 
   // Bridges + stock snapshot — bridges feed the paid bets table; top10 &
   // holdings feed the free holdings block (paid ⇒ free, so gate at free).
@@ -284,6 +294,8 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
             positioning={positioningContext}
             riskExplainers={riskExplainers}
             teDecomposition={teDecomposition}
+            teProof={teProof}
+            teLocked={teLocked}
             bridges={bridges}
             top10={top10}
             holdingsFullTeaser={holdingsFullTeaser}
