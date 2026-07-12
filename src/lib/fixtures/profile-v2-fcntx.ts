@@ -21,7 +21,6 @@ import type {
   PositioningBetBridges,
   PositioningContext,
   RecentChangesTe,
-  RiskExplainers,
   Top10VsIwf,
 } from "../serving/profile-v2";
 
@@ -34,7 +33,6 @@ export interface V2Fixtures {
   attributionWindowSummary: AttributionWindowSummary;
   top10VsIwf: Top10VsIwf;
   positioningBetBridges: PositioningBetBridges;
-  riskExplainers: RiskExplainers;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -190,13 +188,10 @@ const positioningBetBridges: PositioningBetBridges = {
   })),
 };
 
-const riskExplainers: RiskExplainers = {
-  __sample: true,
-  sample_label: "plain-language explainers from the design-mock prep",
-  beta: j.risk_explainers.beta,
-  tracking_error: j.risk_explainers.tracking_error,
-  beta_tilt_plain: j.risk_explainers.beta_tilt_plain,
-};
+// risk_explainers is now DERIVED COPY (buildRiskExplainers in serving/profile-v2)
+// templated from the numbers the page displays — its fixture was removed at the
+// production flip; a fixture never coexists with a live source. The riskBehavior
+// 3Y risk detail was never a fixture: it renders the served risk_behavior section.
 
 const FIXTURES: Record<string, V2Fixtures> = {
   FCNTX: {
@@ -208,7 +203,6 @@ const FIXTURES: Record<string, V2Fixtures> = {
     attributionWindowSummary,
     top10VsIwf,
     positioningBetBridges,
-    riskExplainers,
   },
 };
 

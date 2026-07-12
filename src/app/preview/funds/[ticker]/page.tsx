@@ -17,8 +17,10 @@ import { resolveSession } from "@/lib/serving/session";
 import { readHoldingsFullTeaser } from "@/lib/serving/holdings-full";
 import { loadHoldingsFullRows as loadHoldingsFullRowsAction } from "@/lib/serving/holdings-full-actions";
 import {
+  buildRiskExplainers,
   overlayV2Fixtures,
   tierAllows,
+  type RiskBehavior,
   type TeDecomposition,
 } from "@/lib/serving/profile-v2";
 import { Alternatives, SourceFooter } from "@/components/fund/profile";
@@ -147,9 +149,6 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
         }
     : null;
 
-  // Risk explainers — used by the free gauges + the paid attribution panel.
-  const riskExplainers = free ? (row.riskExplainers ?? null) : null;
-
   // Positioning gauges — free.
   const positioningContext = free ? (row.positioningContext ?? null) : null;
 
@@ -241,6 +240,30 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
   const inv = row.sourceInventory as unknown as { source_stamps?: SourceStamp[] };
   const holdingsStale = stampByDomain(inv, "holdings")?.status === "stale";
 
+  // Risk explainers (free gauges + paid attribution panel) — DERIVED copy,
+  // templated from the SAME numbers the gauges display so the educational text
+  // can never contradict them. Null numbers fall back to definitions-only.
+  const riskExplainers = free
+    ? buildRiskExplainers({
+        beta: positioningContext?.beta ?? null,
+        teBps: positioningContext?.te_bps ?? null,
+        passiveLabel,
+      })
+    : null;
+
+  // 3Y risk detail (SERVED risk_behavior, gate: free): free+ holds the payload;
+  // anon keeps the honest locked expander when the section exists but is gated.
+  const rbRaw = row.riskBehavior as RiskBehavior | Locked | null | undefined;
+  const riskBehavior = rbRaw != null && !isLocked(rbRaw) ? (rbRaw as RiskBehavior) : null;
+  const riskLocked = isLocked(rbRaw);
+  const pricingStamp = stampByDomain(inv, "pricing");
+  // Basis pointer beside the expander's stated-benchmark TE when the page also
+  // shows a headline TE (different basis) — derived, never fabricated.
+  const headlineTeNote =
+    positioningContext?.te_bps != null
+      ? `the page's headline TE is ${(positioningContext.te_bps / 100).toFixed(1)}%/yr (weekly, β-adjusted vs ${passiveLabel ?? "the passive alternative"})`
+      : null;
+
   const src = row.sourceInventory as {
     source_stamps: { source_label: string; as_of_date?: string | null }[];
     data_quality_warnings: {
@@ -278,7 +301,14 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
           <AISummary summary={aiSummary} full={free} />
 
           {/* 03 · Historical performance */}
-          <HistoricalPerformance navSeries={navSeries} showComparison={paid} />
+          <HistoricalPerformance
+            navSeries={navSeries}
+            showComparison={paid}
+            riskBehavior={riskBehavior}
+            riskLocked={riskLocked}
+            pricingStamp={pricingStamp}
+            headlineTeNote={headlineTeNote}
+          />
 
           {/* 04 · Performance attribution */}
           <AttributionSection

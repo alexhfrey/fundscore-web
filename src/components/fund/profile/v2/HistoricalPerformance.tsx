@@ -6,12 +6,14 @@
 // point (the fund's own since-inception return). Comparison legs are stripped
 // server-side when !showComparison, so anon never receives them.
 // ============================================================================
-import type { NavSeries } from "@/lib/serving/profile-v2";
+import type { NavSeries, RiskBehavior } from "@/lib/serving/profile-v2";
+import type { SourceStamp } from "@/lib/serving/profile";
 import { bpsSigned } from "./format";
 import { ChapterHeader, Panel, PanelHead, PanelNote, SampleProvenance } from "./primitives";
 import { InfoTip } from "./InfoTip";
 import { Unavailable, ProofPoint, UnlockLine } from "../primitives";
 import { GrowthChart } from "./GrowthChart";
+import { RiskDetail3Y } from "./RiskDetail3Y";
 
 const pct = (v: number | null | undefined) =>
   v == null || !isFinite(v) ? "—" : `${v.toFixed(1)}%`;
@@ -19,10 +21,29 @@ const pct = (v: number | null | undefined) =>
 export function HistoricalPerformance({
   navSeries,
   showComparison,
+  riskBehavior,
+  riskLocked = false,
+  pricingStamp,
+  headlineTeNote,
 }: {
   navSeries: NavSeries | null;
   showComparison: boolean;
+  // SERVED risk_behavior (gate: free) — passed only when the caller is
+  // free-entitled; `riskLocked` keeps the honest locked expander for anon.
+  riskBehavior?: RiskBehavior | null;
+  riskLocked?: boolean;
+  pricingStamp?: SourceStamp | null;
+  headlineTeNote?: string | null;
 }) {
+  const riskDetail = (
+    <RiskDetail3Y
+      riskBehavior={riskBehavior ?? null}
+      locked={riskLocked}
+      pricingStamp={pricingStamp ?? null}
+      headlineTeNote={headlineTeNote ?? null}
+    />
+  );
+
   if (!navSeries || !navSeries.points || navSeries.points.length === 0) {
     return (
       <section id="s3" className="scroll-mt-24">
@@ -31,6 +52,9 @@ export function HistoricalPerformance({
           We don&apos;t have a validated monthly growth series for this fund yet,
           so the performance read is suppressed rather than shown partial.
         </Unavailable>
+        {/* The served 3Y risk detail can exist without a growth series (e.g. no
+            passive blend) — render it rather than suppress served data. */}
+        {riskDetail}
       </section>
     );
   }
@@ -164,6 +188,8 @@ export function HistoricalPerformance({
           <SampleProvenance label={navSeries.sample_label} />
         </PanelNote>
       </Panel>
+
+      {riskDetail}
     </section>
   );
 }

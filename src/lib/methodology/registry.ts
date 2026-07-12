@@ -254,6 +254,39 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     ],
   },
   {
+    anchor: "risk-behavior",
+    title: "3-Year Risk Detail",
+    tagline:
+      "The fund's trailing risk profile — volatility, Sharpe, drawdown, and how it behaved versus its stated prospectus benchmark.",
+    methodVersion: "unversioned — fund_metadata risk fields",
+    asOf:
+      "Computed from daily adjusted NAV through 2026-05-07 (a pricing refresh is pending; the page marks the stamp stale until it lands).",
+    measures: [
+      "The risk detail shows how bumpy the ride has been: the fund's own trailing 3-year volatility (standard deviation), risk-adjusted return (Sharpe and Sortino), and its worst peak-to-trough loss (maximum drawdown, dated, over the fund's full priced history).",
+      "Where the fund's stated prospectus benchmark has a matching index ETF, it also shows benchmark-relative behavior over the same 3 years: beta, alpha, R², tracking error, information ratio, and upside / downside capture — how much of the benchmark's up and down months the fund participated in.",
+    ],
+    method: [
+      "All figures come from the fund's daily adjusted NAV (dividends and splits reinvested), downsampled to month-ends. The 3-year window is the trailing 36 months (at least 30 required, or the figure is not shown). Volatility is the annualized standard deviation of monthly returns; Sharpe and Sortino use monthly returns in excess of a short-Treasury ETF (SHY) as the risk-free proxy.",
+      "Maximum drawdown is measured on the full daily price history — the largest fall from any prior peak — and is shown with its date.",
+      "Benchmark-relative rows regress the fund's monthly excess returns on those of an index ETF tracking the fund's stated prospectus benchmark (a monthly OLS over the same 3-year window, at least 12 shared months). This is the fund's own filed benchmark — a deliberately different reference from the passive alternative the rest of the page compares against, and the page labels which benchmark applies.",
+    ],
+    sources: [
+      "Tiingo daily adjusted closes (fund NAV and benchmark ETF prices)",
+      "The fund's stated prospectus benchmark (SEC filings), mapped to a tracking ETF",
+      "SHY (short-Treasury ETF) as the risk-free proxy",
+    ],
+    notMeaning: [
+      "Past volatility and drawdown describe the historical ride, not a forecast of future risk.",
+      "The tracking error here (monthly, vs the stated benchmark) is NOT the page's headline tracking error (weekly, beta-adjusted, vs the fund's closest passive alternative) — they answer different questions against different references.",
+      "Upside / downside capture describe past co-movement with the stated benchmark, not manager skill.",
+    ],
+    limitations: [
+      "Benchmark-relative rows exist only where the stated benchmark has a matching index ETF (about 2,500 of 5,450 funds with a risk read); the rest honestly omit that group rather than substitute a different index.",
+      "Pricing currently runs through 2026-05-07 pending a vendor refresh; the section stamps this and flags it stale rather than hiding it.",
+      "Three years of monthly returns is a short, noisy window — treat the levels as descriptive, not precise; the maximum drawdown spans the fund's full priced history, which can include a different manager or mandate era.",
+    ],
+  },
+  {
     anchor: "te-decomposition",
     title: "Tracking-Error Decomposition",
     tagline:

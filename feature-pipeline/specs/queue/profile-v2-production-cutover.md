@@ -48,6 +48,18 @@ A v2 section may switch from fixture to served data ONLY when ALL of:
   flip first).
 
 ## Flip log
+- **2026-07-12 — riskExplainers retired to DERIVED copy + 3Y risk expander wired to served
+  riskBehavior** (protocol steps 1–4; no backend dep): `buildRiskExplainers` templates the ⓘ
+  explainer strings from the SAME numbers the gauges display (fixture strings hardcoded FCNTX's
+  0.90/4.8% — deleted; every fund now gets definitions, fund-specific sentences only when the
+  number exists). New `RiskDetail3Y` expander in section 03 renders the served `risk_behavior`
+  (gate free; 5,450 funds; Sharpe/Sortino/σ 3Y monthly + all-time max drawdown; benchmark-relative
+  group only where served — 2,530 funds — labeled vs the STATED prospectus benchmark, explicitly
+  not the page's passive alt), stamped off the public `pricing` source stamp incl. its honest
+  "stale" state. Methodology artifact `risk-behavior` (honestly "unversioned — fund_metadata risk
+  fields"; method verified against build_gold_metadata). Renders for funds without a nav series
+  (VOO). Gates: lint/build/golden (+4 risk_behavior assertions) + codex high pass 0 P0/P1/P2.
+  Step 5 (capture + data-quality-critic) run post-commit.
 - **2026-07-12 — te_decomposition FLIPPED to served** (protocol steps 1–4): payload-gated
   `paid` (fail-closed `defaultGate` if the gates key ever goes missing), free proof point =
   grouped sleeve rollup + top bet (`pickTeProofPoint`; the other bets never leave the server;

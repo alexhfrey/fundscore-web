@@ -330,11 +330,83 @@ export interface PositioningBetBridges extends SampleTag {
   bridges: BetBridge[];
 }
 
-// --- risk_explainers (spec: ⓘ plain-language explainers) ---------------------
-export interface RiskExplainers extends SampleTag {
+// --- risk_behavior (SERVED on the base fact row; assembled from fund_metadata
+//     risk fields — computed in fund_score build_gold_metadata from Tiingo daily
+//     adjusted NAV: monthly grid, 3Y = 36 months (min 30), SHY risk-free proxy;
+//     max drawdown from full-history daily closes. Benchmark-relative fields are
+//     measured vs an ETF proxy of the fund's STATED prospectus benchmark
+//     (`benchmark_relative_to`) — a DIFFERENT basis from the page's passive-alt
+//     framing; label them with the served benchmark name, never the passive alt.
+//     Fractions: std_dev_3y / alpha_3y / tracking_error / max_drawdown.
+//     Percents (0–100+): r_squared_3y / upside_capture / downside_capture. ------
+export interface RiskBehavior {
+  std_dev_3y: number | null;
+  sharpe_3y: number | null;
+  sortino_3y: number | null;
+  alpha_3y: number | null;
+  beta_3y: number | null;
+  r_squared_3y: number | null;
+  tracking_error: number | null;
+  information_ratio: number | null;
+  upside_capture: number | null;
+  downside_capture: number | null;
+  max_drawdown: number | null;
+  max_drawdown_date: string | null;
+  benchmark_relative_to: string | null;
+}
+
+// --- risk_explainers (ⓘ plain-language explainers) ---------------------------
+// DERIVED COPY, no longer a fixture: the strings are templated server-side from
+// the SAME numbers the section displays (buildRiskExplainers below), so the
+// educational copy can never contradict the gauges. No fund-specific sentence is
+// emitted when its number is absent — the definition alone remains.
+export interface RiskExplainers {
   beta: string | null;
   tracking_error: string | null;
   beta_tilt_plain: string | null;
+}
+
+/**
+ * Build the plain-language ⓘ explainers from the numbers the page displays
+ * (positioning gauges / nav-series beta). Pure copy templating — every figure
+ * in the output is one of the inputs, formatted; nothing is computed here
+ * beyond `beta × 10` movement phrasing and unit conversion of te_bps to %/yr.
+ */
+export function buildRiskExplainers({
+  beta,
+  teBps,
+  passiveLabel,
+}: {
+  beta: number | null | undefined;
+  teBps: number | null | undefined;
+  passiveLabel: string | null | undefined;
+}): RiskExplainers {
+  const pass = passiveLabel ?? "its index";
+  const betaDef = `Beta measures how much the fund moves when its index (${pass}) moves. Beta 1.00 = moves one-for-one.`;
+  const betaFund =
+    beta != null && isFinite(beta)
+      ? ` This fund's ${beta.toFixed(2)} means a 10% ${pass} move typically moves the fund about ${(beta * 10).toFixed(1)}% — it holds ${
+          beta < 0.97 ? "LESS" : beta > 1.03 ? "MORE" : "about the same"
+        } market risk ${beta < 0.97 || beta > 1.03 ? "than" : "as"} the index.`
+      : "";
+  const teDef = `Tracking error measures how differently the fund behaves from its index, in %/yr. Zero = an index hugger.`;
+  const tePct = teBps != null && isFinite(teBps) ? (teBps / 100).toFixed(1) : null;
+  const teFund = tePct
+    ? ` This fund's ${tePct}%/yr means its returns typically land within ±${tePct} points of the (beta-adjusted) index in a normal year — that spread is what active management buys you, for better or worse.`
+    : "";
+  const tiltDir =
+    beta != null && isFinite(beta)
+      ? beta < 0.97
+        ? `The fund holds less market risk than its index (beta ${beta.toFixed(2)} vs 1.00).`
+        : beta > 1.03
+          ? `The fund holds more market risk than its index (beta ${beta.toFixed(2)} vs 1.00).`
+          : `The fund holds about the same market risk as its index (beta ${beta.toFixed(2)}).`
+      : `A fund can hold more or less market risk than its index (beta above or below 1.00).`;
+  return {
+    beta: betaDef + betaFund,
+    tracking_error: teDef + teFund,
+    beta_tilt_plain: `${tiltDir} This is a POSITIONING choice, not a stock-picking result — so the bets are measured AFTER removing it, and it is shown here as its own line, never summed into the chain.`,
+  };
 }
 
 // --- the extended row ---------------------------------------------------------
@@ -355,7 +427,10 @@ export interface FactRowV2 extends FactRow {
   attributionWindowSummary?: AttributionWindowSummary | null;
   top10VsIwf?: Top10VsIwf | null;
   positioningBetBridges?: PositioningBetBridges | null;
-  riskExplainers?: RiskExplainers | null;
+  // riskBehavior is SERVED on the base FactRow (gate: free; typed loosely there
+  // as Record<string, unknown>) — the page narrows it to RiskBehavior | Locked
+  // at the read site. riskExplainers is DERIVED copy (buildRiskExplainers),
+  // computed in-page from displayed numbers — neither rides this overlay type.
 }
 
 /**
@@ -389,6 +464,7 @@ export async function overlayV2Fixtures(
     out.attributionWindowSummary ?? fx.attributionWindowSummary;
   out.top10VsIwf = out.top10VsIwf ?? fx.top10VsIwf;
   out.positioningBetBridges = out.positioningBetBridges ?? fx.positioningBetBridges;
-  out.riskExplainers = out.riskExplainers ?? fx.riskExplainers;
+  // riskExplainers: DERIVED copy now (buildRiskExplainers) — no fixture overlay;
+  // riskBehavior is served on the base row and never had a fixture.
   return out;
 }

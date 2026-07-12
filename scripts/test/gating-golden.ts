@@ -189,6 +189,23 @@ const FCNTX_ROW = {
     ],
     method_version: "profile_nav_series_v1",
   },
+  // risk_behavior gate=free — the 3Y risk-detail expander's payload. Whole
+  // section must lock for anon and open for free (no field-level strip).
+  riskBehavior: {
+    std_dev_3y: 0.1455,
+    sharpe_3y: 1.4419,
+    sortino_3y: 1.8636,
+    alpha_3y: null,
+    beta_3y: null,
+    r_squared_3y: null,
+    tracking_error: null,
+    information_ratio: null,
+    upside_capture: null,
+    downside_capture: null,
+    max_drawdown: -0.4921,
+    max_drawdown_date: "2009-03-09",
+    benchmark_relative_to: "S&P 500",
+  },
   // te_decomposition gate=paid — the full per-bet table is paid; the free proof
   // point is the grouped sleeve rollup + the single TOP bet. Below the gate the
   // 11 other bets (here: "Technology", "Consumer Cyclical") must be stripped, and
@@ -354,6 +371,13 @@ check("return_attribution (paid) is {locked} for anon", isLocked(anon.returnAttr
 check("alternatives (paid) is {locked} for anon", isLocked(anon.alternatives));
 check("risk_attribution (free) is {locked} for anon", isLocked(anon.riskAttribution));
 check("manager_parent (free) is {locked} for anon", isLocked(anon.managerParent));
+// risk_behavior (free): the 3Y risk detail must lock for anon — its Sharpe /
+// volatility numbers never ship below the free gate.
+check("risk_behavior (free) is {locked} for anon", isLocked(anon.riskBehavior));
+check(
+  "risk_behavior sharpe_3y does not survive in anon payload",
+  !hasLiveNumber(anon.riskBehavior, "sharpe_3y"),
+);
 
 // te_decomposition (paid): the full per-bet table is stripped to a {locked}
 // marker carrying ONLY the free proof point (grouped sleeve rollup + the single
@@ -454,6 +478,19 @@ check(
 
 check("return_attribution unlocked for paid", !isLocked(paid.returnAttribution));
 check("alternatives unlocked for paid", !isLocked(paid.alternatives));
+
+// risk_behavior (free): opens at the free tier — positive control for the 3Y
+// risk-detail expander (and null relative fields stay null, never defaulted).
+const freeRow = applyGates(FCNTX_ROW, "free");
+check("risk_behavior unlocked for free", !isLocked(freeRow.riskBehavior));
+check(
+  "risk_behavior sharpe_3y present for free (positive control)",
+  hasLiveNumber(freeRow.riskBehavior, "sharpe_3y"),
+);
+check(
+  "risk_behavior null relative fields stay null for free (never defaulted)",
+  (freeRow.riskBehavior as { beta_3y?: number | null })?.beta_3y === null,
+);
 
 // te_decomposition: the paid tier holds the full per-bet table, and the negative
 // diversifying te_alloc survives UNCLAMPED (data-integrity: never floor to zero).
