@@ -36,16 +36,25 @@ A v2 section may switch from fixture to served data ONLY when ALL of:
    spot-check on 3 funds).
 
 ## Known frontend work at flip time (from the preview build's honest-gap list)
-- Bets table: join served `exposureXray` rows for per-bet held/active weights (the preview shows
-  em-dashes; the served X-ray has them) + t-stats/ETF proxies from the te-decomposition payload.
+- ~~Bets table: join served `exposureXray` rows for per-bet held/active weights + t-stats~~ —
+  SHIPPED in the te_decomposition flip (df0e944).
 - Attribution member drill-down: keep the existing fixed `1Y` / `3Y` / `5Y` Brinson rows at cutover.
   Custom quarter-window Brinson member drill-downs are V2 (`attribution-quarter-blocks`), not a
   production-cutover blocker.
 - Skill histograms return only after the beta-adjusted Bayesian rerun (backlog) restores the
   P(skill) headline.
 - "Why IWF" candidate table lands with `serve-l2-passive-candidate-fit`.
-- 3Y risk expander wires the already-served `riskBehavior` section (no backend dependency — may
-  flip first).
+- ~~3Y risk expander wires the already-served `riskBehavior` section~~ — SHIPPED in the
+  riskExplainers/riskBehavior flip (08d5b75).
+
+## Remaining before the final cutover (state as of 2026-07-12, after the 6-section flip run)
+Seven in-scope sections: **six are fully served** (hero/valueScore + fees were always real;
+te_decomposition, positioning_context, nav_series, fund_family_panel, attribution summary,
+risk expander flipped). Still fixture on the preview: `recentChangesTe` (backend spec
+`recent-changes-te-ranked` queued — section 06 flips when it ships), plus the two sub-blocks
+inside section 05 (`top10VsIwf`, `positioningBetBridges` — no backend spec yet; sample-marked at
+the sub-block). `aiSummary` is de-scoped (absent from production at cutover, per the owner
+decision below). Then the Final cutover steps below (route promotion, ISR, fixture-import purge).
 
 ## Flip log
 - **2026-07-12 — attribution window summary FLIPPED to served** (protocol steps 1–4 + flip-3/-4
@@ -70,7 +79,21 @@ A v2 section may switch from fixture to served data ONLY when ALL of:
   identity row relabeled "Trust / registrant" (ends the trust-vs-adviser "Fund family" collision),
   registry span + risk-attribution artifact updated to v0.2 (+ truncation/remainder limitation).
   Gates: lint/build/golden ALL PASS + codex high pass 0 P0/P1 (2 deduped P2 advisories applied as
-  above). Step 5 post-commit.
+  above). **Step 5 VERDICT: flip sound, no P0/P1** (2026-07-12 critic, FCNTX/DODGX/FCNTX-free/VOO):
+  every rendered number byte-identical Postgres==staging==gold; identities exact to full float
+  precision (betsTotal 1810.6949 → rendered 1811, NOT the listed 1809; remainder +2 == gold's 4
+  unlisted factors +2.1599; DODGX +7.0862 likewise); quarter grid == 21 gold quarter-ends;
+  free-tier zero-leak (payload grep clean); VOO honest-absent; no estimated beta-tilt bps, no
+  "two model generations", no "timing skill" anywhere; DetractorProof −358 == gold −357.858.
+  Post-verdict fixes applied in the wrap-up commit: P2 hardcoded "own row in attribution" tag now
+  derives from the served factor list — outside it the tag states only what is provable, "no
+  separate attribution row" (the web side can't distinguish folded-into-remainder from
+  not-attributed-at-all, e.g. a TE-basis-only macro bet); ø when no attribution. P3 us_megabanks
+  label + stale fixture-era comments. Filed to backlog: P2
+  holdings-direction vs active-β sign adjudication (data-scientist pass + basis-reconciliation
+  note) + P2 preview sample AI summary now contradicting the live sections (fixture refresh;
+  de-scoped from production). Accepted nits: independent-rounding chain display (DODGX +160−26→
+  +135), "led by" naming the largest positive factor only.
 - **2026-07-12 — fund_family_panel FLIPPED to served** (protocol steps 1–4 + flip-2 critic fixes):
   fixture DELETED; page reads served `fundFamilyPanel` only (the base-row `fundFamily` SEC-trust
   string is unrelated and untouched); fail-closed `defaultGate: "free"` added per codex P2 (+

@@ -1,15 +1,18 @@
 "use client";
 // ============================================================================
 // 04 · AttributionExplorer — the bets-to-net waterfall. Client island (paid).
-//   • category waterfall: Sector / Theme / Macro / Stock selection → gross
-//     (bets + selection) → fees + trading → net, from the FIXTURE window summary.
+//   • category waterfall from the SERVED window summary (exposure_path_v0.2):
+//     Sector / Theme / Macro (+ the identity-exact "smaller factor bets"
+//     remainder) / Stock selection → gross (bets + selection) → fees + trading
+//     → net. The chain sums exactly by the decomposition's own identity.
 //   • per-category expand: sector/theme/macro show the steady-tilt (bias) vs
-//     tilt-variation (timing) factor split; Stock selection shows the REAL
-//     served Brinson member tables (1Y/3Y/5Y) as a RELATED lens — never a
-//     decomposition of the idiosyncratic −298.
-//   • beta tilt: a separated context panel, never summed into the chain.
-//   • range selects: pinned to the default window with the honesty note — no
-//     sub-window figure is ever invented.
+//     tilt-variation (timing) factor split; Stock selection shows the served
+//     Brinson member tables (1Y/3Y/5Y) as a RELATED lens — never a
+//     decomposition of the idiosyncratic figure.
+//   • beta tilt: a separated context panel, never summed into the chain; no
+//     estimated figure until the per-quarter blocks spec integrates it.
+//   • range selects: pinned to the full served window with the honesty note —
+//     no sub-window figure is ever invented.
 // ============================================================================
 import { useState } from "react";
 import type { AttributionWindowSummary } from "@/lib/serving/profile-v2";

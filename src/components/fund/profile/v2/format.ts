@@ -68,6 +68,7 @@ const FACTOR_LABELS: Record<string, string> = {
   "theme::semiconductors_broad": "Semiconductors",
   "macro::credit_hy": "High-yield credit sensitivity",
   "theme::ev_battery_chain": "EVs & Battery Supply",
+  "theme::us_megabanks": "US Mega Banks", // fallback humanizes to "Us Megabanks"
 };
 
 /** Human label for a factor_id, falling back to a generic humanization. */

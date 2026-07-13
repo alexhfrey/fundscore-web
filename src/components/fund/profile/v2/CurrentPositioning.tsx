@@ -72,9 +72,22 @@ function buildBetRows(
   bridges: PositioningBetBridges | null,
   top10: Top10VsIwf | null,
   exposureXray: { rows?: unknown[] } | null,
+  attributedFactorIds: ReadonlySet<string> | null,
 ): BetRow[] {
   const rows: BetRow[] = [];
   const xray = xrayByFactor(exposureXray);
+  // The attribution serves only its top factor rows; a bet outside that set
+  // either folds into section 04's "smaller factor bets" line OR isn't in the
+  // attribution's factor set at all (e.g. a TE-basis-only macro bet) — the web
+  // side can't tell which, so the tag states only what is provable: no
+  // separate row. Tagging everything "own row" was a rendered false claim
+  // (DQ-critic P2). Unknown (no attribution list) → null → em-dash.
+  const attributionTag = (factorId: string | null): string | null => {
+    if (attributedFactorIds == null || factorId == null) return null;
+    return attributedFactorIds.has(factorId)
+      ? "own row in attribution"
+      : "no separate attribution row";
+  };
   // Attributed factor bets (SERVED te_decomposition): carry a real TE contribution
   // + t-stat; held / active come from the matched Exposure X-Ray row where the
   // bet's factor_id equals the X-ray exposure_id (em-dash when no match — never
@@ -102,7 +115,7 @@ function buildBetRows(
       activePp: active,
       teBps: b.te_alloc_bps,
       diversifying: b.diversifying === true,
-      bridge: "own row in attribution",
+      bridge: attributionTag(b.factor_id),
       sub: sub || null,
     });
   }
@@ -160,6 +173,7 @@ export function CurrentPositioning({
   paid,
   passiveLabel,
   l2BlendEtfs,
+  attributedFactorIds,
 }: {
   // SERVED positioning_context (gate: free) — passed only when entitled.
   positioning: PositioningContext | null;
@@ -191,6 +205,10 @@ export function CurrentPositioning({
   // the blend-aware "Active vs" header + the baseline-composition chip so a
   // blend baseline is never presented as the lead ETF alone.
   l2BlendEtfs?: string[] | null;
+  // The factor_ids the attribution SERVES as their own rows (paid callers only)
+  // — drives the honest "own row in attribution" / "grouped under smaller
+  // factor bets" cross-reference tag; null = no attribution list → em-dash.
+  attributedFactorIds?: ReadonlySet<string> | null;
 }) {
   const pass = passiveLabel ?? "IWF";
 
@@ -280,7 +298,13 @@ export function CurrentPositioning({
 
   // TE decomposition (SERVED, gated paid): paid holds the full object; free holds
   // the proof point (rollup + top bet). Read shared scalars from whichever is set.
-  const betRows = buildBetRows(teDecomposition, bridges, top10, exposureXray);
+  const betRows = buildBetRows(
+    teDecomposition,
+    bridges,
+    top10,
+    exposureXray,
+    attributedFactorIds ?? null,
+  );
   const teRollup: TeRollupRow[] = teDecomposition?.rollup ?? teProof?.rollup ?? [];
   const topBet = teProof?.top_bet ?? null; // free-tier proof point only
   const teTotalBps = teDecomposition?.te_total_bps ?? teProof?.te_total_bps ?? null;

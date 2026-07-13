@@ -134,6 +134,12 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
     paid && ara != null && !isLocked(ara)
       ? buildAttributionWindowSummary(ara, blocksMeta)
       : null;
+  // The factor_ids the attribution serves as their own rows — the bets table's
+  // cross-reference tag keys off this so it never claims a row that section 04
+  // folded into "smaller factor bets" (DQ-critic P2). Paid-only, ids only.
+  const attributedFactorIds = attrSummary
+    ? new Set(attrSummary.factor_contributions.map((f) => f.factor_id))
+    : null;
 
   // Positioning gauges — SERVED positioning_context (gate: free, owned by
   // applyGates; anon holds a {locked} marker). `free ?` is belt-and-braces.
@@ -338,6 +344,7 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
             paid={paid}
             passiveLabel={passiveLabel}
             l2BlendEtfs={l2BlendEtfs}
+            attributedFactorIds={attributedFactorIds}
           />
 
           {/* 06 · Recent changes */}
