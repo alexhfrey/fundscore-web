@@ -70,7 +70,12 @@ Model rule of thumb: **omit** (session default) for mechanical/well-pinned work;
 standard specs; add `effort: xhigh` where EDA/root-cause ambiguity is real; `fable` ONLY where
 plausible-but-wrong could survive the review gates (methodology/basis design, statistical
 judgment, prompt+gate engineering).
-Body — **frontend** specs: Goal · Context (with critic evidence) · Solution (components, data flow,
+Body — **every** spec opens with `## Owner summary` immediately after the frontmatter: one or two
+sentences in plain English, written the way a CPO briefs a board — what this ships and why it
+matters to the product, no code paths or jargon. It supplements the technical sections below it;
+the owner reads this line to triage without entering the weeds.
+
+Body — **frontend** specs: Owner summary · Goal · Context (with critic evidence) · Solution (components, data flow,
 loading/empty/locked states, tier gating) · Files to touch · Data dependencies (exact
 `fund_profile_facts` fields; mark any missing field a blocker) · Acceptance criteria (incl.
 `npm run build` + `npm run lint` pass, no gated data leaks to anon/free) · Test plan (capture N

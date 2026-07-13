@@ -11,6 +11,9 @@ scope: global
 model: opus
 ---
 
+## Owner summary
+Lets customers zoom the performance-attribution story into custom date windows ("what drove returns in 2023?") instead of one fixed multi-year window. A V2 enhancement — the per-quarter building blocks are already served; this adds the interactive composition.
+
 ## Goal
 V2 enhancement for the Attribution Explorer: serve the **member drill-down layer** as per-quarter
 Brinson-Fachler member contributions (stock / sector / theme), so a paid user can compose custom

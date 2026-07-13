@@ -12,6 +12,9 @@ scope: global
 model: opus
 ---
 
+## Owner summary
+Two disclosure fixes in the fund-of-funds feature: coverage can currently be over-reported, and partially covered funds can lose their "partial coverage" flag entirely. Both protect the product's core promise that we tell customers exactly what we can and cannot see.
+
 # Look-through coverage-honesty hardening — backend
 
 Fast-follow to the shipped look-through positioning-changes feature (fund_score `fd982cd`). Two P2

@@ -13,6 +13,9 @@ model: fable
 effort: xhigh
 ---
 
+## Owner summary
+Backend for the "why this index fund is your cheapest alternative" table — the heart of our fee-vs-passive promise. The first build FAILED our data review (it recommended alternatives that don't resemble the fund, in the worst case an inverse fund) and is blocked until it ships with a quality floor and one consistent set of fit numbers.
+
 ## Goal
 Persist and serve, for each active fund, the **candidate-ETF comparison the L2 passive-replication pipeline already
 reasons over** — each candidate ETF with its **correlation, tracking error, and beta vs the fund**, a flag for the

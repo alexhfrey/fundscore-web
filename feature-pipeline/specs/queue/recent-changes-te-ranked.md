@@ -12,6 +12,9 @@ model: opus
 effort: xhigh
 ---
 
+## Owner summary
+Upgrades the "what changed recently in this portfolio" section from a list of trades to a ranked story — ordering each change by how much it moves the fund's risk, so customers see which moves actually matter. This is the last backend piece needed before the redesigned page can fully replace the old one.
+
 ## Goal
 Serve the Recent Changes section: "what has the manager actually been doing lately" — the most
 significant holdings changes from consecutive N-PORT filings, classified (stock / sector / theme /

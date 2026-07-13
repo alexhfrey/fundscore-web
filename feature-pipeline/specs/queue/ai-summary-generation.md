@@ -11,6 +11,9 @@ scope: global
 model: fable
 ---
 
+## Owner summary
+Generates the plain-English summary paragraph at the top of each fund page from our own verified data — the "read this first" layer for retail customers. Deliberately de-scoped from the V1 launch; ships as a fast-follow under the same per-section quality gates so we never launch machine-written text we haven't gated.
+
 ## Goal
 Serve the profile's AI Summary section: 2–4 paragraphs of plain-English narrative per fund — what
 it is, the value read vs its named passive alternative, the defining bets and what they've

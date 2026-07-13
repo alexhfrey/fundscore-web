@@ -12,6 +12,9 @@ model: opus
 effort: xhigh
 ---
 
+## Owner summary
+The master plan for replacing today's fund page with the redesigned eight-section version. Six of the seven launch sections now run entirely on live data; what remains is one section's backend (recent portfolio changes), the final route swap with its launch-hygiene checks, and the operational data refreshes tracked below.
+
 ## Goal
 Make the eight-section redesign the REAL `/funds/[ticker]` page. The preview route
 (`src/app/preview/funds/[ticker]/`, spec `profile-v2-preview-route` done 2026-07-02) is the
