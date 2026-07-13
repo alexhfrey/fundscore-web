@@ -62,6 +62,8 @@ const FCNTX_ROW = {
     value_offering_reframed: "public",
     nav_series: "public",
     te_decomposition: "paid",
+    positioning_context: "free",
+    fund_family_panel: "free",
   },
   identity: {
     ticker: "FCNTX",
@@ -189,6 +191,69 @@ const FCNTX_ROW = {
     ],
     method_version: "profile_nav_series_v1",
   },
+  // positioning_context gate=free — the cohort-percentile gauges. Whole section
+  // must lock for anon and open for free (no field-level strip, no projector).
+  positioningContext: {
+    beta: 0.9044,
+    beta_percentile: 1.875,
+    te_bps: 480.58,
+    te_percentile: 66.875,
+    cohort: {
+      kind: "same_passive_alt",
+      label: "IWF",
+      n_funds: 160,
+      is_blend: false,
+      constituents: [{ etf: "IWF", weight: 1, n: 160 }],
+      qualifying_weight: 1,
+    },
+    as_of: "2026-05-09",
+    blend_asof: "2026-02-28",
+    method_version: "positioning_context_v0.1",
+  },
+  // fund_family_panel gate=free — the adviser-level family panel. Whole section
+  // must lock for anon and open for free (no field-level strip, no projector).
+  fundFamilyPanel: {
+    family: "fidelity management and research company llc",
+    family_display: "Fidelity Management & Research Company LLC",
+    n_funds_scored: 115,
+    aum_weighted_value_bps: 35.5,
+    avg_value_bps: 8.35,
+    avg_value_bps_3y: 202.94,
+    aum_weighted_value_bps_3y: 369.02,
+    family_rank: 4,
+    n_families_ranked: 115,
+    ranking_status: "ranked",
+    funds: [
+      {
+        ticker: "FCNTX",
+        name: "Fidelity Contrafund",
+        value_bps: 10,
+        value_bps_3y: 472.15,
+        aum_usd: 140604345484,
+        passive_alt_label: "IWF",
+        is_this_fund: true,
+      },
+    ],
+    as_of: "2026-05-09",
+    method_version: "fund_family_panel_v0.1",
+  },
+  // risk_behavior gate=free — the 3Y risk-detail expander's payload. Whole
+  // section must lock for anon and open for free (no field-level strip).
+  riskBehavior: {
+    std_dev_3y: 0.1455,
+    sharpe_3y: 1.4419,
+    sortino_3y: 1.8636,
+    alpha_3y: null,
+    beta_3y: null,
+    r_squared_3y: null,
+    tracking_error: null,
+    information_ratio: null,
+    upside_capture: null,
+    downside_capture: null,
+    max_drawdown: -0.4921,
+    max_drawdown_date: "2009-03-09",
+    benchmark_relative_to: "S&P 500",
+  },
   // te_decomposition gate=paid — the full per-bet table is paid; the free proof
   // point is the grouped sleeve rollup + the single TOP bet. Below the gate the
   // 11 other bets (here: "Technology", "Consumer Cyclical") must be stripped, and
@@ -260,7 +325,7 @@ const FCNTX_ROW = {
     idio_risk_share: 0.4734,
     passive_alt_label: "IWF",
     window_start: "2023-05-12",
-    window_end: "2026-04-24",
+    window_end: "2026-04-24", // carried into the proof point (freshness stamp)
     no_named_bets: false,
     method_version: "te_decomp_v0.1",
   },
@@ -354,6 +419,62 @@ check("return_attribution (paid) is {locked} for anon", isLocked(anon.returnAttr
 check("alternatives (paid) is {locked} for anon", isLocked(anon.alternatives));
 check("risk_attribution (free) is {locked} for anon", isLocked(anon.riskAttribution));
 check("manager_parent (free) is {locked} for anon", isLocked(anon.managerParent));
+// risk_behavior (free): the 3Y risk detail must lock for anon — its Sharpe /
+// volatility numbers never ship below the free gate.
+check("risk_behavior (free) is {locked} for anon", isLocked(anon.riskBehavior));
+check(
+  "risk_behavior sharpe_3y does not survive in anon payload",
+  !hasLiveNumber(anon.riskBehavior, "sharpe_3y"),
+);
+// fund_family_panel (free): the family panel must lock for anon — its
+// rank/aggregate figures never ship below the free gate.
+check("fund_family_panel (free) is {locked} for anon", isLocked(anon.fundFamilyPanel));
+check(
+  "fund_family_panel aggregates do not survive in anon payload",
+  !hasLiveNumber(anon.fundFamilyPanel, "aum_weighted_value_bps") &&
+    !hasLiveNumber(anon.fundFamilyPanel, "value_bps_3y"),
+);
+// FAIL-CLOSED default: a row whose gates JSONB is MISSING the fund_family_panel
+// key must still gate the populated panel at free (codex P2 — never public).
+{
+  const gatesSansFam = { ...(FCNTX_ROW.gates as Record<string, unknown>) };
+  delete gatesSansFam.fund_family_panel;
+  const rowSansFamGate = { ...FCNTX_ROW, gates: gatesSansFam } as typeof FCNTX_ROW;
+  check(
+    "fund_family_panel with MISSING gate key fails CLOSED for anon (default free)",
+    isLocked(applyGates(rowSansFamGate, "anonymous").fundFamilyPanel),
+  );
+  check(
+    "fund_family_panel with MISSING gate key still opens for free",
+    !isLocked(applyGates(rowSansFamGate, "free").fundFamilyPanel),
+  );
+}
+// positioning_context (free): the cohort percentiles must lock for anon.
+check(
+  "positioning_context (free) is {locked} for anon",
+  isLocked(anon.positioningContext),
+);
+check(
+  "positioning_context percentiles do not survive in anon payload",
+  !hasLiveNumber(anon.positioningContext, "beta_percentile") &&
+    !hasLiveNumber(anon.positioningContext, "te_bps"),
+);
+// FAIL-CLOSED default: a row whose gates JSONB is MISSING the
+// positioning_context key must still gate the populated section at free
+// (locked for anon, open for free) — data never outruns its gate.
+{
+  const gatesSansPos = { ...(FCNTX_ROW.gates as Record<string, unknown>) };
+  delete gatesSansPos.positioning_context;
+  const rowSansPosGate = { ...FCNTX_ROW, gates: gatesSansPos } as typeof FCNTX_ROW;
+  check(
+    "positioning_context with MISSING gate key fails CLOSED for anon (default free)",
+    isLocked(applyGates(rowSansPosGate, "anonymous").positioningContext),
+  );
+  check(
+    "positioning_context with MISSING gate key still opens for free",
+    !isLocked(applyGates(rowSansPosGate, "free").positioningContext),
+  );
+}
 
 // te_decomposition (paid): the full per-bet table is stripped to a {locked}
 // marker carrying ONLY the free proof point (grouped sleeve rollup + the single
@@ -369,6 +490,11 @@ check(
 check(
   "te proof point exposes the single top bet (Financial Services) for anon",
   anonTe?.preview?.top_bet?.label === "Financial Services",
+);
+check(
+  "te proof point carries window_end (split freshness stamp) for anon",
+  (anonTe?.preview as { window_end?: string } | null | undefined)?.window_end ===
+    "2026-04-24",
 );
 check(
   "te full per-bet array does NOT ship below the gate for anon",
@@ -454,6 +580,24 @@ check(
 
 check("return_attribution unlocked for paid", !isLocked(paid.returnAttribution));
 check("alternatives unlocked for paid", !isLocked(paid.alternatives));
+
+// risk_behavior (free): opens at the free tier — positive control for the 3Y
+// risk-detail expander (and null relative fields stay null, never defaulted).
+const freeRow = applyGates(FCNTX_ROW, "free");
+check("risk_behavior unlocked for free", !isLocked(freeRow.riskBehavior));
+check(
+  "risk_behavior sharpe_3y present for free (positive control)",
+  hasLiveNumber(freeRow.riskBehavior, "sharpe_3y"),
+);
+check(
+  "risk_behavior null relative fields stay null for free (never defaulted)",
+  (freeRow.riskBehavior as { beta_3y?: number | null })?.beta_3y === null,
+);
+check("fund_family_panel unlocked for free", !isLocked(freeRow.fundFamilyPanel));
+check(
+  "fund_family_panel 3Y member value present for free (positive control)",
+  hasLiveNumber(freeRow.fundFamilyPanel, "value_bps_3y"),
+);
 
 // te_decomposition: the paid tier holds the full per-bet table, and the negative
 // diversifying te_alloc survives UNCLAMPED (data-integrity: never floor to zero).

@@ -8,7 +8,7 @@
 // under the ruler + a percentile line on the fund's ruler mark; absent → nothing.
 // ============================================================================
 import { pctFromBps, fmtBps, fmtSignedBps, fairnessChip, EM_DASH } from "@/lib/serving/format";
-import { ordinal } from "./format";
+import { cohortPhrase, ordinal } from "./format";
 import { ChapterHeader, Panel, PanelNote } from "./primitives";
 import { LockedNotice } from "../primitives";
 import { FeeFairness } from "../FeeFairness";
@@ -45,18 +45,9 @@ interface FeesShape {
   management_fee_bps?: number | null;
 }
 
-// Cohort description for the peer-percentile sentence. Blend-baseline funds get
-// the owner-decided honest phrasing (constituent ETFs + weights); single-ETF
-// cohorts name the ETF directly. Cohort name + n are ALWAYS in the copy.
-function cohortPhrase(c: PeerCohort): string {
-  if (c.is_blend && c.constituents?.length) {
-    const weights = c.constituents
-      .map((k) => `${k.etf} ${Math.round((k.weight ?? 0) * 100)}%`)
-      .join(" / ");
-    return `funds sharing its blended passive alternative (weighted across ${weights})`;
-  }
-  return `funds benchmarked to ${c.label}`;
-}
+// Cohort description for the peer-percentile sentence — the SHARED page-wide
+// convention now lives in ./format (cohortPhrase), reused by the positioning
+// gauges so the two sentences can never drift.
 
 function niceMax(v: number): number {
   return Math.ceil(v / 10) * 10;

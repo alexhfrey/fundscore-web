@@ -57,7 +57,13 @@ export function tierAllows(
   return (V2_TIER_RANK[userState] ?? 0) >= (V2_GATE_RANK[requiredGate] ?? 0);
 }
 
-// --- nav_series (spec: profile-nav-series) ----------------------------------
+// --- nav_series (SERVED — profile-nav-series, profile_nav_series_v1).
+//     Matched-window monthly growth-of-$1000: both legs share ONE grid from the
+//     common start (series_start is the COMMON PAIRED WINDOW start, NOT the
+//     fund's inception — label it that way). Adjusted NAV ⇒ after-fee by
+//     construction. Field-gated in applyGates: fund line public; the passive /
+//     β-adjusted legs + β + the full period table are paid (free keeps ONE
+//     proof-point row with its fund/passive/diff, β-adj diff nulled). ----------
 export interface NavSeriesPoint {
   t: string; // "YYYY-MM" month key
   fund: number; // growth of $1000, after-fee (adjusted NAV)
@@ -65,39 +71,71 @@ export interface NavSeriesPoint {
   beta_adj_passive?: number | null;
 }
 export interface NavPeriodRow {
-  period: string; // "YTD" | "1Y" | "3Y" | "5Y" | "10Y" | "SI"
+  period: string; // "1Y" | "3Y" | "5Y" | "SI" (SI = common-window start)
   fund_ann_pct: number | null;
   passive_ann_pct: number | null;
-  beta_adj_passive_ann_pct?: number | null;
   diff_bps: number | null; // excess: fund − passive, annualized, after fees
   beta_adj_diff_bps: number | null; // alpha: fund − β·passive (same market risk)
 }
-export interface NavSeries extends SampleTag {
+export interface NavSeries {
   passive_label: string | null; // ALWAYS named beside the chart
-  series_start: string | null; // common-window start month
+  series_start: string | null; // common-window start month (NOT inception)
   as_of: string | null;
-  beta?: number | null; // the β used for the beta-adjusted leg (from value_score)
+  beta?: number | null; // the β behind the β-adjusted leg (from value_score; paid)
   points: NavSeriesPoint[];
   period_table: NavPeriodRow[];
-  /** Plain-English hover explainers for the excess/alpha columns. */
-  hover_copy?: { excess: string; alpha: string } | null;
   method_version: string | null;
 }
 
-// --- positioning_context (spec: positioning-context-percentiles) ------------
-export interface PositioningContext extends SampleTag {
+/**
+ * Plain-English hover explainers for the period table's Excess / Alpha columns
+ * — DERIVED copy templated from the served β and passive label (the served
+ * payload carries no hover strings). Nothing computed beyond formatting.
+ */
+export function buildNavHoverCopy({
+  beta,
+  passiveLabel,
+}: {
+  beta: number | null | undefined;
+  passiveLabel: string | null | undefined;
+}): { excess: string; alpha: string } {
+  const pass = passiveLabel ?? "the index";
+  const betaBit =
+    beta != null && isFinite(beta) ? ` (β ${beta.toFixed(2)})` : "";
+  return {
+    excess: `Excess return = the fund minus ${pass}, both after fees. The raw scoreboard vs simply holding the index.`,
+    alpha: `Alpha (beta-adjusted) = the fund minus a beta-scaled ${pass} position${betaBit}. A fund running less market risk than its index is understated by raw excess; alpha compares against a passive position with the SAME market risk.`,
+  };
+}
+
+// --- positioning_context (SERVED — positioning-context-percentiles,
+//     positioning_context_v0.1). Percentiles use the page-wide strictly-below
+//     convention (cohort_percentiles.py, self-in-n, N_MIN=20); blend-baseline
+//     funds get the blend-weighted definition-C percentile. `constituents` are
+//     the COHORT constituents with weights RENORMALIZED over qualifying ETFs
+//     (qualifying_weight < 1 ⇒ part of the true blend didn't qualify) — never
+//     present them as the fund's full blend composition unless
+//     qualifying_weight === 1. ---------------------------------------------------
+export interface PositioningCohortConstituent {
+  etf: string;
+  weight: number; // renormalized over QUALIFYING constituents
+  n: number | null; // that constituent-ETF cohort's size
+}
+export interface PositioningContext {
   beta: number | null;
   beta_percentile: number | null; // strictly-below convention
-  beta_cohort_median: number | null;
   te_bps: number | null;
   te_percentile: number | null;
-  te_cohort_median_bps: number | null;
   cohort: {
     kind: "same_passive_alt" | "peer_group";
-    label: string; // e.g. "funds benchmarked to IWF"
+    label: string; // lead ETF ("IWF") or peer-group code ("EQ.US.HEALTH.ALLCAP")
     n_funds: number;
+    is_blend?: boolean | null;
+    constituents?: PositioningCohortConstituent[] | null;
+    qualifying_weight?: number | null;
   } | null;
   as_of: string | null;
+  blend_asof?: string | null;
   method_version?: string | null;
 }
 
@@ -162,12 +200,20 @@ export interface RecentChangesTe extends SampleTag {
   method_version?: string | null;
 }
 
-// --- fund_family (spec: fund-family-panel) -----------------------------------
+// --- fund_family_panel (SERVED — fund-family-panel, fund_family_panel_v0.1).
+//     Adviser-level (N-CEN adviser, NOT the SEC trust) family aggregation.
+//     Ranking needs ≥5 scored funds (ranking_status names the honest state);
+//     the SI aggregates are Value Score bps (shrunk, net); the 3Y variants are
+//     realized after-fee β-adjusted excess from the nav-series period table —
+//     a REALIZED-return basis, related but not the same statistic. Two separate
+//     columns, never blended. ---------------------------------------------------
 export interface FamilyFundRow {
   ticker: string;
   name: string | null;
-  value_bps: number | null; // vs the fund's OWN passive alternative
+  value_bps: number | null; // vs the fund's OWN passive alternative (SI, Value Score)
+  value_bps_3y?: number | null; // realized 3Y after-fee β-adj excess (nav-series basis)
   aum_usd: number | null;
+  aum_as_of_date?: string | null;
   passive_alt_label: string | null;
   is_this_fund?: boolean;
 }
@@ -178,21 +224,27 @@ export interface FamilyLeaderRow {
   aum_weighted_bps: number | null;
   avg_bps: number | null;
 }
-export interface FundFamilyPanel extends SampleTag {
+export interface FundFamilyPanel {
   family: string | null; // cleaned adviser name (grouping key)
   family_display: string | null; // short brand label for copy
   n_funds_scored: number | null;
+  n_funds_3y?: number | null; // members with a 3Y matched window (never imputed)
   total_scored_aum_usd: number | null;
   avg_value_bps: number | null;
   aum_weighted_value_bps: number | null;
-  avg_value_bps_3y: number | null; // null until profile-nav-series lands
+  avg_value_bps_3y: number | null;
   aum_weighted_value_bps_3y: number | null;
-  family_rank: number | null;
+  family_rank: number | null; // null when the family is too small to rank
   n_families_ranked: number | null;
   rank_basis: string | null;
+  ranking_status?: string | null; // "ranked" | "family_too_small_to_rank"
   funds: FamilyFundRow[]; // top-N by AUM; the fund's own row always present
   leaders?: FamilyLeaderRow[];
   as_of: string | null;
+  aum_as_of_date_min?: string | null; // AUM stamps span a range — disclose it
+  aum_as_of_date_max?: string | null;
+  value_as_of_date_min?: string | null;
+  value_as_of_date_max?: string | null;
   method_version?: string | null;
 }
 
@@ -237,12 +289,13 @@ export interface AttributionBlocks extends SampleTag {
   method_version: string | null;
 }
 
-// The full-window aggregate view (already REAL today via riskAttribution's
-// active_return_attribution / the mock combined_decomposition). The preview
-// renders the Explorer from this summary with the range control pinned to the
-// default window until per-quarter blocks ship — never fabricating sub-window
-// numbers.
-export interface AttributionWindowSummary extends SampleTag {
+// The full-window aggregate view — SERVED: built verbatim from
+// riskAttribution.active_return_attribution (exposure_path_v0.2) by
+// buildAttributionWindowSummary below, with the quarter grid from the lazy
+// fund_attribution_blocks payload. The Explorer keeps its range control pinned
+// to the full window until attribution-quarter-blocks ships — no sub-window
+// number is ever invented.
+export interface AttributionWindowSummary {
   window: string | null; // e.g. "2020-12-31 to 2025-09-30"
   quarter_grid: string[];
   default_window: { start: string; end: string } | null;
@@ -273,6 +326,70 @@ export interface AttributionWindowSummary extends SampleTag {
   basis_migration_note?: string | null;
   /** Why there is no residual inside the decomposition (frozen-vs-NAV gap). */
   residual_explainer?: string | null;
+}
+
+/**
+ * Build the Attribution Explorer's window summary from the SERVED
+ * riskAttribution.active_return_attribution (exposure_path_v0.2) — a pure
+ * field mapping plus derived explainer COPY quoting served values. The served
+ * factor list is truncated to the top rows by the assembler; the gold identity
+ * (idio = realised − Σ ALL factor totals) makes the un-listed remainder exactly
+ * `realised − idio − Σ listed` — the Explorer renders that as an explicit
+ * "smaller factor bets" line rather than letting the chain silently not sum.
+ * beta_tilt is intentionally null: the old fixture bar was a labeled PROTOTYPE
+ * estimate; the real per-quarter beta-effect series is served in the blocks and
+ * its integrated bar ships with attribution-quarter-blocks — nothing is
+ * estimated in the meantime.
+ */
+export function buildAttributionWindowSummary(
+  // The served sub-panel (snake_case JSONB) — typed loosely at the call site.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ara: any,
+  blocksMeta: { quarter_grid: string[]; holdings_window: string | null } | null,
+): AttributionWindowSummary | null {
+  if (!ara || typeof ara !== "object") return null;
+  const idio = ara.idio ?? null;
+  const rows: unknown[] = Array.isArray(ara.factor_contributions)
+    ? ara.factor_contributions
+    : [];
+  // The bets-to-net chain NEEDS the idio aggregates (idio / realised): without
+  // them the waterfall would zero-fill selection, realised, net and the
+  // remainder line — fabricated values. Fail honest instead (codex P2).
+  if (
+    idio == null ||
+    idio.idio_contribution_bps == null ||
+    idio.realised_active_bps == null ||
+    rows.length === 0
+  ) {
+    return null;
+  }
+  const windowStart = (ara.window_start as string | null) ?? null;
+  const windowEnd = (ara.window_end as string | null) ?? null;
+  return {
+    window: windowStart && windowEnd ? `${windowStart} to ${windowEnd}` : null,
+    quarter_grid: blocksMeta?.quarter_grid ?? [],
+    default_window:
+      windowStart && windowEnd ? { start: windowStart, end: windowEnd } : null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    factor_contributions: rows.map((r: any) => ({
+      factor_id: String(r.factor_id ?? ""),
+      factor_type: r.factor_type as "sector" | "theme" | "macro",
+      total_bps: r.total_contribution_bps ?? null,
+      bias_bps: r.bias_bps ?? null,
+      timing_bps: r.timing_bps ?? null,
+      avg_active_beta: r.avg_active_beta ?? null,
+    })),
+    stock_selection_idio_bps: idio?.idio_contribution_bps ?? null,
+    realised_active_bps: idio?.realised_active_bps ?? null,
+    residual_reconciliation_bps: idio?.reconciliation_gap_bps ?? null,
+    beta_tilt: null,
+    n_quarters: idio?.n_quarters ?? null,
+    // v0.2 IS the standardized basis (one bet universe with Positioning / the
+    // TE table) — the old "two model generations" migration note is retired.
+    basis_migration_note: null,
+    residual_explainer:
+      "Within the decomposition there is no residual: stock selection (idio) is defined as the frozen-portfolio active return minus the factor bets, so bets + selection equals the realised figure exactly (the table lists the top factor rows; the “smaller factor bets” line collects the rest, so the chain always sums). The separate reconciliation gap is frozen-vs-NAV: the decomposition prices quarterly FROZEN filed holdings GROSS of fees, while real NAV is net and includes intra-quarter trading — labeled “fees + trading”, never forced to zero.",
+  };
 }
 
 // --- holdings_full (spec: serve-full-holdings) -------------------------------
@@ -330,11 +447,83 @@ export interface PositioningBetBridges extends SampleTag {
   bridges: BetBridge[];
 }
 
-// --- risk_explainers (spec: ⓘ plain-language explainers) ---------------------
-export interface RiskExplainers extends SampleTag {
+// --- risk_behavior (SERVED on the base fact row; assembled from fund_metadata
+//     risk fields — computed in fund_score build_gold_metadata from Tiingo daily
+//     adjusted NAV: monthly grid, 3Y = 36 months (min 30), SHY risk-free proxy;
+//     max drawdown from full-history daily closes. Benchmark-relative fields are
+//     measured vs an ETF proxy of the fund's STATED prospectus benchmark
+//     (`benchmark_relative_to`) — a DIFFERENT basis from the page's passive-alt
+//     framing; label them with the served benchmark name, never the passive alt.
+//     Fractions: std_dev_3y / alpha_3y / tracking_error / max_drawdown.
+//     Percents (0–100+): r_squared_3y / upside_capture / downside_capture. ------
+export interface RiskBehavior {
+  std_dev_3y: number | null;
+  sharpe_3y: number | null;
+  sortino_3y: number | null;
+  alpha_3y: number | null;
+  beta_3y: number | null;
+  r_squared_3y: number | null;
+  tracking_error: number | null;
+  information_ratio: number | null;
+  upside_capture: number | null;
+  downside_capture: number | null;
+  max_drawdown: number | null;
+  max_drawdown_date: string | null;
+  benchmark_relative_to: string | null;
+}
+
+// --- risk_explainers (ⓘ plain-language explainers) ---------------------------
+// DERIVED COPY, no longer a fixture: the strings are templated server-side from
+// the SAME numbers the section displays (buildRiskExplainers below), so the
+// educational copy can never contradict the gauges. No fund-specific sentence is
+// emitted when its number is absent — the definition alone remains.
+export interface RiskExplainers {
   beta: string | null;
   tracking_error: string | null;
   beta_tilt_plain: string | null;
+}
+
+/**
+ * Build the plain-language ⓘ explainers from the numbers the page displays
+ * (positioning gauges / nav-series beta). Pure copy templating — every figure
+ * in the output is one of the inputs, formatted; nothing is computed here
+ * beyond `beta × 10` movement phrasing and unit conversion of te_bps to %/yr.
+ */
+export function buildRiskExplainers({
+  beta,
+  teBps,
+  passiveLabel,
+}: {
+  beta: number | null | undefined;
+  teBps: number | null | undefined;
+  passiveLabel: string | null | undefined;
+}): RiskExplainers {
+  const pass = passiveLabel ?? "its index";
+  const betaDef = `Beta measures how much the fund moves when its index (${pass}) moves. Beta 1.00 = moves one-for-one.`;
+  const betaFund =
+    beta != null && isFinite(beta)
+      ? ` This fund's ${beta.toFixed(2)} means a 10% ${pass} move typically moves the fund about ${(beta * 10).toFixed(1)}% — it holds ${
+          beta < 0.97 ? "LESS" : beta > 1.03 ? "MORE" : "about the same"
+        } market risk ${beta < 0.97 || beta > 1.03 ? "than" : "as"} the index.`
+      : "";
+  const teDef = `Tracking error measures how differently the fund behaves from its index, in %/yr. Zero = an index hugger.`;
+  const tePct = teBps != null && isFinite(teBps) ? (teBps / 100).toFixed(1) : null;
+  const teFund = tePct
+    ? ` This fund's ${tePct}%/yr means its returns typically land within ±${tePct} points of the (beta-adjusted) index in a normal year — that spread is what active management buys you, for better or worse.`
+    : "";
+  const tiltDir =
+    beta != null && isFinite(beta)
+      ? beta < 0.97
+        ? `The fund holds less market risk than its index (beta ${beta.toFixed(2)} vs 1.00).`
+        : beta > 1.03
+          ? `The fund holds more market risk than its index (beta ${beta.toFixed(2)} vs 1.00).`
+          : `The fund holds about the same market risk as its index (beta ${beta.toFixed(2)}).`
+      : `A fund can hold more or less market risk than its index (beta above or below 1.00).`;
+  return {
+    beta: betaDef + betaFund,
+    tracking_error: teDef + teFund,
+    beta_tilt_plain: `${tiltDir} This is a POSITIONING choice, not a stock-picking result — so the bets are measured AFTER removing it, and it is shown here as its own line, never summed into the chain.`,
+  };
 }
 
 // --- the extended row ---------------------------------------------------------
@@ -342,20 +531,27 @@ export interface RiskExplainers extends SampleTag {
 // column + assembler section. The preview route overlays fixtures for FCNTX.
 export interface FactRowV2 extends FactRow {
   navSeries?: NavSeries | null;
-  positioningContext?: PositioningContext | null;
+  // SERVED + tier-gated (positioning_context=free): applyGates leaves the full
+  // object for free+ and a { locked } marker for anon.
+  positioningContext?: PositioningContext | Locked | null;
   // SERVED + tier-gated (te_decomposition=paid): applyGates leaves the full
   // object for paid and a { preview, locked } marker for free/anon — so the
   // narrowed type includes Locked.
   teDecomposition?: TeDecomposition | Locked | null;
   recentChangesTe?: RecentChangesTe | null;
-  fundFamily?: FundFamilyPanel | null;
-  fundFamilyPanel?: FundFamilyPanel | null;
+  // SERVED + tier-gated (fund_family_panel=free): applyGates leaves the full
+  // object for free+ and a { locked } marker for anon. (`fundFamily` on the
+  // base row is the SEC-trust STRING scalar — not this panel.)
+  fundFamilyPanel?: FundFamilyPanel | Locked | null;
   aiSummary?: AiSummary | null;
   attributionBlocks?: AttributionBlocks | null;
   attributionWindowSummary?: AttributionWindowSummary | null;
   top10VsIwf?: Top10VsIwf | null;
   positioningBetBridges?: PositioningBetBridges | null;
-  riskExplainers?: RiskExplainers | null;
+  // riskBehavior is SERVED on the base FactRow (gate: free; typed loosely there
+  // as Record<string, unknown>) — the page narrows it to RiskBehavior | Locked
+  // at the read site. riskExplainers is DERIVED copy (buildRiskExplainers),
+  // computed in-page from displayed numbers — neither rides this overlay type.
 }
 
 /**
@@ -372,23 +568,22 @@ export async function overlayV2Fixtures(
   const fx = getV2Fixtures(ticker);
   const out: FactRowV2 = { ...row };
   if (!fx) return out;
-  out.navSeries = out.navSeries ?? fx.navSeries;
-  out.positioningContext = out.positioningContext ?? fx.positioningContext;
+  // navSeries is SERVED (profile-nav-series shipped) — no fixture overlay; the
+  // applyGates field-gate owns its public/paid split on the base row.
+  // positioningContext is SERVED (positioning-context-percentiles shipped) — no
+  // fixture overlay; applyGates owns its free gate on the base row.
   // teDecomposition is SERVED (te-decomposition-by-bet shipped) — no fixture
   // overlay; applyGates already resolved the row's full/locked/absent value.
   out.recentChangesTe = out.recentChangesTe ?? fx.recentChangesTe;
-  const servedFamily =
-    out.fundFamilyPanel != null && typeof out.fundFamilyPanel === "object"
-      ? out.fundFamilyPanel
-      : out.fundFamily != null && typeof out.fundFamily === "object"
-        ? out.fundFamily
-        : null;
-  out.fundFamily = servedFamily ?? fx.fundFamily;
+  // fundFamilyPanel is SERVED (fund-family-panel shipped) — no fixture overlay;
+  // applyGates owns its free gate on the base row. (The base row's fundFamily
+  // STRING — the SEC trust name — is untouched and unrelated.)
   out.aiSummary = out.aiSummary ?? fx.aiSummary;
-  out.attributionWindowSummary =
-    out.attributionWindowSummary ?? fx.attributionWindowSummary;
+  // attributionWindowSummary is SERVED (built in-page from the served
+  // riskAttribution sub-panel + blocks meta) — no fixture overlay.
   out.top10VsIwf = out.top10VsIwf ?? fx.top10VsIwf;
   out.positioningBetBridges = out.positioningBetBridges ?? fx.positioningBetBridges;
-  out.riskExplainers = out.riskExplainers ?? fx.riskExplainers;
+  // riskExplainers: DERIVED copy now (buildRiskExplainers) — no fixture overlay;
+  // riskBehavior is served on the base row and never had a fixture.
   return out;
 }

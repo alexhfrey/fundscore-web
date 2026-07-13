@@ -1,15 +1,18 @@
 "use client";
 // ============================================================================
 // 04 · AttributionExplorer — the bets-to-net waterfall. Client island (paid).
-//   • category waterfall: Sector / Theme / Macro / Stock selection → gross
-//     (bets + selection) → fees + trading → net, from the FIXTURE window summary.
+//   • category waterfall from the SERVED window summary (exposure_path_v0.2):
+//     Sector / Theme / Macro (+ the identity-exact "smaller factor bets"
+//     remainder) / Stock selection → gross (bets + selection) → fees + trading
+//     → net. The chain sums exactly by the decomposition's own identity.
 //   • per-category expand: sector/theme/macro show the steady-tilt (bias) vs
-//     tilt-variation (timing) factor split; Stock selection shows the REAL
-//     served Brinson member tables (1Y/3Y/5Y) as a RELATED lens — never a
-//     decomposition of the idiosyncratic −298.
-//   • beta tilt: a separated context panel, never summed into the chain.
-//   • range selects: pinned to the default window with the honesty note — no
-//     sub-window figure is ever invented.
+//     tilt-variation (timing) factor split; Stock selection shows the served
+//     Brinson member tables (1Y/3Y/5Y) as a RELATED lens — never a
+//     decomposition of the idiosyncratic figure.
+//   • beta tilt: a separated context panel, never summed into the chain; no
+//     estimated figure until the per-quarter blocks spec integrates it.
+//   • range selects: pinned to the full served window with the honesty note —
+//     no sub-window figure is ever invented.
 // ============================================================================
 import { useState } from "react";
 import type { AttributionWindowSummary } from "@/lib/serving/profile-v2";
@@ -75,8 +78,15 @@ export function AttributionExplorer({
   const realised = summary.realised_active_bps ?? 0;
   const recon = summary.residual_reconciliation_bps ?? 0;
   const net = realised - recon;
+  // The served factor list is the assembler's top rows; the gold identity
+  // (idio = realised − Σ ALL factors) makes the un-listed remainder exactly
+  // (realised − idio) − Σ listed. Rendered as its own labeled line so the
+  // chain always sums — never silently short.
+  const listedSum = cats.reduce((s, c) => s + c.total, 0);
+  const otherBets = realised - idio - listedSum;
+  const showOther = Math.abs(otherBets) > 0.5;
 
-  const allVals = [...cats.map((c) => c.total), idio, realised, -recon, net];
+  const allVals = [...cats.map((c) => c.total), idio, realised, -recon, net, otherBets];
   const maxAbs = Math.max(1, ...allVals.map((v) => Math.abs(v)));
 
   const [open, setOpen] = useState<string | null>(null);
@@ -85,51 +95,60 @@ export function AttributionExplorer({
 
   return (
     <div className="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-      {/* Range control — preview, pinned to the default window. */}
+      {/* Range control — pinned to the default window (served quarter grid;
+          hidden when the fund's blocks payload isn't available). */}
       <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 bg-gray-50 px-4 py-3">
         <span className="text-[10.5px] font-semibold uppercase tracking-wide text-gray-400">Window</span>
-        <select
-          aria-label="Window start"
-          defaultValue={grid[0]}
-          onChange={() => setNote("window")}
-          className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-[13px] font-semibold text-gray-800"
-        >
-          {grid.map((q) => (
-            <option key={q}>{q}</option>
-          ))}
-        </select>
-        <span className="text-gray-400">→</span>
-        <select
-          aria-label="Window end"
-          defaultValue={grid[grid.length - 1]}
-          onChange={() => setNote("window")}
-          className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-[13px] font-semibold text-gray-800"
-        >
-          {grid.map((q) => (
-            <option key={q}>{q}</option>
-          ))}
-        </select>
+        {grid.length > 0 ? (
+          <>
+            <select
+              aria-label="Window start"
+              defaultValue={grid[0]}
+              onChange={() => setNote("window")}
+              className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-[13px] font-semibold text-gray-800"
+            >
+              {grid.map((q) => (
+                <option key={q}>{q}</option>
+              ))}
+            </select>
+            <span className="text-gray-400">→</span>
+            <select
+              aria-label="Window end"
+              defaultValue={grid[grid.length - 1]}
+              onChange={() => setNote("window")}
+              className="rounded-md border border-gray-200 bg-white px-2 py-1.5 text-[13px] font-semibold text-gray-800"
+            >
+              {grid.map((q) => (
+                <option key={q}>{q}</option>
+              ))}
+            </select>
+          </>
+        ) : (
+          <span className="text-[13px] font-semibold text-gray-700">
+            {win ? `${win.start} → ${win.end}` : "full holdings-era window"}
+          </span>
+        )}
         <button
           type="button"
           onClick={() => setNote("si")}
           className="rounded-md border border-gray-200 bg-white px-3 py-1.5 text-[12.5px] font-semibold text-gray-700 hover:border-gray-400"
         >
-          Since inception
+          Earlier history?
         </button>
-        <GapChip>preview — figures always show the full window</GapChip>
+        <GapChip>figures always show the full window</GapChip>
       </div>
       <div className="border-b border-gray-100 border-l-2 border-l-amber-300 bg-amber-50/60 px-4 py-2.5 text-[12.5px] leading-relaxed text-amber-900">
         {note === "si" ? (
           <>
-            &ldquo;Since inception&rdquo; is a <b>returns-based</b> read — see
-            Historical performance for the full-life growth chart. Holdings-based
-            attribution covers the holdings era only
-            {win ? ` (${win.start} → ${win.end})` : ""}.
+            Holdings-based attribution covers the <b>holdings era</b> only
+            {win ? ` (${win.start} → ${win.end})` : ""} — for the fund&apos;s earlier
+            history see Historical performance, a <b>returns-based</b> read on the
+            full paired series.
           </>
         ) : (
           <>
-            Custom sub-windows compute in the full product. This preview always
-            shows the full holdings-era window
+            Custom sub-windows arrive with the per-quarter blocks spec. Until then
+            the figures always show the full holdings-era window
             {win ? ` ${win.start} → ${win.end}` : ""} — sub-window figures are
             never invented.
           </>
@@ -171,6 +190,15 @@ export function AttributionExplorer({
               </div>
             ))}
 
+            {showOther && (
+              <WfRow
+                name="Smaller factor bets (not listed)"
+                sub="the factor rows below the served top set — included so the chain sums exactly"
+                value={otherBets}
+                maxAbs={maxAbs}
+              />
+            )}
+
             <WfRow
               name="Stock selection"
               sub="all picks combined, idiosyncratic — expand: how individual names did (related lens)"
@@ -202,13 +230,17 @@ export function AttributionExplorer({
           </div>
         </div>
 
-        {/* Beta tilt — a positioning choice, shown on its own, never summed. */}
+        {/* Beta tilt — a positioning choice, shown on its own, never summed.
+            No estimated bar: the old prototype (β−1)×return figure is retired;
+            the per-quarter beta-effect series is served in the attribution
+            blocks and its integrated bar ships with the quarter-blocks spec —
+            nothing is estimated in the meantime. */}
         <aside className="bg-gray-50/70 px-5 py-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-[10.5px] font-semibold uppercase tracking-wide text-slate-500">
               Beta tilt — a positioning choice, shown on its own
             </span>
-            <ProtoChip />
+            {summary.beta_tilt && <ProtoChip />}
           </div>
           {summary.beta_tilt && (
             <div className="mt-3 text-3xl font-bold tabular-nums text-slate-700">
@@ -223,8 +255,14 @@ export function AttributionExplorer({
           )}
           <p className="mt-3 border-t border-dashed border-gray-200 pt-3 text-[11.5px] leading-relaxed text-gray-500">
             <b>Why it&apos;s separate:</b> the chain at left is measured after this
-            tilt is removed — adding the bar into the chain would double-count it. A
-            per-quarter beta-effect series is in development.
+            tilt is removed — adding it into the chain would double-count it.
+            {!summary.beta_tilt && (
+              <>
+                {" "}
+                Its integrated per-window figure ships with the per-quarter blocks
+                spec — we don&apos;t show an estimate in the meantime.
+              </>
+            )}
           </p>
         </aside>
       </div>

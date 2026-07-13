@@ -16,9 +16,16 @@ import {
 import { resolveSession } from "@/lib/serving/session";
 import { readHoldingsFullTeaser } from "@/lib/serving/holdings-full";
 import { loadHoldingsFullRows as loadHoldingsFullRowsAction } from "@/lib/serving/holdings-full-actions";
+import { getAttributionBlocksMeta } from "@/lib/serving/attribution-blocks";
 import {
+  buildAttributionWindowSummary,
+  buildRiskExplainers,
   overlayV2Fixtures,
   tierAllows,
+  type FundFamilyPanel,
+  type NavSeries,
+  type PositioningContext,
+  type RiskBehavior,
   type TeDecomposition,
 } from "@/lib/serving/profile-v2";
 import { Alternatives, SourceFooter } from "@/components/fund/profile";
@@ -100,58 +107,57 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
         }
     : null;
 
-  // Nav series — fund line public; comparison legs (passive/β-adj) + comparison
-  // table columns are paid. Strip them for non-paid callers.
-  const navFx = row.navSeries ?? null;
-  const navSeries = navFx
-    ? paid
-      ? navFx
-      : {
-          ...navFx,
-          points: navFx.points.map((p) => ({
-            t: p.t,
-            fund: p.fund,
-            passive: null,
-            beta_adj_passive: null,
-          })),
-          period_table: (navFx.period_table ?? []).map((r) => ({
-            ...r,
-            passive_ann_pct: null,
-            beta_adj_passive_ann_pct: null,
-            diff_bps: null,
-            beta_adj_diff_bps: null,
-          })),
-        }
+  // Nav series — SERVED (profile-nav-series; gate public). applyGates already
+  // field-stripped below paid: passive/β-adj point legs + β nulled, and the
+  // period table collapsed to ONE free proof-point row (its β-adj diff nulled).
+  // No in-page strip — the gating module is the single owner of the contract.
+  const navSeries = (row.navSeries as NavSeries | null) ?? null;
+
+  // Attribution window summary — SERVED: the riskAttribution
+  // active_return_attribution sub-panel (paid, applyGates strips it to
+  // {locked} below) + the lazy blocks payload's quarter grid (paid,
+  // presence-gated, fetched server-side only when entitled). The summary is
+  // built only for paid; below the gate the section renders its proof point +
+  // unlock off `attrPresent` — never the numbers.
+  const ra = isLocked(row.riskAttribution) ? null : row.riskAttribution;
+  const ara = ra?.active_return_attribution ?? null;
+  // Presence comes from the RAW (pre-gate) row: a locked riskAttribution
+  // section does NOT prove a decomposition exists (passive/short-history funds
+  // carry factor/divergence data but a null sub-panel) — never tease an
+  // unlock for data that isn't there (codex P2). Only the boolean crosses.
+  const attrPresent = raw.riskAttribution?.active_return_attribution != null;
+  const blocksMeta =
+    paid && ara != null && !isLocked(ara)
+      ? await getAttributionBlocksMeta(ticker, raw.gates, userState)
+      : null;
+  const attrSummary =
+    paid && ara != null && !isLocked(ara)
+      ? buildAttributionWindowSummary(ara, blocksMeta)
+      : null;
+  // The factor_ids the attribution serves as their own rows — the bets table's
+  // cross-reference tag keys off this so it never claims a row that section 04
+  // folded into "smaller factor bets" (DQ-critic P2). Paid-only, ids only.
+  const attributedFactorIds = attrSummary
+    ? new Set(attrSummary.factor_contributions.map((f) => f.factor_id))
     : null;
 
-  // Attribution window summary — the full decomposition is paid; below the gate
-  // keep only the header/teaser scaffolding (window/n_quarters/label).
-  const attrFx = row.attributionWindowSummary ?? null;
-  const attrSummary = attrFx
-    ? paid
-      ? attrFx
-      : {
-          __sample: attrFx.__sample,
-          sample_label: attrFx.sample_label,
-          window: attrFx.window,
-          n_quarters: attrFx.n_quarters,
-          quarter_grid: [],
-          default_window: null,
-          factor_contributions: [],
-          stock_selection_idio_bps: null,
-          realised_active_bps: null,
-          residual_reconciliation_bps: null,
-          beta_tilt: null,
-          basis_migration_note: null,
-          residual_explainer: null,
-        }
+  // Positioning gauges — SERVED positioning_context (gate: free, owned by
+  // applyGates; anon holds a {locked} marker). `free ?` is belt-and-braces.
+  const positioningContext = free
+    ? unlocked<PositioningContext>(row.positioningContext)
     : null;
+  const positioningPresent = row.positioningContext != null;
 
-  // Risk explainers — used by the free gauges + the paid attribution panel.
-  const riskExplainers = free ? (row.riskExplainers ?? null) : null;
-
-  // Positioning gauges — free.
-  const positioningContext = free ? (row.positioningContext ?? null) : null;
+  // The fund's L2 blend constituents (public l2_blend_etfs, comma-joined) —
+  // names only; weights come from the positioning cohort when it covers the
+  // full blend. Drives the blend-aware bets-table baseline.
+  const vor = isLocked(row.valueOfferingReframed)
+    ? null
+    : (row.valueOfferingReframed as { l2_blend_etfs?: string | null } | null);
+  const l2BlendEtfs =
+    vor?.l2_blend_etfs != null && vor.l2_blend_etfs !== ""
+      ? vor.l2_blend_etfs.split(",").map((s) => s.trim()).filter(Boolean)
+      : null;
 
   // TE decomposition (SERVED — te-decomposition-by-bet, gated 'paid' by
   // applyGates): paid → the full object; free/anon → { preview: proofPoint,
@@ -209,17 +215,11 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
           }
       : null;
 
-  // Fund family — free. Prefer the real backend panel. Guard against the base
-  // row's `fundFamily` STRING, which is the DB adviser name colliding with the
-  // fixture panel key; only a real panel object counts as present.
-  const familyPanel =
-    row.fundFamilyPanel != null && typeof row.fundFamilyPanel === "object"
-      ? row.fundFamilyPanel
-      : row.fundFamily != null && typeof row.fundFamily === "object"
-        ? row.fundFamily
-        : null;
-  const familyPresent = familyPanel != null;
-  const fundFamily = free ? familyPanel : null;
+  // Fund family — SERVED fund_family_panel (gate: free, owned by applyGates;
+  // anon holds a {locked} marker). The base row's `fundFamily` STRING (the SEC
+  // trust name) is a different field and never read here.
+  const familyPresent = row.fundFamilyPanel != null;
+  const fundFamily = free ? unlocked<FundFamilyPanel>(row.fundFamilyPanel) : null;
 
   const identity = row.identity as Identity;
   const isPassive = identity.management_style === "passive";
@@ -240,6 +240,34 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
   const holdingsAsOf = holdings?.as_of_date ?? null;
   const inv = row.sourceInventory as unknown as { source_stamps?: SourceStamp[] };
   const holdingsStale = stampByDomain(inv, "holdings")?.status === "stale";
+
+  // Risk explainers (free gauges + paid attribution panel) — DERIVED copy,
+  // templated from the SAME numbers the gauges display so the educational text
+  // can never contradict them. Null numbers fall back to definitions-only.
+  const riskExplainers = free
+    ? buildRiskExplainers({
+        beta: positioningContext?.beta ?? null,
+        teBps: positioningContext?.te_bps ?? null,
+        passiveLabel,
+      })
+    : null;
+
+  // 3Y risk detail (SERVED risk_behavior, gate: free): free+ holds the payload;
+  // anon keeps the honest locked expander when the section exists but is gated.
+  const rbRaw = row.riskBehavior as RiskBehavior | Locked | null | undefined;
+  const riskBehavior = rbRaw != null && !isLocked(rbRaw) ? (rbRaw as RiskBehavior) : null;
+  const riskLocked = isLocked(rbRaw);
+  const pricingStamp = stampByDomain(inv, "pricing");
+  // Basis pointer beside the expander's stated-benchmark TE when the page also
+  // shows a headline TE (different basis) — derived, never fabricated.
+  const headlineTeNote =
+    positioningContext?.te_bps != null
+      ? `the page's headline TE is ${(positioningContext.te_bps / 100).toFixed(1)}%/yr (weekly, β-adjusted vs ${passiveLabel ?? "the passive alternative"})`
+      : null;
+  const headlineBetaNote =
+    positioningContext?.beta != null
+      ? `the page's headline beta is ${positioningContext.beta.toFixed(2)} (weekly, vs ${passiveLabel ?? "the passive alternative"}) — a different basis`
+      : null;
 
   const src = row.sourceInventory as {
     source_stamps: { source_label: string; as_of_date?: string | null }[];
@@ -278,11 +306,21 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
           <AISummary summary={aiSummary} full={free} />
 
           {/* 03 · Historical performance */}
-          <HistoricalPerformance navSeries={navSeries} showComparison={paid} />
+          <HistoricalPerformance
+            navSeries={navSeries}
+            showComparison={paid}
+            riskBehavior={riskBehavior}
+            riskLocked={riskLocked}
+            pricingStamp={pricingStamp}
+            headlineTeNote={headlineTeNote}
+            headlineBetaNote={headlineBetaNote}
+            isPassive={isPassive}
+          />
 
           {/* 04 · Performance attribution */}
           <AttributionSection
             summary={attrSummary}
+            present={attrPresent}
             returnAttribution={row.returnAttribution as { rows?: unknown[] } | Locked | null}
             riskExplainers={riskExplainers}
             paid={paid}
@@ -301,10 +339,12 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
             holdingsFullTeaser={holdingsFullTeaser}
             loadHoldingsFullRows={loadHoldingsFullRows}
             exposureXray={exposureXray}
-            present={tePresent || row.top10VsIwf != null || row.positioningContext != null || holdingsFullTeaser != null}
+            present={tePresent || row.top10VsIwf != null || positioningPresent || holdingsFullTeaser != null}
             free={free}
             paid={paid}
             passiveLabel={passiveLabel}
+            l2BlendEtfs={l2BlendEtfs}
+            attributedFactorIds={attributedFactorIds}
           />
 
           {/* 06 · Recent changes */}

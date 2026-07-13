@@ -36,18 +36,150 @@ A v2 section may switch from fixture to served data ONLY when ALL of:
    spot-check on 3 funds).
 
 ## Known frontend work at flip time (from the preview build's honest-gap list)
-- Bets table: join served `exposureXray` rows for per-bet held/active weights (the preview shows
-  em-dashes; the served X-ray has them) + t-stats/ETF proxies from the te-decomposition payload.
+- ~~Bets table: join served `exposureXray` rows for per-bet held/active weights + t-stats~~ —
+  SHIPPED in the te_decomposition flip (df0e944).
 - Attribution member drill-down: keep the existing fixed `1Y` / `3Y` / `5Y` Brinson rows at cutover.
   Custom quarter-window Brinson member drill-downs are V2 (`attribution-quarter-blocks`), not a
   production-cutover blocker.
 - Skill histograms return only after the beta-adjusted Bayesian rerun (backlog) restores the
   P(skill) headline.
 - "Why IWF" candidate table lands with `serve-l2-passive-candidate-fit`.
-- 3Y risk expander wires the already-served `riskBehavior` section (no backend dependency — may
-  flip first).
+- ~~3Y risk expander wires the already-served `riskBehavior` section~~ — SHIPPED in the
+  riskExplainers/riskBehavior flip (08d5b75).
+
+## Remaining before the final cutover (state as of 2026-07-12, after the 6-section flip run)
+Seven in-scope sections: **six are fully served** (hero/valueScore + fees were always real;
+te_decomposition, positioning_context, nav_series, fund_family_panel, attribution summary,
+risk expander flipped). Still fixture on the preview: `recentChangesTe` (backend spec
+`recent-changes-te-ranked` queued — section 06 flips when it ships), plus the two sub-blocks
+inside section 05 (`top10VsIwf`, `positioningBetBridges` — no backend spec yet; sample-marked at
+the sub-block). `aiSummary` is de-scoped (absent from production at cutover, per the owner
+decision below). Then the Final cutover steps below (route promotion, ISR, fixture-import purge).
 
 ## Flip log
+- **2026-07-12 — attribution window summary FLIPPED to served** (protocol steps 1–4 + flip-3/-4
+  critic fast-follows): fixture DELETED; the summary is built verbatim from the served
+  `riskAttribution.active_return_attribution` (exposure_path_v0.2, 2,479 funds) via
+  `buildAttributionWindowSummary` + the quarter grid read lazily from `fund_attribution_blocks`
+  behind a new fail-closed `sectionEntitled` gate (grid + window only — the factor path never
+  leaves the server). Honesty upgrades: identity-exact "Smaller factor bets (not listed)" waterfall
+  line (the assembler serves top-8; the remainder = realised − idio − Σ listed is exact by the gold
+  identity — the chain always sums); the hardcoded "The bets worked; recent picking didn't"
+  takeaway is now SIGN-DERIVED (FCNTX "+1811 … −1645 → +166 gross → +64 net vs IWF"; DODGX "+219 …
+  −59 → +135 net vs IWD" — both curl-verified vs served); the PROTOTYPE (β−1)×return beta-tilt bar
+  is retired with nothing estimated in its place (per-quarter beta_effect_bps is served in the
+  blocks; the integrated bar ships with attribution-quarter-blocks); the stale "two model
+  generations" note dropped (v0.2 IS the standardized basis); "Since inception" in the window
+  selector → "Earlier history?" with holdings-era copy. Codex P2 advisories APPLIED: presence from
+  the RAW row (a locked riskAttribution never teases a decomposition that isn't there) + the
+  builder requires the idio aggregates (no zero-filled waterfall; 0 such rows served today,
+  fail-honest regardless). Flip-3/-4 fast-follows: window-aware chart range buttons (no 4-year
+  series under a "10Y" label), VOO footnote/free-ⓘ copy conditionals, β>1 "raw excess flatters"
+  counterpart, zero-gap family copy ("the two agree"), unit-aware member AUM (fmtAum), hero
+  identity row relabeled "Trust / registrant" (ends the trust-vs-adviser "Fund family" collision),
+  registry span + risk-attribution artifact updated to v0.2 (+ truncation/remainder limitation).
+  Gates: lint/build/golden ALL PASS + codex high pass 0 P0/P1 (2 deduped P2 advisories applied as
+  above). **Step 5 VERDICT: flip sound, no P0/P1** (2026-07-12 critic, FCNTX/DODGX/FCNTX-free/VOO):
+  every rendered number byte-identical Postgres==staging==gold; identities exact to full float
+  precision (betsTotal 1810.6949 → rendered 1811, NOT the listed 1809; remainder +2 == gold's 4
+  unlisted factors +2.1599; DODGX +7.0862 likewise); quarter grid == 21 gold quarter-ends;
+  free-tier zero-leak (payload grep clean); VOO honest-absent; no estimated beta-tilt bps, no
+  "two model generations", no "timing skill" anywhere; DetractorProof −358 == gold −357.858.
+  Post-verdict fixes applied in the wrap-up commit: P2 hardcoded "own row in attribution" tag now
+  derives from the served factor list — outside it the tag states only what is provable, "no
+  separate attribution row" (the web side can't distinguish folded-into-remainder from
+  not-attributed-at-all, e.g. a TE-basis-only macro bet); ø when no attribution. P3 us_megabanks
+  label + stale fixture-era comments. Filed to backlog: P2
+  holdings-direction vs active-β sign adjudication (data-scientist pass + basis-reconciliation
+  note) + P2 preview sample AI summary now contradicting the live sections (fixture refresh;
+  de-scoped from production). Accepted nits: independent-rounding chain display (DODGX +160−26→
+  +135), "led by" naming the largest positive factor only.
+- **2026-07-12 — fund_family_panel FLIPPED to served** (protocol steps 1–4 + flip-2 critic fixes):
+  fixture DELETED; page reads served `fundFamilyPanel` only (the base-row `fundFamily` SEC-trust
+  string is unrelated and untouched); fail-closed `defaultGate: "free"` added per codex P2 (+
+  missing-gate golden assertions). Served 3Y columns REPLACE the "3-year value in development" gap
+  chip (member `value_bps_3y`, family 3Y aggregates) with an explicit two-bases note (SI = shrunk
+  Value Score; 3Y = realized β-adj after-fee excess — never added). Unranked families render
+  honestly ("too small a family to rank", ranking needs ≥5 — DREVX verified; board note added).
+  AUM as-of RANGE disclosed in the header ("AUM as of 2024-10-31–2025-09-30"). Methodology artifact
+  `fund-family` (fund_family_panel_v0.1). Flip-2 critic fixes folded in: section-05 Sample badge
+  removed (scoped "Top-10 sample" chip on the one remaining fixture sub-block); blend cohorts
+  phrase per-constituent sizes ("weighted across IXN 50% of 20 / FDN 50% of 21") and drop the
+  single-count prefix — fee-ruler copy stays byte-identical (its cohorts carry no n). Coverage
+  2,070 funds (1,549 ranked / 521 too-small). Gates: lint/build/golden (+8 assertions) + codex high
+  pass 0 P0/P1 (its 1 deduped P2 advisory = the defaultGate hardening, applied + golden-proven).
+  **Step 5 VERDICT: flip sound** (2026-07-12 critic, FCNTX/DREVX/ICWIX/VOO): render==DB==staging==
+  gold everywhere; Fidelity aggregates + rank 4/115 + leaderboard recompute exactly from member
+  rows; 3Y identity (value_bps_3y == same row's nav 3Y beta_adj_diff_bps) holds on 4 funds;
+  "115 funds/115 families" verified genuine coincidence; unranked + null-3Y + VOO honesty all pass;
+  section-05 badge scoping + blend-n phrasing confirmed shipped. Escalations: P1 UPSTREAM N-CEN
+  first-adviser pick misassigns DREVX's family to its sub-adviser (filed to backlog, fix-data); P2
+  zero-gap "better/worse" ternary + P3s (member-AUM "$0.1" display, hero trust-vs-family label
+  collision, registry span wording) → fixed in the attribution flip; P3 FY2025 N-CEN AUM staleness
+  filed to backlog.
+- **2026-07-12 — nav_series FLIPPED to served** (protocol steps 1–4 + flip-1 critic fast-follows):
+  fixture DELETED; the applyGates field-gate is now the single owner of the public/paid split
+  (in-page strip removed — free gets the ONE proof-point row it defines: "3Y · after fees ·
+  +230 bps/yr vs IWF"; anon keeps the fund line only). Served-contract type (no hover_copy — now
+  DERIVED via buildNavHoverCopy from served β; no β-adj passive column — never served, column
+  dropped). HONESTY FIX: "Since inception" relabeled everywhere — series_start is the COMMON PAIRED
+  WINDOW start (FCNTX 2008-05, inception 1967): table row "Since 2008-05", chart button "Max",
+  chart copy "full paired series (from 2008-05)", header "paired window from 2008-05". Section 03
+  loses its sample chip entirely (chart+table+risk expander all served); methodology artifact
+  `nav-series` + link. Fast-follows folded in: DODGX two-beta cross-basis note (headlineBetaNote),
+  VOO index-fund filed-benchmark one-liner, IR typographic minus, registry per-fund as-of +
+  missing-proxy limitation wording. Coverage 3,190 funds; VOO honest-null (risk expander still
+  renders). Gates: lint/build/golden ALL PASS + codex high pass 0 P0/P1 ("no discrete introduced
+  bugs"; 2 counted advisories are pre-existing comment strings in diff context). **Step 5 VERDICT:
+  PASS — ship-quality** (2026-07-12 critic, FCNTX/DODGX/VOO): all 16 period cells + chart endpoints
+  byte-exact through capture→Postgres→staging→gold AND reproduced from the raw daily parquets
+  (β-adj leg provably uses value_score.beta exactly); free-tier stripped at the PAYLOAD level (217
+  points passive:null, one proof row); zero "since inception" in section 03; VOO honest-null;
+  external sanity consistent. Escalations: P2 GrowthChart range buttons don't suppress ranges
+  longer than the paired window (latent — up to 1,553/3,190 funds' 10Y button) + P3s (partial-month
+  final point labeled month-end, VOO footnote references an absent table, free-tier ⓘ copy, β≥1
+  takeaway asymmetry, section-04 "Since inception" survivor) → all folded into the attribution
+  flip.
+- **2026-07-12 — positioning_context FLIPPED to served** (protocol steps 1–4 + the TE bets-table
+  presentation batch folded in): fixture DELETED; `applyGates` now owns the section
+  (`positioningContext` was MISSING from GATED_SECTIONS — added with fail-closed
+  `defaultGate: "free"` + golden assertions); type mirrors the served contract (no cohort medians;
+  blend constituents carry renormalized-over-qualifying weights and are never presented as the full
+  blend unless qualifying_weight === 1). Copy: shared `cohortPhrase` (fee ruler + gauges now import
+  ONE convention — single/blend/peer-group), rounded percentiles ("98%", not "98.125%"),
+  "2nd percentile of the 160 funds benchmarked to IWF". Presentation batch: blend-aware
+  "Active vs blend (pp)" header + baseline-composition chip (DTEYX "IXN 50% + FDN 50%"; IENAX
+  names-only "IXC + XOP" — also mitigates the vs_benchmark P1 until the panel fix), split
+  freshness stamp "returns through window_end · built as_of" (window_end added to the TE proof
+  point). Methodology artifact `positioning-context` (positioning_context_v0.1). Coverage 1,961
+  funds (1,904 same-passive-alt / 57 peer-group). Gates: lint/build/golden (+7 assertions incl.
+  missing-gate-key fail-closed) + codex high pass 0 P0/P1 (0 advisories). **Step 5 VERDICT: PASS**
+  (2026-07-12 critic, FCNTX/DTEYX/GGHCX/IENAX): byte-exact chain + every percentile independently
+  recomputed to the digit incl. blend definition-C (DTEYX 85.6300/73.7692 exact) and peer fallback
+  (GGHCX); "160 not 158" confirmed correct under definition C; honest-null IENAX end-to-end;
+  one-TE-per-page holds on all 4. Findings: P1 = the pre-existing vs_benchmark item (mitigation
+  confirmed shipped as designed); P2 section-05 "Sample" badge now mislabels served data + P3
+  blend-cohort n phrasing → both fixed in the fund-family flip; P3s noted (fixture AI-summary says
+  158, peer-group raw taxonomy code).
+- **2026-07-12 — riskExplainers retired to DERIVED copy + 3Y risk expander wired to served
+  riskBehavior** (protocol steps 1–4; no backend dep): `buildRiskExplainers` templates the ⓘ
+  explainer strings from the SAME numbers the gauges display (fixture strings hardcoded FCNTX's
+  0.90/4.8% — deleted; every fund now gets definitions, fund-specific sentences only when the
+  number exists). New `RiskDetail3Y` expander in section 03 renders the served `risk_behavior`
+  (gate free; 5,450 funds; Sharpe/Sortino/σ 3Y monthly + all-time max drawdown; benchmark-relative
+  group only where served — 2,530 funds — labeled vs the STATED prospectus benchmark, explicitly
+  not the page's passive alt), stamped off the public `pricing` source stamp incl. its honest
+  "stale" state. Methodology artifact `risk-behavior` (honestly "unversioned — fund_metadata risk
+  fields"; method verified against build_gold_metadata). Renders for funds without a nav series
+  (VOO). Gates: lint/build/golden (+4 risk_behavior assertions) + codex high pass 0 P0/P1/P2.
+  **Step 5 VERDICT: PASS** (2026-07-12 data-quality-critic, FCNTX/DODGX/VOO): chain byte-identical
+  gold==staging==Postgres==rendered, units clean, nulls honest, per-fund stale stamps correct,
+  external sanity consistent (Fidelity/D&C/PortfoliosLab; VOO's odd-looking DJ US TSM benchmark is
+  its real filed benchmark). Escalations: P1 SPY/DBC missing from the Tiingo pricing store (1,477
+  funds' relative group honestly null but trivially recoverable — filed to backlog); P2 latent
+  rf fill_null(0) in build_gold_metadata (filed); P2 fast-follows folded into the nav-series flip
+  (DODGX two-beta cross-basis note, VOO index-fund benchmark one-liner, IR minus glyph, registry
+  per-fund as-of wording).
 - **2026-07-12 — te_decomposition FLIPPED to served** (protocol steps 1–4): payload-gated
   `paid` (fail-closed `defaultGate` if the gates key ever goes missing), free proof point =
   grouped sleeve rollup + top bet (`pickTeProofPoint`; the other bets never leave the server;

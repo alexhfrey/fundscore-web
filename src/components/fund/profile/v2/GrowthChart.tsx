@@ -47,6 +47,13 @@ export function GrowthChart({
   const [period, setPeriod] = useState<Period>("SI");
   const pass = passiveLabel ?? "the index";
 
+  // Only offer ranges the served paired window can actually fill — a 4-year
+  // series must never render under a "10Y" label (window suppression is the
+  // methodology contract; the table suppresses gold-side, the chart here).
+  const periods = PERIODS.filter(
+    (p) => p === "SI" || points.length >= MONTHS[p] + 1,
+  );
+
   const data = useMemo(() => {
     if (points.length === 0) return [];
     const start = period === "SI" ? 0 : Math.max(0, points.length - 1 - MONTHS[period]);
@@ -88,7 +95,7 @@ export function GrowthChart({
           )}
         </div>
         <div className="inline-flex overflow-hidden rounded-lg border border-gray-200">
-          {PERIODS.map((p) => (
+          {periods.map((p) => (
             <button
               key={p}
               type="button"
@@ -97,7 +104,9 @@ export function GrowthChart({
                 period === p ? "bg-gray-900 text-white" : "bg-white text-gray-500 hover:text-gray-900"
               }`}
             >
-              {p === "SI" ? "Since inception" : p}
+              {/* "SI" is the COMMON PAIRED WINDOW (both legs priced), not the
+                  fund's inception — "Max" avoids the false inception claim. */}
+              {p === "SI" ? "Max" : p}
             </button>
           ))}
         </div>
@@ -168,7 +177,10 @@ export function GrowthChart({
 
       <p className="px-1 pt-2 text-[12.5px] leading-relaxed text-gray-500">
         Growth of <span className="font-semibold text-gray-700">$1,000</span>
-        {period === "SI" ? " since inception" : ` over the last ${period}`}, month-end series
+        {period === "SI"
+          ? ` over the full paired series${data.length ? ` (from ${data[0].t})` : ""}`
+          : ` over the last ${period}`}
+        , month-end series
         {period === "SI" ? "" : " rebased to the window start"}.
         {showComparison && last?.fund != null ? (
           <>

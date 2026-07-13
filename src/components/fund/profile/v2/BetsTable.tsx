@@ -36,9 +36,15 @@ const LIMIT = 8;
 export function BetsTable({
   rows,
   passiveLabel = "IWF",
+  baselineLabel,
 }: {
   rows: BetRow[];
   passiveLabel?: string;
+  // What the "Active vs" column compares against: the lead ETF for single-ETF
+  // baselines, or "blend" when the passive alternative is an L2 blend (the
+  // differences are vs the BLEND — naming the lead ETF alone would mislabel
+  // them; the caller renders the composition chip).
+  baselineLabel?: string;
 }) {
   const [type, setType] = useState("all");
   const [open, setOpen] = useState(false);
@@ -73,7 +79,7 @@ export function BetsTable({
               <th className="px-4 py-2.5 text-left font-semibold">Bet</th>
               <th className="hidden px-4 py-2.5 text-left font-semibold sm:table-cell">Type</th>
               <th className="px-4 py-2.5 font-semibold">Held (% of fund)</th>
-              <th className="px-4 py-2.5 font-semibold">Active vs {passiveLabel} (pp)</th>
+              <th className="px-4 py-2.5 font-semibold">Active vs {baselineLabel ?? passiveLabel} (pp)</th>
               <th className="px-4 py-2.5 font-semibold">TE contribution (bps)*</th>
               <th className="hidden px-4 py-2.5 text-left font-semibold md:table-cell">In the attribution</th>
             </tr>

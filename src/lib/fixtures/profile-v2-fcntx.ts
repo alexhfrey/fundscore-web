@@ -15,64 +15,29 @@
 import raw from "./profile-v2-fcntx.json";
 import type {
   AiSummary,
-  AttributionWindowSummary,
-  FundFamilyPanel,
-  NavSeries,
   PositioningBetBridges,
-  PositioningContext,
   RecentChangesTe,
-  RiskExplainers,
   Top10VsIwf,
 } from "../serving/profile-v2";
 
 export interface V2Fixtures {
-  navSeries: NavSeries;
-  positioningContext: PositioningContext;
   recentChangesTe: RecentChangesTe;
-  fundFamily: FundFamilyPanel;
   aiSummary: AiSummary;
-  attributionWindowSummary: AttributionWindowSummary;
   top10VsIwf: Top10VsIwf;
   positioningBetBridges: PositioningBetBridges;
-  riskExplainers: RiskExplainers;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const j = raw as any;
 
-const navSeries: NavSeries = {
-  __sample: true,
-  sample_label:
-    "real monthly series (Tiingo adjusted closes, FCNTX vs IWF) from the design-mock prep; pending spec profile-nav-series",
-  passive_label: j.nav_series.passive_label,
-  series_start: j.nav_series.series_start,
-  as_of: j.nav_series.as_of,
-  beta: j.nav_series.beta,
-  points: j.nav_series.points,
-  period_table: j.nav_series.period_table,
-  hover_copy: j.nav_series.hover_copy,
-  method_version: j.nav_series.method_version,
-};
+// nav_series is now SERVED (profile-nav-series, profile_nav_series_v1) — its
+// fixture was removed at the production flip; a fixture never coexists with a
+// served section. The type lives in serving/profile-v2.ts.
 
-const positioningContext: PositioningContext = {
-  __sample: true,
-  sample_label:
-    "real percentiles (value_score.parquet, IWF cohort) from the design-mock prep; pending spec positioning-context-percentiles",
-  beta: j.positioning_context.beta.value,
-  beta_percentile: j.positioning_context.beta.percentile,
-  beta_cohort_median: j.positioning_context.beta.cohort_median,
-  te_bps: Math.round(j.positioning_context.tracking_error.value_pct * 100),
-  te_percentile: j.positioning_context.tracking_error.percentile,
-  te_cohort_median_bps: Math.round(
-    j.positioning_context.tracking_error.cohort_median_pct * 100,
-  ),
-  cohort: {
-    kind: j.positioning_context.cohort.kind,
-    label: j.positioning_context.cohort.label,
-    n_funds: j.positioning_context.cohort.n_funds,
-  },
-  as_of: j.positioning_context.as_of,
-};
+// positioning_context is now SERVED (positioning-context-percentiles,
+// positioning_context_v0.1) — its fixture was removed at the production flip; a
+// fixture never coexists with a served section. The type lives in
+// serving/profile-v2.ts.
 
 // te_decomposition is now SERVED (te-decomposition-by-bet, te_decomp_v0.1) — its
 // fixture was removed at the production flip; a fixture never coexists with a
@@ -100,33 +65,9 @@ const recentChangesTe: RecentChangesTe = {
   })),
 };
 
-const fundFamily: FundFamilyPanel = {
-  __sample: true,
-  sample_label:
-    "real adviser-level aggregation (value_score × fund_metadata) from the design-mock prep; pending spec fund-family-panel",
-  family: j.fund_family.family,
-  family_display: j.fund_family.family_display,
-  n_funds_scored: j.fund_family.n_funds_scored,
-  total_scored_aum_usd: j.fund_family.total_scored_aum_bn * 1e9,
-  avg_value_bps: j.fund_family.avg_value_bps,
-  aum_weighted_value_bps: j.fund_family.aum_weighted_value_bps,
-  avg_value_bps_3y: null, // pending profile-nav-series — do not invent
-  aum_weighted_value_bps_3y: null,
-  family_rank: j.fund_family.family_rank,
-  n_families_ranked: j.fund_family.n_families_ranked,
-  rank_basis: j.fund_family.rank_basis,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  funds: j.fund_family.fidelity_top_funds_by_aum.map((f: any) => ({
-    ticker: f.ticker,
-    name: f.name,
-    value_bps: f.value_bps,
-    aum_usd: f.aum_bn * 1e9,
-    passive_alt_label: f.passive_alt,
-    is_this_fund: f.is_this_fund === true,
-  })),
-  leaders: j.fund_family.leaders,
-  as_of: j.fund_family.as_of,
-};
+// fund_family_panel is now SERVED (fund-family-panel, fund_family_panel_v0.1) —
+// its fixture was removed at the production flip; a fixture never coexists with
+// a served section. The type lives in serving/profile-v2.ts.
 
 const aiSummary: AiSummary = {
   __sample: true,
@@ -137,30 +78,11 @@ const aiSummary: AiSummary = {
   facts_hash: null,
 };
 
-const attributionWindowSummary: AttributionWindowSummary = {
-  __sample: true,
-  sample_label:
-    "real full-window decomposition (served riskAttribution basis); per-quarter recomputation pending specs attribution-quarter-blocks + attribution-factor-path-serving",
-  window: j.combined_decomposition.window,
-  quarter_grid: j.attribution_explorer.quarter_grid,
-  default_window: j.attribution_explorer.default_window,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  factor_contributions: j.combined_decomposition.factor_contributions.map((f: any) => ({
-    factor_id: f.factor,
-    factor_type: f.type,
-    total_bps: f.total_bps,
-    bias_bps: f.bias_bps,
-    timing_bps: f.timing_bps,
-    avg_active_beta: f.avg_active_beta,
-  })),
-  stock_selection_idio_bps: j.combined_decomposition.stock_selection_idio_bps,
-  realised_active_bps: j.combined_decomposition.realised_active_bps,
-  residual_reconciliation_bps: j.combined_decomposition.residual_reconciliation_bps,
-  beta_tilt: j.attribution_explorer.beta_tilt ?? null,
-  n_quarters: j.combined_decomposition.n_quarters,
-  basis_migration_note: j.attribution_explorer.basis_migration_note ?? null,
-  residual_explainer: j.attribution_explorer.residual_explainer ?? null,
-};
+// attribution_window_summary is now SERVED (built from
+// riskAttribution.active_return_attribution, exposure_path_v0.2, via
+// buildAttributionWindowSummary + the lazy fund_attribution_blocks quarter
+// grid) — its fixture was removed at the production flip; a fixture never
+// coexists with a served section. The type lives in serving/profile-v2.ts.
 
 const top10VsIwf: Top10VsIwf = {
   __sample: true,
@@ -190,25 +112,17 @@ const positioningBetBridges: PositioningBetBridges = {
   })),
 };
 
-const riskExplainers: RiskExplainers = {
-  __sample: true,
-  sample_label: "plain-language explainers from the design-mock prep",
-  beta: j.risk_explainers.beta,
-  tracking_error: j.risk_explainers.tracking_error,
-  beta_tilt_plain: j.risk_explainers.beta_tilt_plain,
-};
+// risk_explainers is now DERIVED COPY (buildRiskExplainers in serving/profile-v2)
+// templated from the numbers the page displays — its fixture was removed at the
+// production flip; a fixture never coexists with a live source. The riskBehavior
+// 3Y risk detail was never a fixture: it renders the served risk_behavior section.
 
 const FIXTURES: Record<string, V2Fixtures> = {
   FCNTX: {
-    navSeries,
-    positioningContext,
     recentChangesTe,
-    fundFamily,
     aiSummary,
-    attributionWindowSummary,
     top10VsIwf,
     positioningBetBridges,
-    riskExplainers,
   },
 };
 

@@ -224,9 +224,9 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     title: "Risk & Attribution",
     tagline:
       "What drives a fund in return space — its active factor and theme bets beyond a cheap index, how much of a theme it holds versus actively bets on, and how those bets played out.",
-    methodVersion: "factor_exp_v0.1 · exposure_divergence_v0.1 · exposure_path_v0.1",
+    methodVersion: "factor_exp_v0.1 · exposure_divergence_v0.1 · exposure_path_v0.2",
     asOf:
-      "Return-based exposures through 2026-04-24; holdings side as of the displayed filing date.",
+      "Return-based exposures through 2026-04-24; the realised attribution covers the holdings era (2020-12-31 to 2026-03-31, 21 quarters); holdings side as of the displayed filing date.",
     measures: [
       "The factor lens regresses a fund's returns on the market, the Fama-French style factors, and a library of curated theme baskets to estimate its exposures. The active β is the bet beyond the fund's passive baseline — its closest passive alternative (the L2 index blend) when one exists, otherwise the broad market. A near-zero active β on a theme means the fund holds it only as much as that baseline does.",
       "The divergence headline juxtaposes two different measurements of the same exposure: how much of a theme the fund holds (% of assets) and how much of an active bet it runs on that theme (active β). These are never added together.",
@@ -251,6 +251,138 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
       "Estimated for about 4,700 funds — those with enough usable return history and a matched passive blend; the rest are shown as unavailable rather than estimated.",
       "Where a factor or theme β isn't statistically distinguishable from zero (|t| < 2), we say so rather than present it as a real bet.",
       "The divergence holdings side inherits the 180-day holdings staleness and filing-lag limits; where the passive blend has no theme look-through we lean on the absolute weight and active β rather than a misleading self-overweight.",
+      "The attribution waterfall lists the top factor rows; the remaining small factors are collected into an explicit “smaller factor bets” line (exact by the decomposition's own identity) so the chain always sums — nothing is silently dropped.",
+      "The realised attribution (v0.2) runs on the standardized factor model — the same bet universe as Current Positioning and the tracking-error table — over the holdings era only; earlier history is covered by the returns-based Growth section.",
+    ],
+  },
+  {
+    anchor: "fund-family",
+    title: "Fund Family Value",
+    tagline:
+      "How a fund's family — its adviser — ranks on after-fee value across its scored funds, and where this fund sits inside it.",
+    methodVersion: "fund_family_panel_v0.1",
+    asOf:
+      "Value as of 2026-05-09; member AUM stamps come from filings and span 2023-12-31 to 2025-10-31 across families (each page discloses its own family's range).",
+    measures: [
+      "The family is the fund's ADVISER (from N-CEN filings) — the firm actually running the money — not the SEC trust name, which splits one brand across dozens of registrants. For each family we show the average and the AUM-weighted net value per year across its scored funds (each fund read against its OWN passive alternative), and a rank among families with at least five scored funds.",
+      "Showing both averages is deliberate: the AUM-weighted figure counts every invested dollar equally, the simple average counts every fund equally — the gap between them says whether the family's biggest funds do better or worse than its typical fund.",
+    ],
+    method: [
+      "Scored funds are grouped by cleaned adviser name (a small alias map merges spelling variants; sub-advised funds group under the adviser). Each fund's net value is its Value Score read — after fees, versus its own closest passive alternative — so the family aggregate is an average of per-fund comparisons, never a single-benchmark claim.",
+      "The family rank uses the AUM-weighted since-inception figure (the payload names the rank basis); families with fewer than five scored funds are shown but never ranked. The member table lists the family's largest scored funds by AUM, always including the fund you are viewing.",
+      "The 3-year column is a different, realized basis: each fund's beta-adjusted after-fee excess over its passive alternative across the last three years of the matched monthly window — commensurately beta-adjusted like the Value Score, but a raw realized read, not a shrunk score. Funds without a 3-year matched window are excluded from the 3-year aggregates, never imputed.",
+    ],
+    sources: [
+      "Value Score panel (per-fund net value vs its own passive alternative)",
+      "Fund metadata (N-CEN adviser name, monthly average net assets)",
+      "The matched-window period table behind the Growth & After-Fee Returns section (the 3-year column)",
+    ],
+    notMeaning: [
+      "A family's rank describes its scored funds' past after-fee value — it is not a prediction for any fund, and not a claim about funds we don't score.",
+      "The since-inception and 3-year columns are different statistics on different bases (shrunk score vs realized excess) — they are shown side by side, never added or averaged together.",
+    ],
+    limitations: [
+      "Coverage is scored funds only (about 2,100 member funds across 412 families; 115 families reach the 5-fund ranking bar) — the page says 'scored funds', never 'all funds'.",
+      "Member AUM stamps come from filings and span a date range rather than one day; the page discloses the range.",
+      "Adviser-name grouping can fragment a family whose filings spell the adviser differently; known variants are merged and the top families were eyeballed, but a residual split is possible.",
+    ],
+  },
+  {
+    anchor: "nav-series",
+    title: "Growth & After-Fee Returns (Matched Windows)",
+    tagline:
+      "Growth of $1,000 for the fund and its passive alternative on one matched monthly window, with after-fee period returns raw and at matched market risk.",
+    methodVersion: "profile_nav_series_v1",
+    asOf:
+      "Monthly series through 2026-05; each fund's window starts at the first month both the fund and its passive blend are priced (the common paired window — not the fund's inception).",
+    measures: [
+      "The growth chart shows what $1,000 became in the fund versus its closest passive alternative — both after fees, both on the same monthly grid, from the same start month. The period table shows annualized after-fee returns for 1Y / 3Y / 5Y and the full paired window, with two comparisons: Excess (fund minus passive, the raw scoreboard) and Alpha (fund minus a beta-scaled passive position — the comparison at the same market risk).",
+    ],
+    method: [
+      "Both legs come from daily adjusted NAV (dividends reinvested; fees accrue inside NAV, so the series is after-fee by construction), downsampled to month-ends and restricted to the common window — the first month where BOTH the fund and its passive blend exist through the last common month. Both legs are normalized to $1,000 at the common start.",
+      "The beta-adjusted leg compounds beta times the passive monthly return, using the fund's single full-history beta from the Value Score; a fund with no Value Score row simply omits that leg (beta is never defaulted to 1).",
+      "Period returns are computed from this same monthly grid; a period longer than the common window is suppressed rather than extrapolated. Funds with no passive blend serve no series at all — a market-index substitute is never swapped in.",
+    ],
+    sources: [
+      "Daily adjusted fund NAV (Tiingo adjusted closes)",
+      "The reconstructed L2 passive-blend NAV (passive_alt_daily_nav)",
+      "The fund's beta from the Value Score panel",
+    ],
+    notMeaning: [
+      "Past growth is not a forecast; the chart describes the ride, not what comes next.",
+      "“Since” the window start is NOT since the fund's inception — the window starts where the passive pairing starts, and the page labels the start month.",
+      "Alpha at matched market risk is a fairness adjustment, not a skill verdict — the Value Score is the skill read.",
+    ],
+    limitations: [
+      "Coverage is funds with a passive blend and enough shared history (about 3,200 of 5,700 served funds; passive index vehicles have no cheaper passive alternative and honestly serve nothing).",
+      "A cohort of funds whose NAV feed went stale (~2025-04) serves no series rather than a chart that silently ends years ago; the upstream feed fix is tracked separately.",
+      "Monthly granularity smooths intra-month swings; the chart is for shape and magnitude, not day trading.",
+    ],
+  },
+  {
+    anchor: "positioning-context",
+    title: "Positioning Context (Cohort Percentiles)",
+    tagline:
+      "Where a fund's beta and tracking error sit among funds benchmarked to the same passive alternative.",
+    methodVersion: "positioning_context_v0.1",
+    asOf:
+      "Computed as of 2026-05-09, from the same beta and tracking-error reads as the Value Score; blend membership as of 2026-02-28.",
+    measures: [
+      "A beta of 0.90 or a tracking error of 4.8%/yr means little on its own. This context places each next to funds sharing the same passive alternative: the percentile says what fraction of that named cohort sits strictly below the fund on that measure.",
+      "The cohort is always named with its size — a percentile is never shown against an unnamed population. When the same-passive-alternative cohort is too small, the fund's peer group stands in (and the copy says so).",
+    ],
+    method: [
+      "Percentile = the share of cohort members strictly below the fund's value (the fund itself counts in the denominator; ties share the same percentile, never ranked above one another). This is the one percentile convention used page-wide — the fee ruler's peer percentile uses the same rule.",
+      "Cohorts need at least 20 members to produce a percentile; smaller cohorts show nothing rather than a percentile over a handful of funds. Funds whose passive alternative is a blend of ETFs get a blend-weighted percentile: the fund is read within each constituent ETF's cohort and the percentiles combine by the blend weights, renormalized over the constituents whose cohorts qualify.",
+      "Beta and tracking error are consumed exactly as the Value Score computed them (weekly returns, beta-adjusted, trailing three years, versus the fund's own passive alternative) — no recomputation, no mixing of bases.",
+    ],
+    sources: [
+      "Value Score panel (beta, current tracking error, passive-alternative label)",
+      "L2 passive-blend membership (which ETFs, and their weights, form each fund's alternative)",
+      "Fund taxonomy peer groups (the small-cohort fallback)",
+    ],
+    notMeaning: [
+      "A percentile is position, not quality — a low beta is not better or worse, it is just less market sensitivity than most of the cohort.",
+      "A high tracking-error percentile does not mean more (or less) skill — it means the fund takes more benchmark-relative risk than most funds read against the same alternative.",
+      "These are descriptions of current positioning, not forecasts.",
+    ],
+    limitations: [
+      "Only scored funds get percentiles (about 2,000 funds); funds whose cohort stays under 20 members even after the peer-group fallback show no percentile at all.",
+      "At the minimum cohort size percentiles quantise to roughly 5-point steps — displayed values are rounded so the precision isn't over-read.",
+      "For blend-baseline funds whose constituent cohorts don't all qualify, the percentile reads against the qualifying part of the blend (the copy names the constituents and weights actually used).",
+    ],
+  },
+  {
+    anchor: "risk-behavior",
+    title: "3-Year Risk Detail",
+    tagline:
+      "The fund's trailing risk profile — volatility, Sharpe, drawdown, and how it behaved versus its stated prospectus benchmark.",
+    methodVersion: "unversioned — fund_metadata risk fields",
+    asOf:
+      "Computed from daily adjusted NAV through each fund's latest priced date (2026-05-07/08 at this build); the page stamps each fund's own date and flags it stale while a pricing refresh is pending.",
+    measures: [
+      "The risk detail shows how bumpy the ride has been: the fund's own trailing 3-year volatility (standard deviation), risk-adjusted return (Sharpe and Sortino), and its worst peak-to-trough loss (maximum drawdown, dated, over the fund's full priced history).",
+      "Where the fund's stated prospectus benchmark has a matching index ETF, it also shows benchmark-relative behavior over the same 3 years: beta, alpha, R², tracking error, information ratio, and upside / downside capture — how much of the benchmark's up and down months the fund participated in.",
+    ],
+    method: [
+      "All figures come from the fund's daily adjusted NAV (dividends and splits reinvested), downsampled to month-ends. The 3-year window is the trailing 36 months (at least 30 required, or the figure is not shown). Volatility is the annualized standard deviation of monthly returns; Sharpe and Sortino use monthly returns in excess of a short-Treasury ETF (SHY) as the risk-free proxy.",
+      "Maximum drawdown is measured on the full daily price history — the largest fall from any prior peak — and is shown with its date.",
+      "Benchmark-relative rows regress the fund's monthly excess returns on those of an index ETF tracking the fund's stated prospectus benchmark (a monthly OLS over the same 3-year window, at least 12 shared months). This is the fund's own filed benchmark — a deliberately different reference from the passive alternative the rest of the page compares against, and the page labels which benchmark applies.",
+    ],
+    sources: [
+      "Tiingo daily adjusted closes (fund NAV and benchmark ETF prices)",
+      "The fund's stated prospectus benchmark (SEC filings), mapped to a tracking ETF",
+      "SHY (short-Treasury ETF) as the risk-free proxy",
+    ],
+    notMeaning: [
+      "Past volatility and drawdown describe the historical ride, not a forecast of future risk.",
+      "The tracking error here (monthly, vs the stated benchmark) is NOT the page's headline tracking error (weekly, beta-adjusted, vs the fund's closest passive alternative) — they answer different questions against different references.",
+      "Upside / downside capture describe past co-movement with the stated benchmark, not manager skill.",
+    ],
+    limitations: [
+      "Benchmark-relative rows exist only where the stated benchmark's ETF proxy has priced history in our store (about 2,500 of 5,450 funds with a risk read). The dominant gap today is missing proxy prices — notably the S&P 500's (SPY) — not unmappable benchmarks; those funds honestly omit the group rather than substitute a different index, and the proxy ingest is tracked as a fix.",
+      "Pricing currently runs through 2026-05-07 pending a vendor refresh; the section stamps this and flags it stale rather than hiding it.",
+      "Three years of monthly returns is a short, noisy window — treat the levels as descriptive, not precise; the maximum drawdown spans the fund's full priced history, which can include a different manager or mandate era.",
     ],
   },
   {

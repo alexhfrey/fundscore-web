@@ -1,10 +1,12 @@
 // ============================================================================
 // 04 · AttributionSection — server wrapper + gating for the Attribution chapter.
-// The whole explorer is paid; below the gate a free proof point (the top stock
-// detractor, from the returnAttribution projector) + an unlock line. The
-// fixture waterfall numbers + the real Brinson member rows are only shaped and
-// passed to the client island when the caller is paid — anon never receives them.
+// SERVED: the window summary is built from riskAttribution's
+// active_return_attribution (exposure_path_v0.2) — the whole explorer is paid;
+// below the gate a free proof point (the top stock detractor, from the
+// returnAttribution projector) + an unlock line. The takeaway narrative is
+// DERIVED from the served signs — never a hardcoded story.
 // ============================================================================
+import Link from "next/link";
 import type { AttributionWindowSummary, RiskExplainers } from "@/lib/serving/profile-v2";
 import {
   isLocked,
@@ -14,8 +16,8 @@ import {
 } from "@/lib/serving/profile";
 import { fmtSignedBps } from "@/lib/serving/format";
 import { bpsSigned, factorLabel } from "./format";
-import { ChapterHeader, SampleProvenance } from "./primitives";
-import { Unavailable, ProofPoint, UnlockLine } from "../primitives";
+import { ChapterHeader } from "./primitives";
+import { Unavailable, ProofPoint, UnlockLine, LockedNotice } from "../primitives";
 import { AttributionExplorer, type BrinsonRow } from "./AttributionExplorer";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -47,12 +49,17 @@ function shapeBrinson(ra: AnyRA): Record<string, BrinsonRow[]> {
 
 export function AttributionSection({
   summary,
+  present,
   returnAttribution,
   riskExplainers,
   paid,
   passiveLabel,
 }: {
+  // Built from the SERVED sub-panel — non-null only for paid callers.
   summary: AttributionWindowSummary | null;
+  // The fund HAS a served decomposition (possibly locked below the caller's
+  // tier) — drives locked/proof states instead of a false "Unavailable".
+  present: boolean;
   returnAttribution: AnyRA;
   riskExplainers: RiskExplainers | null;
   paid: boolean;
@@ -60,24 +67,55 @@ export function AttributionSection({
 }) {
   const pass = passiveLabel ?? "the index";
 
-  // No fixture decomposition for this fund → honest Unavailable (VOO/DODGX).
-  if (!summary) {
+  // No served decomposition for this fund → honest Unavailable.
+  if (!present) {
     return (
       <section id="s4" className="scroll-mt-24">
         <ChapterHeader index={4} title="Performance attribution" />
         <Unavailable>
-          A holdings-era return decomposition isn&apos;t served for this fund yet.
+          A holdings-era return decomposition isn&apos;t served for this fund.
         </Unavailable>
       </section>
     );
   }
 
-  const cats = ["sector", "theme", "macro"].map((type) =>
-    (summary.factor_contributions ?? [])
-      .filter((f) => f.factor_type === type)
-      .reduce((s, f) => s + (f.total_bps ?? 0), 0),
-  );
-  const betsSum = cats.reduce((s, v) => s + v, 0);
+  // Served but below the gate (or the build had nothing to summarize): the
+  // free proof point + unlock — never the decomposition numbers.
+  if (!paid || !summary) {
+    return (
+      <section id="s4" className="scroll-mt-24">
+        <ChapterHeader
+          index={4}
+          title="Performance attribution"
+          takeaway={
+            <>
+              How the fund&apos;s sector, theme and macro bets and its stock-picking
+              combined to a net result vs {pass} — the full bets-to-net decomposition
+              is a paid detail.
+            </>
+          }
+        />
+        {paid ? (
+          <LockedNotice tier="paid">
+            The decomposition exists for this fund but had nothing eligible to
+            summarize — see the sources footer for its status.
+          </LockedNotice>
+        ) : (
+          <div className="mt-4">
+            <DetractorProof
+              preview={getPreview(returnAttribution) as DetractorPreview | null}
+              pass={pass}
+            />
+            <UnlockLine tier="paid">
+              See the full bets-to-net waterfall, the steady-tilt vs tilt-variation
+              split, and the member-level Brinson tables.
+            </UnlockLine>
+          </div>
+        )}
+      </section>
+    );
+  }
+
   const led = [...(summary.factor_contributions ?? [])].sort(
     (a, b) => (b.total_bps ?? 0) - (a.total_bps ?? 0),
   )[0];
@@ -85,22 +123,28 @@ export function AttributionSection({
   const realised = summary.realised_active_bps ?? 0;
   const recon = summary.residual_reconciliation_bps ?? 0;
   const net = realised - recon;
+  // The gold identity (idio = realised − Σ ALL factors) makes the factor total
+  // exactly realised − idio; the assembler lists only the top rows.
+  const betsTotal = realised - idio;
 
-  const takeaway = paid ? (
+  // Sign-DERIVED narrative — never a hardcoded story.
+  const betsVerb = betsTotal >= 0 ? "added" : "cost";
+  const pickVerb = idio >= 0 ? "added" : "detracted";
+  const takeaway = (
     <>
-      The bets worked; recent picking didn&apos;t. Sector, theme &amp; macro bets
-      added{" "}
-      <span className={betsSum < 0 ? "text-rose-700" : "text-emerald-700"}>
-        {bpsSigned(betsSum)} bps/yr
+      Sector, theme &amp; macro bets {betsVerb}{" "}
+      <span className={betsTotal < 0 ? "text-rose-700" : "text-emerald-700"}>
+        {bpsSigned(betsTotal)} bps/yr
       </span>
       {led && (
         <>
           {" "}
           (led by {factorLabel(led.factor_id)} {bpsSigned(led.total_bps)})
         </>
-      )}{" "}
-      against stock selection&apos;s{" "}
-      <span className="text-rose-700">{bpsSigned(idio)}</span> — bets + selection ={" "}
+      )}
+      ; stock selection {pickVerb}{" "}
+      <span className={idio < 0 ? "text-rose-700" : "text-emerald-700"}>{bpsSigned(idio)}</span> —
+      bets + selection ={" "}
       <span className={realised < 0 ? "text-rose-700" : "text-emerald-700"}>
         {bpsSigned(realised)} bps/yr
       </span>{" "}
@@ -109,12 +153,6 @@ export function AttributionSection({
         {bpsSigned(net)} bps/yr
       </span>{" "}
       net vs {pass}.
-    </>
-  ) : (
-    <>
-      How the fund&apos;s sector, theme and macro bets and its stock-picking
-      combined to a net result vs {pass} — the full bets-to-net decomposition is a
-      paid detail.
     </>
   );
 
@@ -129,28 +167,22 @@ export function AttributionSection({
             : undefined
         }
         takeaway={takeaway}
-        sample
       />
+      <div className="mt-1.5 flex justify-end text-[11px] text-gray-400">
+        <Link
+          href="/methodology#risk-attribution"
+          className="hover:text-[#1466b8] hover:underline"
+        >
+          How we calculate this →
+        </Link>
+      </div>
 
-      {paid ? (
-        <>
-          <AttributionExplorer
-            summary={summary}
-            brinson={shapeBrinson(returnAttribution)}
-            betaTiltPlain={riskExplainers?.beta_tilt_plain ?? null}
-            passiveLabel={passiveLabel}
-          />
-          <SampleProvenance label={summary.sample_label} />
-        </>
-      ) : (
-        <div className="mt-4">
-          <DetractorProof preview={getPreview(returnAttribution) as DetractorPreview | null} pass={pass} />
-          <UnlockLine tier="paid">
-            See the full bets-to-net waterfall, the steady-tilt vs tilt-variation
-            split, and the member-level Brinson tables.
-          </UnlockLine>
-        </div>
-      )}
+      <AttributionExplorer
+        summary={summary}
+        brinson={shapeBrinson(returnAttribution)}
+        betaTiltPlain={riskExplainers?.beta_tilt_plain ?? null}
+        passiveLabel={passiveLabel}
+      />
     </section>
   );
 }

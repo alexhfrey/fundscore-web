@@ -357,7 +357,12 @@ const GATED_SECTIONS: { col: string; gate: string; defaultGate?: string }[] = [
   { col: "returnAttribution", gate: "return_attribution" },
   { col: "riskAttribution", gate: "risk_attribution" },
   { col: "positioningChanges", gate: "positioning_changes" },
-  { col: "fundFamilyPanel", gate: "fund_family_panel" },
+  // positioning-context-percentiles — contract gate is "free"; fail CLOSED to
+  // free (never public) if the gates key ever goes missing on a load drift.
+  { col: "positioningContext", gate: "positioning_context", defaultGate: "free" },
+  // fund-family-panel — contract gate is "free"; fail CLOSED to free (never
+  // public) if the gates key ever goes missing on a load drift (codex P2).
+  { col: "fundFamilyPanel", gate: "fund_family_panel", defaultGate: "free" },
   { col: "teDecomposition", gate: "te_decomposition", defaultGate: "paid" },
   { col: "alternatives", gate: "alternatives" },
   { col: "takeaways", gate: "takeaways" },
@@ -476,6 +481,9 @@ export interface TeProofPreview {
   basis_note: string | null;
   passive_alt_label: string | null;
   as_of: string | null;
+  // Returns window end — the honest freshness stamp ("returns through X ·
+  // built as_of"); the build as_of alone overstates freshness (~2 weeks).
+  window_end: string | null;
 }
 
 export type Preview =
@@ -781,6 +789,7 @@ function pickTeProofPoint(s: AnyObj): TeProofPreview | null {
     basis_note: (s.basis_note as string | null) ?? null,
     passive_alt_label: (s.passive_alt_label as string | null) ?? null,
     as_of: (s.as_of as string | null) ?? null,
+    window_end: (s.window_end as string | null) ?? null,
   };
 }
 
@@ -993,6 +1002,23 @@ export function holdingsFullEntitled(
 ): boolean {
   if (!hasHoldingsFullList(gates)) return false;
   return TIER_RANK[userState] >= GATE_RANK[gates!["holdings_full"]];
+}
+
+/**
+ * Generic fail-closed entitlement check for a presence-gated section key (the
+ * holdings_full pattern, reusable): true ONLY when the key exists, carries a
+ * known tier, and the caller's tier meets it. Missing key = no served payload
+ * (never tease); malformed value = fail closed. Used by lazy-table readers
+ * (e.g. attribution blocks) BEFORE any row leaves the server.
+ */
+export function sectionEntitled(
+  gates: Record<string, string> | null | undefined,
+  gateKey: string,
+  userState: UserState,
+): boolean {
+  const gate = gates?.[gateKey];
+  if (gate == null || GATE_RANK[gate] == null) return false;
+  return TIER_RANK[userState] >= GATE_RANK[gate];
 }
 
 /** Return the rows only when entitled, else an empty array. Runs on the lazy
