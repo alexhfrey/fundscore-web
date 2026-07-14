@@ -102,6 +102,9 @@ export interface SolveResult {
   fee: SolverFee;
   exposure: SolverExposure;
   rows: SolverRow[];
+  /** Stock-level look-through, attached by the route from Postgres. Computed
+   * independently of the blend, so it survives a suppressed solve. */
+  look_through?: import("./portfolio-lookthrough").LookThrough | null;
 }
 
 export interface PortfolioInput {

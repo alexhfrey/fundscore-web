@@ -6,7 +6,7 @@
 // ============================================================================
 import Link from "next/link";
 import { fmtDate } from "@/lib/serving/format";
-import { deleteLensAction } from "@/app/lens/actions";
+import { deleteLensAction } from "@/app/(site)/lens/actions";
 import { CopyLinkButton } from "./CopyLinkButton";
 
 export function LensControls({

@@ -18,7 +18,7 @@ export function Header() {
             </Link>
             <nav className="hidden md:flex items-center gap-6">
               <Link
-                href="/"
+                href="/screener"
                 className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
               >
                 Screener

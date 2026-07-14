@@ -1,12 +1,25 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Source_Serif_4, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+});
+
+// Display face for the marketing surface — an editorial serif, because the
+// product's argument is a document, not a pitch.
+const sourceSerif = Source_Serif_4({
+  variable: "--font-display",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+});
+
+// Utility face for filed data: as-of stamps, basis points, form numbers.
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-data",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -21,12 +34,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="font-sans antialiased bg-gray-50 text-gray-900 min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
-      </body>
+    <html
+      lang="en"
+      className={`${inter.variable} ${sourceSerif.variable} ${plexMono.variable}`}
+    >
+      <body className="font-sans antialiased">{children}</body>
     </html>
   );
 }
