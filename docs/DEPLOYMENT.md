@@ -5,6 +5,37 @@
 
 ---
 
+## 0. LIVE STATE (2026-07-14) — Phase 1 is deployed
+
+| | |
+|---|---|
+| **Site** | https://fundscore-web.vercel.app — **gated**, landing page + waitlist only |
+| **Vercel project** | `alexs-projects-5b2fcda5/fundscore-web` (`prj_F6wRhbt64pYwcPYtl1Gzd1ZTrrKA`) |
+| **Supabase project** | `fundscore-web` / ref `henxcsknsjfadetomjeu`, `us-east-1` |
+| **Postgres** | `aws-0-us-east-1.pooler.supabase.com` — **6543 (transaction) for the app**, 5432 (session) for DDL scripts |
+| **Tables in prod** | `waitlist_signups`, `early_access`. **Nothing else.** No serving data. |
+| **Gate** | `LAUNCHED` unset ⇒ gated. Allowlist is **empty** — deliberately (see below). |
+| **Credentials** | `.env.production.local` (gitignored, mode 600). **The DB password exists nowhere else** — Supabase cannot re-show it, only reset it. Put it in a password manager. |
+
+Verified live: `/` 200 · `/methodology` 200 · `/signin` 200 · `/xray`, `/screener`, `/funds/*`, `/lens`
+all **307 → /** · `POST /api/portfolio/solve` **401** · waitlist signup writes to the production
+database.
+
+### ⚠️ Do NOT grant early access yet
+The production database holds only the two pre-launch tables. A granted user would pass the gate and
+immediately hit errors, because `/screener`, `/funds/*` and `/xray` have no serving data (and the
+solver isn't deployed at all — §1). **The gate is currently the only thing keeping those pages from
+500-ing.** Keep `early_access` empty until §4 is done.
+
+### Still to do for Phase 1
+- **GitHub auto-deploy is NOT connected.** `vercel link` failed to attach the repo:
+  *"You need to add a Login Connection to your GitHub account first."* Fix in the Vercel dashboard
+  (Settings → Git, or Account → Login Connections → connect GitHub), then `vercel git connect`.
+  Until then, deploys are manual: `vercel deploy --prod`.
+- **Domain.** `fundscore.ai` (Namecheap) is not yet pointed here — see §8.
+
+---
+
 ## 1. The decision
 
 **Vercel hosts the entire Next.js app, permanently.** It is not a launch-stage stopgap. Almost
@@ -219,3 +250,41 @@ Filed in `feature-pipeline/backlog.md` (deploy group):
 | `SOLVER_URL` | 2 | The Fly.io solver service (replaces `FUND_SCORE_REPO` + `UV_BIN`) |
 | `FUND_SCORE_REPO`, `UV_BIN` | local | Only for the `spawn()` path in local dev |
 | `PORTFOLIO_SOLVER_AS_OF` | 2 | Pinned solver as-of. Currently `2026-02-28` — **stale**, revisit. |
+
+---
+
+## 8. Pointing fundscore.ai (Namecheap) at Vercel
+
+Do this when you're happy with the site on `fundscore-web.vercel.app`.
+
+1. **Vercel:** Project → Settings → Domains → add `fundscore.ai` **and** `www.fundscore.ai`.
+   Vercel will show the exact records; they should match the below.
+
+2. **Namecheap:** Domain List → Manage → **Advanced DNS**. Set *Nameservers* to "Namecheap
+   BasicDNS" (not Custom DNS), then replace the default parking records:
+
+   | Type | Host | Value | TTL |
+   |---|---|---|---|
+   | `A` | `@` | `76.76.21.21` | Automatic |
+   | `CNAME` | `www` | `cname.vercel-dns.com.` | Automatic |
+
+   Delete Namecheap's default `CNAME @ → parkingpage.namecheap.com` and any `URL Redirect` record —
+   they will silently shadow the records above.
+
+   **Confirm the A-record IP against what Vercel's dashboard shows for your project.** Vercel has
+   changed it before; the dashboard is the source of truth, not this doc.
+
+3. Wait for propagation (usually minutes on Namecheap), then verify:
+
+   ```bash
+   dig +short fundscore.ai
+   curl -sI https://fundscore.ai | head -1
+   ```
+
+   Vercel provisions the TLS certificate automatically once DNS resolves.
+
+4. Decide the canonical host in Vercel (apex vs `www`) so one 308-redirects to the other. Apex is
+   the better choice here — the brand is `fundscore.ai`.
+
+**Note:** the site is gated, so the moment DNS resolves, the public sees the landing page and the
+waitlist form. That is the intended launch state.
