@@ -78,6 +78,26 @@ export function PortfolioEditor({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {/* A brokerage CSV export is just text — parse it in the browser and
+              reuse the bulk-paste path. The file is never uploaded anywhere:
+              the privacy charter says row-level holdings never leave the device
+              except as the tickers the solver needs. */}
+          <label className="cursor-pointer rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50">
+            Upload CSV
+            <input
+              type="file"
+              accept=".csv,.tsv,.txt,text/csv,text/plain"
+              className="sr-only"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = ""; // allow re-picking the same file
+                if (!file) return;
+                const text = await file.text();
+                setPasteText(text);
+                setShowPaste(true);
+              }}
+            />
+          </label>
           <button
             type="button"
             onClick={() => setShowPaste((s) => !s)}

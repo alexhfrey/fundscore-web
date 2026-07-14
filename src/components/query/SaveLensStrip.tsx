@@ -16,7 +16,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { saveLensAction } from "@/app/lens/actions";
+import { saveLensAction } from "@/app/(site)/lens/actions";
 import { CopyLinkButton } from "./CopyLinkButton";
 
 const SAVE_ERROR_COPY: Record<string, string> = {

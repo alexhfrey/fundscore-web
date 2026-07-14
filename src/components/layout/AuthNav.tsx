@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { signOut } from "@/app/signin/actions";
+import { signOut } from "@/app/(site)/signin/actions";
 
 const TIER_LABEL: Record<string, string> = {
   free: "Free",

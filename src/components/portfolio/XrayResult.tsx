@@ -32,6 +32,10 @@ export function XrayResult({ result: r }: { result: SolveResult }) {
     <div className="space-y-8">
       <IdentityStrip result={r} resolved={resolved} excluded={excluded} />
 
+      {/* What you really own. Deliberately OUTSIDE the suppress branch: the
+          blend can fail while the holdings are still perfectly readable. */}
+      <LookThroughPanel result={r} />
+
       {r.coverage_state === "suppress" ? (
         <Suppressed result={r} />
       ) : (
@@ -401,6 +405,185 @@ function DiffPill({ pp }: { pp: number | null }) {
       {sign}
       {Math.abs(pp).toFixed(1)} pp
     </span>
+  );
+}
+
+// --- What you really own (stock-level look-through) -------------------------
+
+function LookThroughPanel({ result: r }: { result: SolveResult }) {
+  const lt = r.look_through;
+  if (!lt) return null;
+
+  if (lt.coverage_state === "missing" || lt.top.length === 0) {
+    return (
+      <Section
+        title="What you really own"
+        subtitle="The stocks inside your funds, added together."
+      >
+        <div className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-600">
+          We can&apos;t see through this portfolio to individual stocks — none of
+          the holdings you entered have an as-filed SEC position list we can read.
+          We&apos;d rather say so than show you a partial picture as if it were
+          the whole one.
+        </div>
+      </Section>
+    );
+  }
+
+  const multi = lt.funds_covered > 1;
+  const overlap = lt.top.filter((s) => s.held_by_funds > 1).length;
+
+  return (
+    <Section
+      title="What you really own"
+      subtitle="Your funds, looked through to the individual stocks inside them."
+      methodologyAnchor="exposure-xray"
+    >
+      <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-5">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <Stat
+            label="Top 10 stocks"
+            value={`${lt.top10_portfolio_pct.toFixed(1)}%`}
+            sub="of your portfolio"
+            emphasis
+          />
+          <Stat
+            label="Same 10, in the blend"
+            value={
+              lt.top10_blend_pct === null
+                ? EM_DASH
+                : `${lt.top10_blend_pct.toFixed(1)}%`
+            }
+            sub={
+              lt.top10_blend_pct === null
+                ? "blend unavailable"
+                : "of the passive alternative"
+            }
+          />
+          <Stat
+            label="Distinct stocks"
+            value={lt.distinct_stocks.toLocaleString()}
+            sub={`across ${lt.funds_covered} ${lt.funds_covered === 1 ? "fund" : "funds"}`}
+          />
+          <Stat
+            label="Held more than once"
+            value={multi ? String(overlap) : EM_DASH}
+            sub={
+              multi
+                ? "of your top names, in 2+ funds"
+                : "needs 2+ funds to compare"
+            }
+            tone={multi && overlap >= 5 ? "warn" : undefined}
+          />
+        </div>
+
+        <div className="mt-5 -mx-4 overflow-x-auto sm:mx-0">
+          <table className="w-full min-w-[34rem] text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                <th className="px-4 py-2 text-left sm:px-0">Stock</th>
+                <th className="px-3 py-2 text-right">In how many of your funds</th>
+                <th className="px-3 py-2 text-right">Your weight</th>
+                <th className="px-3 py-2 text-right">Passive blend</th>
+                <th className="py-2 pl-3 pr-4 text-right sm:pr-0">Difference</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lt.top.map((s) => (
+                <tr key={s.ticker} className="border-b border-gray-100 last:border-0">
+                  <td className="px-4 py-2.5 sm:px-0">
+                    <span className="font-semibold text-[#1466b8]">
+                      {s.ticker}
+                    </span>
+                    {s.name && (
+                      <span className="ml-2 text-gray-500">{s.name}</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2.5 text-right tabular-nums text-gray-600">
+                    {s.held_by_funds} of {lt.funds_covered}
+                  </td>
+                  <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-gray-900">
+                    {s.portfolio_pct.toFixed(2)}%
+                  </td>
+                  <td className="px-3 py-2.5 text-right tabular-nums text-gray-500">
+                    {s.blend_pct === null
+                      ? EM_DASH
+                      : `${s.blend_pct.toFixed(2)}%`}
+                  </td>
+                  <td className="py-2.5 pl-3 pr-4 text-right sm:pr-0">
+                    <DiffPill pp={s.difference} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {lt.countries.length > 0 && (
+        <div className="mt-5 rounded-lg border border-gray-200 bg-white p-4 sm:p-5">
+          <h3 className="text-sm font-semibold text-gray-900">
+            Where the money actually sits
+          </h3>
+          <p className="mt-0.5 text-xs text-gray-500">
+            Every position we can see, by the country of the underlying company —
+            not the fund&apos;s label.
+          </p>
+          <div className="mt-4 space-y-2">
+            {lt.countries.map((c) => (
+              <div key={c.code} className="flex items-center gap-3">
+                <span className="w-8 shrink-0 font-mono text-xs font-semibold text-gray-600">
+                  {c.code}
+                </span>
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
+                  <div
+                    className="h-full rounded-full bg-[#1466b8]"
+                    style={{
+                      width: `${Math.min(100, (c.portfolio_pct / Math.max(1, lt.countries[0].portfolio_pct)) * 100)}%`,
+                    }}
+                  />
+                </div>
+                <span className="w-14 shrink-0 text-right text-sm font-semibold tabular-nums text-gray-900">
+                  {c.portfolio_pct.toFixed(1)}%
+                </span>
+                <span className="w-16 shrink-0 text-right">
+                  <DiffPill pp={c.difference} />
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <p className="mt-3 text-xs leading-relaxed text-gray-400">
+        Weights are a share of the whole portfolio you entered, via each
+        fund&apos;s as-filed SEC positions
+        {lt.as_of_min && lt.as_of_max
+          ? ` (${fmtDate(lt.as_of_min)} to ${fmtDate(lt.as_of_max)})`
+          : ""}
+        . {lt.equity_weight_pct.toFixed(1)}% of your portfolio sits in individual
+        stocks we can identify; the rest is cash, bonds, or positions without a
+        resolvable ticker.
+        {lt.coverage_state === "partial" && lt.excluded.length > 0 && (
+          <>
+            {" "}
+            These figures cover {lt.covered_weight_pct.toFixed(1)}% of what you
+            entered — we could not look through{" "}
+            {lt.excluded
+              .map(
+                (e) =>
+                  `${e.ticker} (${e.weight_pct.toFixed(0)}%, ${
+                    e.reason === "unresolved"
+                      ? "ticker not recognised"
+                      : "no filed positions"
+                  })`,
+              )
+              .join(", ")}
+            . Nothing has been rescaled to hide the gap.
+          </>
+        )}
+      </p>
+    </Section>
   );
 }
 

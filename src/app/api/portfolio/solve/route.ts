@@ -4,6 +4,7 @@ import {
   validatePortfolio,
   type PortfolioInput,
 } from "@/lib/serving/portfolio-solver";
+import { computeLookThrough } from "@/lib/serving/portfolio-lookthrough";
 
 // Dynamic route handler for the Portfolio X-Ray aggregate passive-blend solve
 // (serving_architecture.md Decision 5: "Portfolio X-Ray → Dynamic route handler
@@ -40,7 +41,24 @@ export async function POST(req: NextRequest) {
       { status: 502 },
     );
   }
-  return NextResponse.json(res.result, {
-    headers: { "Cache-Control": "no-store" },
-  });
+
+  // Stock-level look-through. Deliberately computed even when the blend is
+  // suppressed (an unsupported ticker over the exclusion threshold kills the
+  // solve, but we can still tell the holder what they own). A failure here must
+  // never take down the solve result, so it degrades to null.
+  let lookThrough = null;
+  try {
+    lookThrough = await computeLookThrough(
+      validated.clean,
+      res.result.rows,
+      res.result.blend,
+    );
+  } catch (err) {
+    console.error("look-through failed", err);
+  }
+
+  return NextResponse.json(
+    { ...res.result, look_through: lookThrough },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }
