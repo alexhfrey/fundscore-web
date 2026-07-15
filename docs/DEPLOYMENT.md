@@ -55,7 +55,7 @@ solver isn't deployed at all — §1). **The gate is currently the only thing ke
   GitHub**, then re-run `vercel git connect`. Once connected: pushes to `main` deploy production,
   every other branch/PR gets an automatic preview URL (on the isolated preview DB). Until then,
   deploys are manual: `vercel deploy --prod` (production) / `vercel deploy` (preview).
-- **Domain.** `fundscore.ai` (Namecheap) is not yet pointed here — see §8.
+- **Domain.** `fundscore.ai` + `www` are LIVE with valid TLS (done 2026-07-14, see §8).
 
 ---
 
