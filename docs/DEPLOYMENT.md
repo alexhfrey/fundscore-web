@@ -24,6 +24,24 @@ Verified live: `/` 200 · `/methodology` 200 · `/signin` 200 · `/xray`, `/scre
 all **307 → /** · `POST /api/portfolio/solve` **401** · waitlist signup writes to the production
 database.
 
+### Environments (Production vs Preview are DATA-ISOLATED)
+
+| | Production | Preview |
+|---|---|---|
+| **Serves** | `fundscore.ai` (the launch site) | per-deploy `*.vercel.app` URLs (private — Vercel deployment protection) |
+| **Supabase** | `fundscore-web` / `henxcsknsjfadetomjeu` | `fundscore-preview` / `yqyyvhcrmcwarxweusbw` |
+| **Updated by** | `vercel deploy --prod` (or a merge to `main`, once Git is connected) | `vercel deploy` (or any non-`main` branch/PR, once Git is connected) |
+| **Creds** | `.env.production.local` | `.env.preview.local` |
+
+Isolation is **proven**, not assumed: a row written to the preview DB is invisible to production
+(write-to-preview / read-both probe, 2026-07-15). Iterate on branches → preview; the domain only
+moves when you deploy `--prod`. Preview signups/experiments never touch real data.
+
+**Mental model:** the site you *invite people to* is **production** — grant them `early_access` and
+they sign in at `fundscore.ai` while the public still sees the landing page. The *preview* env is for
+**iterating on the app**, not for beta users. (See the "keeping preview separate" discussion —
+inviting testers ≠ a separate deployment.)
+
 ### ⚠️ Do NOT grant early access yet
 The production database holds only the two pre-launch tables. A granted user would pass the gate and
 immediately hit errors, because `/screener`, `/funds/*` and `/xray` have no serving data (and the
@@ -31,10 +49,12 @@ solver isn't deployed at all — §1). **The gate is currently the only thing ke
 500-ing.** Keep `early_access` empty until §4 is done.
 
 ### Still to do for Phase 1
-- **GitHub auto-deploy is NOT connected.** `vercel link` failed to attach the repo:
-  *"You need to add a Login Connection to your GitHub account first."* Fix in the Vercel dashboard
-  (Settings → Git, or Account → Login Connections → connect GitHub), then `vercel git connect`.
-  Until then, deploys are manual: `vercel deploy --prod`.
+- **GitHub auto-deploy is NOT connected** (one manual step remains). `vercel git connect` fails with
+  *"You need to add a Login Connection to your GitHub account first."* — that's a browser OAuth step
+  the CLI can't do: **Vercel → Account Settings → Login Connections (or Authentication) → connect
+  GitHub**, then re-run `vercel git connect`. Once connected: pushes to `main` deploy production,
+  every other branch/PR gets an automatic preview URL (on the isolated preview DB). Until then,
+  deploys are manual: `vercel deploy --prod` (production) / `vercel deploy` (preview).
 - **Domain.** `fundscore.ai` (Namecheap) is not yet pointed here — see §8.
 
 ---
