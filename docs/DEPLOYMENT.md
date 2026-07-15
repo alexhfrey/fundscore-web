@@ -9,7 +9,10 @@
 
 | | |
 |---|---|
-| **Site** | https://fundscore-web.vercel.app — **gated**, landing page + waitlist only |
+| **Live domain** | **https://fundscore.ai** (and `www.fundscore.ai`) — live + TLS valid since 2026-07-14. **Gated**: landing page + waitlist only. |
+| **Vercel URL** | https://fundscore-web.vercel.app (same deployment) |
+| **DNS** | Namecheap BasicDNS. Apex `A @ → 76.76.21.21`; `A www → 76.76.21.21`. Zoho MX/SPF/DKIM intact. Do NOT switch nameservers to Vercel (would drop Zoho mail). |
+| **TLS** | One SAN cert covers apex + www (`vercel certs issue fundscore.ai www.fundscore.ai`). `www` HTTP 308-redirects to HTTPS; apex is the canonical host. |
 | **Vercel project** | `alexs-projects-5b2fcda5/fundscore-web` (`prj_F6wRhbt64pYwcPYtl1Gzd1ZTrrKA`) |
 | **Supabase project** | `fundscore-web` / ref `henxcsknsjfadetomjeu`, `us-east-1` |
 | **Postgres** | `aws-0-us-east-1.pooler.supabase.com` — **6543 (transaction) for the app**, 5432 (session) for DDL scripts |
@@ -253,7 +256,33 @@ Filed in `feature-pipeline/backlog.md` (deploy group):
 
 ---
 
-## 8. Pointing fundscore.ai (Namecheap) at Vercel
+## 8. Pointing fundscore.ai (Namecheap) at Vercel — DONE 2026-07-14
+
+**Completed.** Both `fundscore.ai` and `www.fundscore.ai` serve the gated site over valid TLS. This
+section is kept as the record of what was done + the gotchas hit, in case the domain is ever re-pointed.
+
+### What actually worked (the short version)
+- Namecheap → Advanced DNS: `A @ → 76.76.21.21` and `A www → 76.76.21.21` (the `www` CNAME to
+  `cname.vercel-dns.com.` also works, but the A record was more reliable in Namecheap's UI here).
+- **Nameservers stayed on Namecheap BasicDNS** — the domain runs Zoho mail, so switching NS to Vercel
+  would have dropped MX/SPF/DKIM. Web (A/CNAME) and mail (MX/TXT) coexist fine on one zone.
+- After DNS went clean, Vercel auto-issued the apex cert. `www` needed a nudge because the first cert
+  covered only the apex: `vercel certs issue fundscore.ai www.fundscore.ai` issued one SAN cert for
+  both, live on the edge ~15s later.
+
+### Gotchas that cost time (watch for these on any re-point)
+1. **Namecheap "Parking" injects a phantom apex A record** (`192.64.119.204`) that does NOT show up
+   in the A-record list — it's the domain-level Parking/URL-Redirect feature. Symptom: the apex
+   round-robins between Vercel and a parking IP, so the browser shows "not secure" ~half the time.
+   Fix: turn Parking OFF at the domain level (not in the record list).
+2. **Turning Parking off deleted the `www` record too** — had to re-add it.
+3. **Trust `dig`, not the browser.** Query the authoritative NS directly to see the real zone, past
+   all caching: `dig +short A www.fundscore.ai @dns1.registrar-servers.com`. The Namecheap UI showed
+   a record that wasn't in the served zone more than once.
+4. **"not secure" after DNS is clean = cert not issued yet**, not a DNS problem. Check
+   `vercel certs ls`; the apex/www certs issue within minutes of DNS going clean.
+
+### Original instructions (for a future re-point)
 
 Do this when you're happy with the site on `fundscore-web.vercel.app`.
 
