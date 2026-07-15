@@ -277,7 +277,7 @@ export default function HomePage() {
           <div className="grid gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] lg:items-center lg:gap-20">
             <Shot
               src={fundShot}
-              alt="FundScore profile for FCNTX, Fidelity Contrafund: a Value Score of approximately breakeven against IWF, and an Exposure X-Ray showing technology 26.6 percentage points underweight its passive alternative."
+              alt="A FundScore fund profile (the fund name is redacted): a Value Score of about breakeven against the fund's closest passive alternative — it came out roughly even, net of fees — with an Exposure X-Ray showing it 26.6 percentage points underweight technology versus that alternative."
               caption="A real FundScore profile. The Value Score is backward-looking and relative to that fund's own passive alternative — never a forecast, and never a recommendation."
             />
 
