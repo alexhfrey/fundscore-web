@@ -48,14 +48,44 @@ immediately hit errors, because `/screener`, `/funds/*` and `/xray` have no serv
 solver isn't deployed at all — §1). **The gate is currently the only thing keeping those pages from
 500-ing.** Keep `early_access` empty until §4 is done.
 
-### Still to do for Phase 1
-- **GitHub auto-deploy is NOT connected** (one manual step remains). `vercel git connect` fails with
-  *"You need to add a Login Connection to your GitHub account first."* — that's a browser OAuth step
-  the CLI can't do: **Vercel → Account Settings → Login Connections (or Authentication) → connect
-  GitHub**, then re-run `vercel git connect`. Once connected: pushes to `main` deploy production,
-  every other branch/PR gets an automatic preview URL (on the isolated preview DB). Until then,
-  deploys are manual: `vercel deploy --prod` (production) / `vercel deploy` (preview).
+### Phase 1 — DONE
+- **GitHub auto-deploy: CONNECTED + verified** (2026-07-15). Repo `alexhfrey/fundscore-web` is linked
+  to the Vercel project (it had been wrongly linked to `alexhfrey/fund_score`, the Python backend —
+  fixed). Push to `main` → production (`fundscore.ai`); push any other branch / open a PR → automatic
+  private preview URL on the isolated preview DB. Proven by a git-triggered deploy landing 2s after a
+  push. Manual `vercel deploy --prod` / `vercel deploy` still work if needed.
 - **Domain.** `fundscore.ai` + `www` are LIVE with valid TLS (done 2026-07-14, see §8).
+
+### Day-to-day workflow (post-setup)
+
+**Local is where the full product actually works.** Local Supabase has the real serving data (5,706
+profiles, 1.38M holdings); production and preview hold ONLY the waitlist + allowlist. The X-Ray solver
+also spawns local Python against the local parquet lakehouse, so it can't run anywhere but local until
+§4. So the loop splits by what you touch:
+
+- **Product features** (X-Ray, fund pages, screener, anything reading serving data or the solver):
+  **local only** — `npm run dev` + local Supabase + the fund_score checkout. There is nothing to
+  preview on Vercel because the data and solver aren't there yet.
+- **Marketing / gated-surface changes** (hero, landing copy, waitlist, the gate): behave identically
+  everywhere, so the preview pipeline earns its keep here — it catches Vercel-specific rendering
+  (fonts, image optimisation, edge redirects) that local can't show.
+
+**Git rhythm (now that `main` auto-deploys to the LIVE site):** treat `main` as production. The
+branch-guard enforces this (no commits on `main`).
+```
+git checkout -b feat/x        # iterate locally
+git push -u origin feat/x     # → automatic private preview URL
+git checkout main && git merge feat/x && git push   # → production
+```
+
+**Inviting people:** to the real product = `early_access` on PRODUCTION (they sign in at fundscore.ai,
+public still sees the landing page) — NOT a separate site. To a work-in-progress = share a preview
+URL (Vercel deployment protection makes previews private by default).
+
+**Known weak spot:** preview is isolated but EMPTY of serving data, so a preview link can't show the
+actual product (only the landing page). If you need to demo the real X-Ray to someone, that requires
+loading a serving snapshot into the preview Supabase + a deployed solver — do it when you actually
+need it, not speculatively.
 
 ---
 
