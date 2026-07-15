@@ -1,8 +1,13 @@
 export const SITE_NAME = "FundScore.ai";
+// NOTE: these must never assert a prediction ("will underperform"), a
+// buy/sell/best verdict, or a banned self-label ("smart", "AI-powered",
+// "forward-looking … powered by data science") — prd.md § Trust/Legal/Data
+// Rules. The prior values violated both and were retired 2026-07-14 (they were
+// already dead — imported nowhere — but they were landmines).
 export const SITE_DESCRIPTION =
-  "Most active funds underperform. FundScore tells you which ones won't.";
+  "What you actually get for a fund's fee, versus its closest passive alternative.";
 export const SITE_TAGLINE =
-  "Forward-looking fund ratings powered by data science";
+  "See what you're paying for, from SEC filings.";
 
 export const COLORS = {
   primary: "#1466b8",
