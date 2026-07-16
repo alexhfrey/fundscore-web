@@ -27,9 +27,12 @@ export const PORTFOLIO_PAGE_VERSION = "portfolio_xray_page_v0";
 const FUND_SCORE_REPO =
   process.env.FUND_SCORE_REPO ?? "/Users/alexfrey/Projects/fund_score";
 const SOLVER_CLI = `scripts/pipeline/run_portfolio_passive_solver.py`;
-const SOLVER_AS_OF = process.env.PORTFOLIO_SOLVER_AS_OF ?? "2026-02-28";
+const SOLVER_AS_OF = process.env.PORTFOLIO_SOLVER_AS_OF ?? "2026-06-30";
 const UV_BIN = process.env.UV_BIN ?? "uv";
-// Cold start loads ~117M rows of pricing (~80s observed); keep generous headroom.
+// The solver reads the canonical single-vintage price panel scoped to the request's
+// tickers (predicate-pushdown, sub-second load — down from ~180s over the raw file glob);
+// the remaining cost is the CVXPY combination search, which scales with the union pool.
+// Keep a generous timeout as headroom for large multi-mandate books.
 const SOLVER_TIMEOUT_MS = Number(process.env.PORTFOLIO_SOLVER_TIMEOUT_MS ?? 240_000);
 
 // Editor limits (page spec Open Questions: draft cap 50 holdings).

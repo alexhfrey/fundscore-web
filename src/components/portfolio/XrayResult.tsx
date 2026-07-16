@@ -23,6 +23,19 @@ import {
 } from "@/lib/serving/format";
 import type { SolveResult, SolverRow } from "@/lib/serving/portfolio-solver";
 
+// Plain-English copy for a row the solver dropped. Falls back to the raw reason
+// (underscores → spaces) for any state without bespoke copy — honest, never invented.
+function exclusionLabel(reason: string | null): string {
+  switch (reason) {
+    case "implausible_return_series":
+      return "price data looks unreliable";
+    case "no_priceable_returns":
+      return "no price history";
+    default:
+      return (reason ?? "unsupported").replace(/_/g, " ");
+  }
+}
+
 export function XrayResult({ result: r }: { result: SolveResult }) {
   const resolved = r.rows.filter((x) => x.resolution_state === "resolved");
   const excluded = r.rows.filter((x) => x.resolution_state !== "resolved");
@@ -117,7 +130,7 @@ function IdentityStrip({
             <span key={e.raw_ticker}>
               {i > 0 && ", "}
               <span className="font-semibold">{e.raw_ticker}</span> (
-              {(e.exclusion_reason ?? "unsupported").replace(/_/g, " ")})
+              {exclusionLabel(e.exclusion_reason)})
             </span>
           ))}
         </div>
