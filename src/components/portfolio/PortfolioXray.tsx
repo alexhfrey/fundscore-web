@@ -24,11 +24,15 @@ export interface HoldingRow {
 
 const EXAMPLES: { label: string; rows: { ticker: string; weight: number }[] }[] = [
   {
+    // The landing page's worked example (facts.ts DEMO_*): solves to a real
+    // blend with a live fee gap. The previous FCNTX/DODGX/VOO book solved to
+    // SPY 100%, whose missing UIT expense ratio suppresses the fee-gap panel —
+    // the worst possible first click (backlog 2026-07-14).
     label: "Active / passive mix",
     rows: [
-      { ticker: "FCNTX", weight: 60 },
-      { ticker: "DODGX", weight: 30 },
-      { ticker: "VOO", weight: 10 },
+      { ticker: "FXAIX", weight: 40 },
+      { ticker: "FCNTX", weight: 35 },
+      { ticker: "VWIGX", weight: 25 },
     ],
   },
   {
