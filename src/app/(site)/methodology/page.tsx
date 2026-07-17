@@ -146,8 +146,9 @@ export default function MethodologyPage() {
           ))}
         </dl>
         <p className="mt-4 text-sm text-gray-600 leading-relaxed">
-          Holdings-derived numbers are evaluated against our latest filing
-          frontier of {HOLDINGS_FRONTIER}, and any holdings-based claim is
+          Holdings-derived numbers are evaluated against per-product filing
+          frontiers — currently up to {HOLDINGS_FRONTIER}, with each section
+          stating its own as-of — and any holdings-based claim is
           treated as stale after {HOLDINGS_STALE_DAYS} days. SEC filings arrive
           with a lag, so the most recent filed portfolio can differ from what a
           fund holds today — we always show the date the data is good as of, and
@@ -191,8 +192,9 @@ export default function MethodologyPage() {
             <span className="font-semibold text-gray-900">
               Holdings have a frontier.
             </span>{" "}
-            Holdings-derived products are pinned to the {HOLDINGS_FRONTIER}{" "}
-            filing frontier. When a fund&apos;s holdings are older than our{" "}
+            Holdings-derived products are each pinned to their own filing
+            frontier (currently up to {HOLDINGS_FRONTIER}; every section states
+            its as-of). When a fund&apos;s holdings are older than our{" "}
             {HOLDINGS_STALE_DAYS}-day threshold, the affected claims are
             suppressed rather than shown as current.
           </p>

@@ -5,9 +5,9 @@
 // artifact. If a number cannot be cited here, it does not go on the page.
 //
 // Verified 2026-07-13/14 against the real lakehouse and the serving DB, NOT
-// from src/lib/methodology/registry.ts — the registry's as-of dates are stale
-// (HOLDINGS_FRONTIER still says 2025-10-31 while the N-PORT refresh advanced
-// most funds to 2026-03/04).
+// from src/lib/methodology/registry.ts — cite the artifacts, not the registry.
+// (The registry's as-of drift was corrected 2026-07-16, but this file's rule
+// stands: facts here trace to shipped artifacts directly.)
 // ============================================================================
 
 // --- Universe -------------------------------------------------------------

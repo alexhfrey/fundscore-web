@@ -36,7 +36,7 @@ export interface MethodologyArtifact {
 }
 
 // --- Method versions and as-of dates verified against shipped gold artifacts
-//     in /Users/alexfrey/Projects/fund_score/data/gold (2026-06-23). ---
+//     in /Users/alexfrey/Projects/fund_score/data/gold (2026-07-16; serving manifest 45). ---
 
 export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
   {
@@ -44,8 +44,8 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     title: "Value Score",
     tagline:
       "How much genuine active value a fund delivered, net of its fee, versus its passive alternative — a backward-looking, relative read.",
-    methodVersion: "value_score_v0.2",
-    asOf: "Computed as of 2026-04-25, from each fund's weekly returns through that date.",
+    methodVersion: "value_score_v0.3",
+    asOf: "Computed as of 2026-07-11, from each fund's weekly returns through that date.",
     measures: [
       "The Value Score answers one question: of the active options here, did this fund genuinely add value after its fee, versus simply buying its passive alternative (a low-cost index ETF that tracks the same style)? It is shown as net value over the passive alternative, per year, and as a 0–100 score anchored so that 50 = breakeven (the fund exactly earned back its fee).",
       "Above breakeven means the fund's beta-adjusted edge more than covered its fee in the past; below means the fee exceeded the edge — for most active funds, the honest default is that the passive alternative wins. It is a relative, diagnostic read, not a prediction.",
@@ -76,9 +76,9 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     title: "Value Offering",
     tagline:
       "Whether a fund is a reasonable way to get its exposure and manager, read against its passive alternative.",
-    methodVersion: "vo_reframe_v0.3",
+    methodVersion: "vo_reframe_v0.4",
     asOf:
-      "Evaluated as of 2025-10-31 holdings; skill evidence as of 2026-03-31.",
+      "Evaluated as of 2025-10-31 holdings; skill evidence as of 2026-07-05.",
     measures: [
       "Value Offering reads a fund along two questions, not one rating. First: is there evidence the manager's stock selection has added value (judged selection)? Second: what kind of bet are you actually buying — a stock-picker's book, or mostly a sector or theme tilt you could get more cheaply (bet profile)?",
       "It is shown as a small set of plain badges (for example, Stock-picking edge, Mostly a sector or theme bet, Selection unproven, Costs more, Index, Building track record) — always next to the named passive alternative the fund is being read against.",
@@ -110,7 +110,7 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     tagline:
       "How a fund's fee compares with what similar funds charge for similar work.",
     methodVersion: "fee_rd_v0.1",
-    asOf: "Fee data as of the most recent filed expense ratios (2026-05).",
+    asOf: "Fee data as of the most recent filed expense ratios (filings through 2026Q1; computed 2026-05-08).",
     measures: [
       "Fee Fairness places a fund's expense ratio in the distribution of fees charged by comparable funds, so you can see whether you are paying near the middle, the cheap end, or the expensive end for the kind of fund it is.",
     ],
@@ -136,8 +136,8 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     title: "Skill Evidence",
     tagline:
       "The statistical evidence that a fund's manager has added value through selection.",
-    methodVersion: "skill_hier_v0",
-    asOf: "Returns through the most recent month; skill panel as of 2026-03-31.",
+    methodVersion: "skill_hier_v1",
+    asOf: "Returns through the most recent month; skill panel as of 2026-07-05.",
     measures: [
       "Skill Evidence is the probability — read from the fund's own track record — that the manager has added value beyond what its passive exposures explain, net of what it can be attributed to chance.",
     ],
@@ -163,9 +163,9 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     title: "Exposure X-Ray",
     tagline:
       "What a fund actually holds — by theme, sector, stock, region and style — versus its passive alternative.",
-    methodVersion: "exposure_xray_v0.2",
+    methodVersion: "exposure_xray_v0.4",
     asOf:
-      "Holdings as of the displayed source date; passive-blend holdings as of 2025-10-31.",
+      "Holdings as of the displayed source date; passive-blend holdings as of each ETF's own displayed source date (up to 2026-04-30).",
     measures: [
       "Exposure X-Ray breaks a fund's portfolio into theme, sector, stock, country / region, style, concentration and asset-class rows, and shows the fund's exposure, the passive alternative's exposure, and the difference side by side.",
       "Style labels translate factor names into plain language; the raw factor names are kept for the methodology and professional views.",
@@ -195,9 +195,9 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     title: "Return Attribution",
     tagline:
       "Which holdings, sectors and themes drove a fund's return versus its passive alternative.",
-    methodVersion: "return_attr_v0.1",
+    methodVersion: "return_attr_v0.2",
     asOf:
-      "Evaluated at the 2025-10-31 holdings frontier; period-start holdings as early as the prior filing.",
+      "Return windows end 2026-04-30; built from the filed holdings snapshots inside each window (period-start holdings as early as the prior filing).",
     measures: [
       "Return Attribution decomposes a fund's excess return over its passive alternative into contributions from individual stocks, sectors and themes, over 1-, 3- and 5-year windows.",
     ],
@@ -226,14 +226,14 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
       "What drives a fund in return space — its active factor and theme bets beyond a cheap index, how much of a theme it holds versus actively bets on, and how those bets played out.",
     methodVersion: "factor_exp_v0.1 · exposure_divergence_v0.1 · exposure_path_v0.2",
     asOf:
-      "Return-based exposures through 2026-04-24; the realised attribution covers the holdings era (2020-12-31 to 2026-03-31, 21 quarters); holdings side as of the displayed filing date.",
+      "Return-based exposures through 2026-04-24; the realised attribution covers the holdings era (2020-06-30 to 2026-05-31, up to 23 quarters per fund); holdings side as of the displayed filing date. For the newest holdings quarters the β eval date currently predates the holdings while a factor refresh is pending — both dates are always shown.",
     measures: [
       "The factor lens regresses a fund's returns on the market, the Fama-French style factors, and a library of curated theme baskets to estimate its exposures. The active β is the bet beyond the fund's passive baseline — its closest passive alternative (the L2 index blend) when one exists, otherwise the broad market. A near-zero active β on a theme means the fund holds it only as much as that baseline does.",
       "The divergence headline juxtaposes two different measurements of the same exposure: how much of a theme the fund holds (% of assets) and how much of an active bet it runs on that theme (active β). These are never added together.",
       "The bias / timing / idiosyncratic decomposition splits a fund's realised active return over the holdings path into the persistent tilt (bias), the part from carrying more of a factor in the quarters it paid (timing), and the residual left after the factor bets (idiosyncratic).",
     ],
     method: [
-      "Exposures come from trailing return regressions under several control models — raw, passive-alternative-stripped (vs the fund's L2 index blend), market-stripped, and incremental-to-FF6. The headline active β for any active claim is stripped of the fund's passive alternative when one exists, and falls back to the market otherwise — the page names which baseline applies. The regression runs to a fresher date than the holdings because it needs only returns, not the filing-lagged portfolio; both as-of dates are shown.",
+      "Exposures come from trailing return regressions under several control models — raw, passive-alternative-stripped (vs the fund's L2 index blend), market-stripped, and incremental-to-FF6. The headline active β for any active claim is stripped of the fund's passive alternative when one exists, and falls back to the market otherwise — the page names which baseline applies. The regression needs only returns, not the filing-lagged portfolio, so it usually runs to a fresher date than the holdings — at this build the newest holdings quarters post-date the last factor eval while a refresh is pending; both as-of dates are shown.",
       "The realised attribution multiplies each factor's average active tilt by the cumulative factor return over the path (bias) and adds the covariance of tilt and return (timing). Only the idiosyncratic residual is read as stock-selection evidence — and even then it is cross-referenced with the fund's skill evidence, never asserted alone.",
     ],
     sources: [
@@ -292,7 +292,7 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     title: "Growth & After-Fee Returns (Matched Windows)",
     tagline:
       "Growth of $1,000 for the fund and its passive alternative on one matched monthly window, with after-fee period returns raw and at matched market risk.",
-    methodVersion: "profile_nav_series_v1",
+    methodVersion: "profile_nav_series_v1_2026-07-04",
     asOf:
       "Monthly series through 2026-05; each fund's window starts at the first month both the fund and its passive blend are priced (the common paired window — not the fund's inception).",
     measures: [
@@ -326,7 +326,7 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
       "Where a fund's beta and tracking error sit among funds benchmarked to the same passive alternative.",
     methodVersion: "positioning_context_v0.1",
     asOf:
-      "Computed as of 2026-05-09, from the same beta and tracking-error reads as the Value Score; blend membership as of 2026-02-28.",
+      "Computed as of 2026-07-11, from the same beta and tracking-error reads as the Value Score; blend membership as of 2026-06-30.",
     measures: [
       "A beta of 0.90 or a tracking error of 4.8%/yr means little on its own. This context places each next to funds sharing the same passive alternative: the percentile says what fraction of that named cohort sits strictly below the fund on that measure.",
       "The cohort is always named with its size — a percentile is never shown against an unnamed population. When the same-passive-alternative cohort is too small, the fund's peer group stands in (and the copy says so).",
@@ -359,7 +359,7 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
       "The fund's trailing risk profile — volatility, Sharpe, drawdown, and how it behaved versus its stated prospectus benchmark.",
     methodVersion: "unversioned — fund_metadata risk fields",
     asOf:
-      "Computed from daily adjusted NAV through each fund's latest priced date (2026-05-07/08 at this build); the page stamps each fund's own date and flags it stale while a pricing refresh is pending.",
+      "Computed from daily adjusted NAV through each fund's latest priced date at the 2026-06-29 metadata build; the page stamps each fund's own date and flags it stale while a pricing refresh is pending.",
     measures: [
       "The risk detail shows how bumpy the ride has been: the fund's own trailing 3-year volatility (standard deviation), risk-adjusted return (Sharpe and Sortino), and its worst peak-to-trough loss (maximum drawdown, dated, over the fund's full priced history).",
       "Where the fund's stated prospectus benchmark has a matching index ETF, it also shows benchmark-relative behavior over the same 3 years: beta, alpha, R², tracking error, information ratio, and upside / downside capture — how much of the benchmark's up and down months the fund participated in.",
@@ -381,7 +381,7 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     ],
     limitations: [
       "Benchmark-relative rows exist only where the stated benchmark's ETF proxy has priced history in our store (about 2,500 of 5,450 funds with a risk read). The dominant gap today is missing proxy prices — notably the S&P 500's (SPY) — not unmappable benchmarks; those funds honestly omit the group rather than substitute a different index, and the proxy ingest is tracked as a fix.",
-      "Pricing currently runs through 2026-05-07 pending a vendor refresh; the section stamps this and flags it stale rather than hiding it.",
+      "The served risk fields come from the 2026-06-29 metadata build; the price feed has since refreshed (through 2026-07-10) and a metadata rebuild on the fresh prices is pending. The section stamps each fund's date and flags staleness rather than hiding it.",
       "Three years of monthly returns is a short, noisy window — treat the levels as descriptive, not precise; the maximum drawdown spans the fund's full priced history, which can include a different manager or mandate era.",
     ],
   },
@@ -424,7 +424,7 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     tagline:
       "Whether the trades a fund made between filings have, so far, helped or hurt versus holding still.",
     methodVersion: "manager_moves_v1",
-    asOf: "Evaluated at the 2025-10-31 holdings frontier.",
+    asOf: "Evaluated at the 2026-04-30 holdings frontier.",
     measures: [
       "Manager Moves looks at the changes a fund made to its portfolio between filings and estimates whether those specific trades have added or subtracted value relative to having left the portfolio unchanged.",
     ],
@@ -450,7 +450,7 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
       "How a fund's exposures moved between its two most recent filings.",
     methodVersion: "positioning_changes_v0.1",
     asOf:
-      "Current holdings 2025-10-31 versus the prior qualifying filing (as early as 2024-11-30).",
+      "Current holdings 2026-04-30 versus the prior qualifying filing (as early as 2024-01-31).",
     measures: [
       "Portfolio Shifts compares a fund against its own recent history — how its sector, theme, region, style, concentration and top-position exposures changed between its two most recent filings — so you can see where a manager is leaning in or out.",
     ],
@@ -476,7 +476,7 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     tagline:
       "Other funds and passive options worth comparing against this one.",
     methodVersion: "alternatives_v0.2",
-    asOf: "Evaluated at the 2025-10-31 holdings frontier.",
+    asOf: "Evaluated at the 2026-04-30 holdings frontier.",
     measures: [
       "Alternatives to Inspect surfaces the fund's closest passive alternative plus a short list of comparable funds, so you can see what else covers similar ground before deciding anything yourself.",
     ],
@@ -545,7 +545,7 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
 // values from the shipped artifacts and specs.
 // ----------------------------------------------------------------------------
 
-export const METHODOLOGY_LAST_UPDATED = "2026-06-23";
+export const METHODOLOGY_LAST_UPDATED = "2026-07-16";
 
 /** Coverage ceiling for the returns-based selection signal (factor alpha). */
 export const FACTOR_ALPHA_COVERAGE = {
@@ -553,8 +553,12 @@ export const FACTOR_ALPHA_COVERAGE = {
   share: "about 64–66% of the active retail equity universe",
 };
 
-/** Holdings frontier the holdings-derived products are evaluated against. */
-export const HOLDINGS_FRONTIER = "2025-10-31";
+/** Most recent broadly-populated holdings filing frontier (2026-04-30: 2,628 funds;
+ * 2026-03-31: 4,833). Products pin their OWN eval frontier at or before this —
+ * value-offering / takeaways / the-take remain stamped 2025-10-31; attribution,
+ * alternatives, manager-moves and positioning-changes are at 2026-04-30. Each
+ * artifact's asOf above states its own; page copy must say "per-product". */
+export const HOLDINGS_FRONTIER = "2026-04-30";
 
 /** Shared staleness threshold for holdings-derived claims. */
 export const HOLDINGS_STALE_DAYS = 180;
