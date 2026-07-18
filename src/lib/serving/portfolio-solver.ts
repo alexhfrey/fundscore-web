@@ -91,6 +91,38 @@ export interface SolverRow {
   exclusion_reason: string | null;
 }
 
+// Historical buy-and-hold performance of the solved blend + the entered book.
+// Total-return (dividends reinvested, net of fund fees), buy-and-hold at the
+// solved weights, DAILY prices; passive legs use index-fund proxies for history
+// before their ETF launched. Computed by the solver; null when a book is too
+// short (<3y) or a leg can't be priced.
+export interface PerfSeries {
+  window_start: string;
+  window_end: string;
+  years: number;
+  cagr: number; // decimal, e.g. 0.096
+  max_drawdown: number; // negative decimal, e.g. -0.60
+  uses_proxy?: boolean;
+  curve?: { t: string; v: number }[]; // monthly growth of $1
+}
+export interface PerfCommon {
+  window_start: string;
+  window_end: string;
+  years: number;
+  portfolio_cagr: number;
+  portfolio_max_drawdown: number;
+  blend_cagr: number;
+  blend_max_drawdown: number;
+}
+export interface SolverPerformance {
+  basis: string; // "total_return"
+  hold: string; // "buy_and_hold"
+  resolution: string; // "daily"
+  blend: PerfSeries | null;
+  portfolio: PerfSeries | null;
+  common: PerfCommon | null;
+}
+
 export interface SolveResult {
   portfolio_analysis_id: string;
   solver_run_id: string;
@@ -108,6 +140,8 @@ export interface SolveResult {
   /** Stock-level look-through, attached by the route from Postgres. Computed
    * independently of the blend, so it survives a suppressed solve. */
   look_through?: import("./portfolio-lookthrough").LookThrough | null;
+  /** Historical buy-and-hold CAGR + worst drawdown for the blend and book. */
+  performance?: SolverPerformance | null;
 }
 
 export interface PortfolioInput {

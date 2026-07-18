@@ -47,8 +47,16 @@ export function XrayResult({ result: r }: { result: SolveResult }) {
       <Verdict result={r} resolved={resolved} />
       <IdentityStrip result={r} resolved={resolved} excluded={excluded} />
 
-      {/* Payoff first: the cheap near-copy that makes the verdict real. */}
-      {suppressed ? <Suppressed result={r} /> : <TheAlternative result={r} />}
+      {/* Payoff first: the cheap near-copy that makes the verdict real, then how
+          that passive alternative has actually performed over the long run. */}
+      {suppressed ? (
+        <Suppressed result={r} />
+      ) : (
+        <>
+          <TheAlternative result={r} />
+          <TrackRecord result={r} />
+        </>
+      )}
 
       {/* Then the evidence for "it's basically the index": your own stocks. */}
       <Overlap result={r} />
@@ -498,6 +506,148 @@ function FeeRow({
       </div>
     </div>
   );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  2b · Track record — how the passive blend has performed over the long run  */
+/* -------------------------------------------------------------------------- */
+
+function TrackRecord({ result: r }: { result: SolveResult }) {
+  const p = r.performance;
+  if (!p || !p.blend) return null;
+  const b = p.blend;
+  const c = p.common;
+
+  return (
+    <Movement
+      eyebrow="The passive alternative, over time"
+      title="How the blend has held up"
+      lead={`The blend's legs go back ${b.years.toFixed(0)} years${b.uses_proxy ? " via their index-fund proxies" : ""}. Here's what a dollar in it would have done — and the worst it fell along the way.`}
+      methodologyAnchor="alternatives"
+    >
+      <Card>
+        <div className="grid gap-8 lg:grid-cols-[1.15fr_1fr] lg:items-center">
+          <div>
+            {b.curve && b.curve.length > 2 && <GrowthCurve curve={b.curve} />}
+            <p className="mt-2 text-xs text-ink-soft/80">
+              Growth of $1 in the passive blend, {yr4(b.window_start)}–{yr4(b.window_end)}{" "}
+              (log scale — a straight line is steady compounding).
+            </p>
+          </div>
+          <div>
+            <div className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-ink-soft">
+              Compound annual return
+            </div>
+            <div className="mt-1 font-serif text-[3rem] leading-none font-semibold tabular-nums text-ink">
+              {perfPct(b.cagr, 1)}
+            </div>
+            <div className="mt-1.5 text-sm text-ink-soft">
+              a year, over {b.years.toFixed(0)} years ({yr4(b.window_start)}–{yr4(b.window_end)})
+            </div>
+            <div className="mt-5 border-t border-rule pt-4">
+              <div className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-ink-soft">
+                Worst drop, peak to trough
+              </div>
+              <div className="mt-1 font-serif text-3xl font-semibold tabular-nums text-below">
+                {perfPct(b.max_drawdown, 0)}
+              </div>
+              <div className="mt-1.5 text-sm text-ink-soft">the deepest it fell before recovering</div>
+            </div>
+          </div>
+        </div>
+
+        {c && (
+          <div className="mt-6 border-t border-rule pt-5">
+            <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-soft">
+              Your funds vs the blend, over the {c.years.toFixed(0)} years both have existed
+              ({yr4(c.window_start)}–{yr4(c.window_end)})
+            </p>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left font-mono text-[10px] uppercase tracking-[0.1em] text-ink-soft">
+                  <th className="pb-2 font-medium" />
+                  <th className="pb-2 text-right font-medium">Return / yr</th>
+                  <th className="pb-2 text-right font-medium">Worst drop</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-t border-rule/60">
+                  <td className="py-2 text-ink">Your funds</td>
+                  <td className="py-2 text-right font-semibold tabular-nums text-ink">
+                    {perfPct(c.portfolio_cagr, 1)}
+                  </td>
+                  <td className="py-2 text-right tabular-nums text-ink-soft">
+                    {perfPct(c.portfolio_max_drawdown, 0)}
+                  </td>
+                </tr>
+                <tr className="border-t border-rule/60">
+                  <td className="py-2 text-ink">The passive blend</td>
+                  <td className="py-2 text-right font-semibold tabular-nums text-ink">
+                    {perfPct(c.blend_cagr, 1)}
+                  </td>
+                  <td className="py-2 text-right tabular-nums text-ink-soft">
+                    {perfPct(c.blend_max_drawdown, 0)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <FootNote>
+          Total return with dividends reinvested, each series net of its own fund fees;
+          bought and held at the solved weights (no rebalancing), on daily prices.
+          {b.uses_proxy
+            ? " The passive legs use their index-fund proxies for history before the ETF launched."
+            : ""}{" "}
+          Past performance is not a forecast.
+        </FootNote>
+      </Card>
+    </Movement>
+  );
+}
+
+/** Growth-of-$1 area curve, log-scaled so decades of compounding read cleanly. */
+function GrowthCurve({ curve }: { curve: { t: string; v: number }[] }) {
+  const W = 100;
+  const H = 36;
+  const logs = curve.map((p) => Math.log(Math.max(p.v, 1e-6)));
+  const lo = Math.min(...logs);
+  const hi = Math.max(...logs);
+  const span = hi - lo || 1;
+  const coords = curve.map((p, i) => {
+    const x = (i / (curve.length - 1)) * W;
+    const y = H - ((Math.log(Math.max(p.v, 1e-6)) - lo) / span) * H;
+    return `${x.toFixed(2)} ${y.toFixed(2)}`;
+  });
+  const line = "M" + coords.join(" L");
+  const area = `${line} L${W} ${H} L0 ${H} Z`;
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="none"
+      className="h-28 w-full"
+      role="img"
+      aria-label="Growth of the passive blend over time, log scale"
+    >
+      <path d={area} fill="var(--color-primary)" opacity="0.1" />
+      <path
+        d={line}
+        fill="none"
+        stroke="var(--color-primary)"
+        strokeWidth="1"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
+
+function perfPct(x: number, dp: number): string {
+  const v = x * 100;
+  return `${v < 0 ? "−" : ""}${Math.abs(v).toFixed(dp)}%`;
+}
+function yr4(iso: string): string {
+  return iso.slice(0, 4);
 }
 
 /* -------------------------------------------------------------------------- */
