@@ -36,6 +36,11 @@ export interface LookThroughStock {
   difference: number | null;
   /** How many of the user's own funds hold this name. The "you own it N times" read. */
   held_by_funds: number;
+  /** WHICH of the user's funds hold this name (entered tickers), ordered to match `funds`. */
+  held_by: string[];
+  /** This stock's weight IN each fund that holds it (% of that fund's NAV), fund-ordered.
+   * Lets the UI show materiality — a 7%-of-fund core vs a sub-1% sliver — honestly. */
+  by_fund: { ticker: string; weight_pct: number }[];
 }
 
 export interface LookThroughFundNote {
@@ -61,6 +66,8 @@ export interface LookThrough {
   excluded: LookThroughFundNote[];
   /** How many funds we did look through. */
   funds_covered: number;
+  /** The funds we looked through, ordered by portfolio weight — the columns of the overlap grid. */
+  funds: { ticker: string; name: string | null }[];
   distinct_stocks: number;
   top: LookThroughStock[];
   /** Combined weight of the top 10 names — portfolio vs the passive blend. */
@@ -96,7 +103,10 @@ interface BlendHoldingRow {
   country: string | null;
 }
 
-const TOP_N = 12;
+// The summary UI shows ~10; the rest feed the "see all holdings" drill-down. A
+// broad index book has thousands of names — we return the top slice by weight
+// (which carries the vast majority of the book) and disclose the untracked tail.
+const TOP_N = 60;
 
 /**
  * Aggregate the as-filed positions of every fund in the book to the stock level.
@@ -164,10 +174,23 @@ export async function computeLookThrough(
 
   if (covered <= 0) return empty(excluded);
 
+  // Map each looked-through series to the user's entered ticker + fund name, and
+  // fix a stable column order (by portfolio weight) for the overlap grid.
+  const sidToName = new Map<string, string | null>();
+  for (const rr of rows) if (rr.series_id) sidToName.set(rr.series_id, rr.display_name);
+  const funds = [...wantSeries.entries()]
+    .filter(([sid]) => seriesWithRows.has(sid))
+    .sort((a, b) => b[1].frac - a[1].frac)
+    .map(([sid, meta]) => ({ ticker: meta.ticker, name: sidToName.get(sid) ?? null }));
+  const sidToTicker = new Map<string, string>(
+    [...wantSeries.entries()].map(([sid, meta]) => [sid, meta.ticker]),
+  );
+  const fundOrder = new Map(funds.map((f, i) => [f.ticker, i]));
+
   // --- Aggregate the user's book to the stock level -------------------------
   const agg = new Map<
     string,
-    { name: string | null; pct: number; funds: Set<string> }
+    { name: string | null; pct: number; fundsW: Map<string, number> }
   >();
   const byCountry = new Map<string, number>();
   let asOfMin: string | null = null;
@@ -181,10 +204,10 @@ export async function computeLookThrough(
     const cur = agg.get(h.security_ticker) ?? {
       name: h.security_name,
       pct: 0,
-      funds: new Set<string>(),
+      fundsW: new Map<string, number>(),
     };
     cur.pct += contribution;
-    cur.funds.add(h.series_id);
+    cur.fundsW.set(h.series_id, (cur.fundsW.get(h.series_id) ?? 0) + h.weight_pct);
     if (!cur.name && h.security_name) cur.name = h.security_name;
     agg.set(h.security_ticker, cur);
 
@@ -205,13 +228,19 @@ export async function computeLookThrough(
 
   const top: LookThroughStock[] = ranked.slice(0, TOP_N).map(([ticker, d]) => {
     const bp = blendPct?.get(ticker) ?? (blendPct ? 0 : null);
+    const byFund = [...d.fundsW.entries()]
+      .map(([sid, w]) => ({ ticker: sidToTicker.get(sid), weight_pct: round2(w) }))
+      .filter((e): e is { ticker: string; weight_pct: number } => !!e.ticker)
+      .sort((a, b) => (fundOrder.get(a.ticker) ?? 99) - (fundOrder.get(b.ticker) ?? 99));
     return {
       ticker,
       name: d.name,
       portfolio_pct: round2(d.pct),
       blend_pct: bp === null ? null : round2(bp),
       difference: bp === null ? null : round2(d.pct - bp),
-      held_by_funds: d.funds.size,
+      held_by_funds: byFund.length,
+      held_by: byFund.map((e) => e.ticker),
+      by_fund: byFund,
     };
   });
 
@@ -227,7 +256,7 @@ export async function computeLookThrough(
   // complete split of the equity we can see — no silent "unclassified" bucket.
   const countries: LookThroughCountry[] = [...byCountry.entries()]
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
+    .slice(0, 60) // ~all; the summary shows the top 6, the drill-down the rest
     .map(([code, pct]) => {
       const bp = blendMaps?.countries.get(code) ?? (blendMaps ? 0 : null);
       return {
@@ -244,6 +273,7 @@ export async function computeLookThrough(
     equity_weight_pct: round2(equityWeight),
     excluded,
     funds_covered: seriesWithRows.size,
+    funds,
     distinct_stocks: ranked.length,
     top,
     top10_portfolio_pct: round2(top10Portfolio),
@@ -347,6 +377,7 @@ function empty(excluded: LookThroughFundNote[] = []): LookThrough {
     equity_weight_pct: 0,
     excluded,
     funds_covered: 0,
+    funds: [],
     distinct_stocks: 0,
     top: [],
     top10_portfolio_pct: 0,

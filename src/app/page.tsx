@@ -10,6 +10,7 @@ import {
   ACTIVE_MEDIAN_MEGACAP_PCT,
   MOST_HELD,
   THEME_EXAMPLES,
+  MACRO_FACTORS,
   EXPOSURE_DIMENSIONS,
   ACTIVE_FUNDS,
   SEC_SERIES,
@@ -19,13 +20,14 @@ import {
   DEMO_COST_PER_100K,
   DEMO_LT_TOP10_PCT,
   DEMO_LT_NVDA_PCT,
+  DEMO_FUNDS_HOLDING_NVDA,
 } from "./_landing/facts";
 
 export const metadata: Metadata = {
   title:
     "FundScore.ai — You might own the AI trade seven times, and call it diversification.",
   description:
-    "FundScore looks through every fund to reveal the companies, themes, factors and macro risks actually driving your portfolio — then helps you find funds that deliver the exposure you intended to buy. No brokerage login required.",
+    "Star ratings rank funds on last decade's returns. FundScore looks through every fund to reveal the companies, themes, factors and macro risks actually driving your portfolio — and how much value your managers added beyond just riding them. No brokerage login required.",
 };
 
 export const dynamic = "force-static";
@@ -69,9 +71,10 @@ function Eyebrow({
 
 /**
  * The only call to action while the product is gated. There is deliberately no
- * "X-ray my portfolio" button: the X-Ray is closed to anonymous visitors, and a
- * button that bounces you back to the page you're on is worse than no button.
- * When the gate lifts (LAUNCHED=true), this is where the product CTAs go back.
+ * live "X-ray my portfolio" button: the X-Ray is closed to anonymous visitors,
+ * and a button that bounces you back to the page you're on is worse than an
+ * email capture. When the gate lifts (LAUNCHED=true), the CtaLink targets below
+ * and this form become the real product CTAs — see page_specs/home.md § CTA.
  */
 function EarlyAccess({
   source,
@@ -83,17 +86,30 @@ function EarlyAccess({
   const dark = tone === "dark";
   return (
     <div>
-      <WaitlistForm
-        source={source}
-        label="Request early access"
-        tone={tone}
-      />
+      <WaitlistForm source={source} label="Request early access" tone={tone} />
       <p
         className={`mt-2 text-xs ${dark ? "text-white/45" : "text-ink-soft/80"}`}
       >
         No brokerage login required. No trading access.
       </p>
     </div>
+  );
+}
+
+/**
+ * Secondary CTAs mid-page. Pre-launch they scroll to the early-access form at
+ * the close. At launch, swap the href for the real route in the label→route map
+ * in page_specs/home.md (X-ray my portfolio → /xray, Explore funds → /screener,
+ * Analyze a fund → /funds/{ticker}).
+ */
+function CtaLink({ children }: { children: React.ReactNode }) {
+  return (
+    <Link
+      href="#early-access"
+      className="inline-flex rounded-xl border border-rule bg-white px-5 py-3 text-sm font-semibold text-ink transition-colors hover:border-ink/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+    >
+      {children}
+    </Link>
   );
 }
 
@@ -154,12 +170,13 @@ export default function HomePage() {
           </h1>
 
           <p className="mt-8 max-w-2xl text-lg leading-relaxed text-ink-soft">
-            FundScore looks through every fund to reveal the companies, themes,
-            factors and macro risks actually driving your portfolio.
-          </p>
-          <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink-soft">
-            Then it helps you find funds that deliver the exposure you intended
-            to buy.
+            Star ratings rank funds on the last decade&apos;s returns. FundScore
+            shows you the macro bets hiding inside the portfolio you{" "}
+            <em className="text-ink not-italic underline decoration-primary/40 decoration-2 underline-offset-4">
+              already own
+            </em>{" "}
+            — and how much value your managers actually added beyond just riding
+            them.
           </p>
 
           <div className="mt-10">
@@ -168,72 +185,151 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ------------------------------------------------ See through the wrapper */}
+      {/* ------------------------------------- A five-star rating can't show this */}
       <section className="border-y border-rule bg-white">
         <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-28">
-          <div className="grid gap-14 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)] lg:items-center lg:gap-20">
+          <div className="grid gap-14 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1fr)] lg:items-center lg:gap-20">
             <div>
-              <Eyebrow>What do I really own?</Eyebrow>
+              <Eyebrow>One real portfolio</Eyebrow>
               <h2 className="mt-5 font-serif text-3xl leading-[1.12] font-semibold tracking-[-0.01em] text-balance sm:text-[2.6rem]">
-                See through the fund wrapper.
+                A five-star rating can&apos;t tell you this.
               </h2>
               <p className="mt-6 leading-relaxed text-ink-soft">
-                Fund names and categories can create the appearance of
-                diversification while hiding the same underlying bets. The S&amp;P
-                500 keeps {SP500_MEGACAP_PCT} of its value in seven companies,
-                and the median US large-cap active fund holds{" "}
-                {ACTIVE_MEDIAN_MEGACAP_PCT} in the same names.
+                Here is a real three-fund portfolio: an S&amp;P 500 index fund,
+                an active growth fund, and an international fund. On paper,
+                diversified.
               </p>
               <p className="mt-5 leading-relaxed text-ink-soft">
-                FundScore maps your portfolio across {EXPOSURE_DIMENSIONS}{" "}
-                dimensions, including:
+                FundScore shows that {DEMO_FUNDS_HOLDING_NVDA} of the funds hold
+                Nvidia, that it is {DEMO_LT_NVDA_PCT} of everything you own, that
+                your top ten names are {DEMO_LT_TOP10_PCT} of the book — and that
+                you are paying {DEMO_PORTFOLIO_FEE_BPS} basis points for a
+                portfolio the index would have handed you for{" "}
+                {DEMO_BLEND_FEE_BPS}. That gap is {DEMO_COST_PER_100K} a year on
+                $100,000.
               </p>
-
-              <ul className="mt-6 space-y-2.5 text-sm leading-relaxed text-ink-soft">
-                <Bullet>
-                  <strong className="font-semibold text-ink">
-                    Companies and industries
-                  </strong>{" "}
-                  — every position, added up across every fund you hold
-                </Bullet>
-                <Bullet>
-                  <strong className="font-semibold text-ink">
-                    Investment themes
-                  </strong>{" "}
-                  — {THEME_EXAMPLES.slice(0, 4).join(", ")} and more
-                </Bullet>
-                <Bullet>
-                  <strong className="font-semibold text-ink">
-                    Style and factor exposures
-                  </strong>
-                </Bullet>
-                <Bullet>
-                  <strong className="font-semibold text-ink">
-                    Macro sensitivity
-                  </strong>{" "}
-                  — rates, inflation, growth, currencies, credit and commodities
-                </Bullet>
-              </ul>
-
-              <p className="mt-7 leading-relaxed text-ink-soft">
-                See where your risk really comes from — and which funds are giving
-                you more of the same.
+              <p className="mt-7 font-serif text-xl leading-snug font-semibold text-ink">
+                Knowing the category is not the same as understanding the bet.
               </p>
-
-              <p className="mt-8 font-mono text-xs leading-relaxed tracking-[0.04em] text-ink-soft/85">
-                {MOST_HELD.join(" · ")}
-                <span className="mt-1.5 block tracking-normal text-ink-soft/60">
-                  The seven most widely held stocks across every active equity
-                  fund we cover. Not one non-tech name until you reach Visa.
-                </span>
-              </p>
+              <div className="mt-8">
+                <CtaLink>X-ray my portfolio</CtaLink>
+              </div>
             </div>
 
             <Shot
-              src={lookThroughShot}
-              alt="FundScore look-through: the stocks inside a three-fund portfolio, with Nvidia at 6.46% held by 3 of 3 funds, Microsoft by 3 of 3, and the top ten names making up 29.9% of the portfolio against 35.8% for the passive alternative."
-              caption="A real look-through: an S&P 500 index fund, an active growth fund and an international fund. Nvidia and Microsoft are in all three."
+              src={xrayShot}
+              alt="FundScore Portfolio X-Ray fee gap: a blended fee of 36 basis points against a passive blend costing 13, a gap of 23 basis points or $227 a year on $100,000, and the solved blend of IWF and VEU."
+              caption="The same three funds, priced against the passive blend that tracks them (R² 0.97). Where a holding has no honest passive match, FundScore says so rather than forcing one."
             />
+          </div>
+        </div>
+      </section>
+
+      {/* ------------------------------------------- See what you really own */}
+      <section className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-28">
+        <div className="grid gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)] lg:items-center lg:gap-20">
+          <div className="lg:order-first">
+            <Eyebrow>What do I really own?</Eyebrow>
+            <h2 className="mt-5 font-serif text-3xl leading-[1.12] font-semibold tracking-[-0.01em] text-balance sm:text-[2.6rem]">
+              See what you really own.
+            </h2>
+            <p className="mt-6 leading-relaxed text-ink-soft">
+              FundScore builds your <strong className="font-semibold text-ink">
+                Best Passive Alternative
+              </strong>{" "}
+              — the low-cost ETF portfolio that most closely replicates what you
+              already hold. Then it shows the active bets, fees, and manager
+              value layered on top, mapping your portfolio across{" "}
+              {EXPOSURE_DIMENSIONS} exposure dimensions — companies and
+              industries, investment themes ({THEME_EXAMPLES.slice(0, 3).join(", ")}{" "}
+              and more), style and factor tilts, and macro sensitivity to{" "}
+              {MACRO_FACTORS}.
+            </p>
+
+            <ul className="mt-7 space-y-2.5 text-sm leading-relaxed text-ink-soft">
+              <Bullet>Where you are unintentionally concentrated</Bullet>
+              <Bullet>
+                Whether your active funds diversify — or quietly cancel each
+                other out
+              </Bullet>
+              <Bullet>
+                Which stocks, sectors, macro factors and themes are driving your
+                returns
+              </Bullet>
+              <Bullet>
+                How much you pay above the passive alternative you could buy
+                yourself
+              </Bullet>
+            </ul>
+
+            <p className="mt-7 leading-relaxed text-ink-soft">
+              Fund names and categories can create the appearance of
+              diversification while hiding the same underlying bets. The S&amp;P
+              500 keeps {SP500_MEGACAP_PCT} of its value in seven companies, and
+              the median US large-cap active fund holds {ACTIVE_MEDIAN_MEGACAP_PCT}{" "}
+              in the same names.
+            </p>
+
+            <p className="mt-8 font-mono text-xs leading-relaxed tracking-[0.04em] text-ink-soft/85">
+              {MOST_HELD.join(" · ")}
+              <span className="mt-1.5 block tracking-normal text-ink-soft/60">
+                The seven most widely held stocks across every active equity fund
+                we cover. Not one non-tech name until you reach Visa.
+              </span>
+            </p>
+
+            <div className="mt-8">
+              <CtaLink>X-ray my portfolio</CtaLink>
+            </div>
+          </div>
+
+          <Shot
+            src={lookThroughShot}
+            alt="FundScore look-through: the stocks inside a three-fund portfolio, with Nvidia at 6.46% held by 3 of 3 funds, Microsoft by 3 of 3, and the top ten names making up 29.9% of the portfolio against 35.8% for the passive alternative."
+            caption="A real look-through: an S&P 500 index fund, an active growth fund and an international fund. Nvidia and Microsoft are in all three."
+          />
+        </div>
+      </section>
+
+      {/* -------------------------------------------------------- Attribution */}
+      <section className="border-y border-rule bg-white">
+        <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-28">
+          <div className="grid gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] lg:items-center lg:gap-20">
+            <Shot
+              src={fundShot}
+              alt="A FundScore fund profile (the fund name is redacted): a Value Score of about breakeven against the fund's closest passive alternative — it came out roughly even, net of fees — with an Exposure X-Ray showing it 26.6 percentage points underweight technology versus that alternative."
+              caption="A real FundScore profile. The Value Score is backward-looking and relative to that fund's own passive alternative — never a forecast, and never a recommendation."
+            />
+
+            <div className="lg:order-first">
+              <Eyebrow>Did the manager earn it?</Eyebrow>
+              <h2 className="mt-5 font-serif text-3xl leading-[1.12] font-semibold tracking-[-0.01em] text-balance sm:text-[2.6rem]">
+                See what active management actually delivered.
+              </h2>
+              <p className="mt-6 leading-relaxed text-ink-soft">
+                A fund can outperform because its manager selected exceptional
+                investments. It can also outperform because a sector, factor, or
+                macro bet happened to work.
+              </p>
+              <p className="mt-5 leading-relaxed text-ink-soft">
+                FundScore separates performance into:
+              </p>
+              <ul className="mt-5 space-y-2.5 text-sm leading-relaxed text-ink-soft">
+                <Bullet>Broad market returns</Bullet>
+                <Bullet>
+                  Systematic sector, style, theme and macro effects
+                </Bullet>
+                <Bullet>Security-selection value</Bullet>
+                <Bullet>Fees</Bullet>
+              </ul>
+              <p className="mt-7 font-serif text-xl leading-snug font-semibold text-ink">
+                Are you paying for real skill — or expensive access to a trend you
+                could get for less?
+              </p>
+              <div className="mt-8">
+                <CtaLink>Analyze a fund</CtaLink>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -252,180 +348,95 @@ export default function HomePage() {
               Most fund screeners start with categories, ratings, fees and past
               returns. FundScore starts with the exposure you want.
             </p>
-            <p className="mt-5 leading-relaxed text-ink-soft">
-              Find funds positioned for falling real rates. Compare AI exposure
-              without relying on the same mega-cap stocks. Look for inflation
-              sensitivity, reshoring, quality, small-cap value, or hundreds of
-              other characteristics — across ETFs and mutual funds, using
-              criteria you choose.
+            <ul className="mt-6 space-y-2.5 text-sm leading-relaxed text-ink-soft">
+              <Bullet>Large-cap funds with less exposure to the AI trade</Bullet>
+              <Bullet>Funds positioned for falling real rates</Bullet>
+              <Bullet>ETFs and mutual funds exposed to reshoring</Bullet>
+              <Bullet>
+                Active managers with broad-based security-selection value
+              </Bullet>
+              <Bullet>
+                Funds that diversify your current holdings instead of duplicating
+                them
+              </Bullet>
+            </ul>
+            <p className="mt-7 leading-relaxed text-ink-soft">
+              Across ETFs and open-end mutual funds, using the criteria you
+              choose.
+            </p>
+            <p className="mt-6 font-serif text-xl leading-snug font-semibold text-ink">
+              You bring the investment idea. FundScore provides the receipts.
             </p>
             <div className="mt-8">
-              <Link
-                href="#early-access"
-                className="inline-flex rounded-xl border border-rule bg-white px-5 py-3 text-sm font-semibold text-ink transition-colors hover:border-ink/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-              >
-                Explore fund exposures
-              </Link>
+              <CtaLink>Explore fund exposures</CtaLink>
             </div>
           </div>
         </div>
       </section>
 
-      {/* -------------------------------------------------------- Attribution */}
+      {/* ---------------------------------------------------------- Monitoring */}
       <section className="border-y border-rule bg-white">
-        <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-28">
-          <div className="grid gap-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] lg:items-center lg:gap-20">
-            <Shot
-              src={fundShot}
-              alt="A FundScore fund profile (the fund name is redacted): a Value Score of about breakeven against the fund's closest passive alternative — it came out roughly even, net of fees — with an Exposure X-Ray showing it 26.6 percentage points underweight technology versus that alternative."
-              caption="A real FundScore profile. The Value Score is backward-looking and relative to that fund's own passive alternative — never a forecast, and never a recommendation."
-            />
-
-            <div className="lg:order-first">
-              <Eyebrow>Did the manager earn it?</Eyebrow>
-              <h2 className="mt-5 font-serif text-3xl leading-[1.12] font-semibold tracking-[-0.01em] text-balance sm:text-[2.6rem]">
-                Find out what active management actually delivered.
-              </h2>
-              <p className="mt-6 leading-relaxed text-ink-soft">
-                A fund can outperform because its manager selected exceptional
-                investments. It can also outperform because a sector, factor, or
-                macro bet happened to work.
-              </p>
-              <p className="mt-5 leading-relaxed text-ink-soft">
-                FundScore separates performance into:
-              </p>
-              <ul className="mt-5 space-y-2.5 text-sm leading-relaxed text-ink-soft">
-                <Bullet>Broad market exposure</Bullet>
-                <Bullet>
-                  Systematic sector, style, theme and macro effects
-                </Bullet>
-                <Bullet>Security-selection value</Bullet>
-                <Bullet>Fees</Bullet>
-              </ul>
-              <p className="mt-6 leading-relaxed text-ink-soft">
-                See whether an active manager delivered something distinctive — or
-                charged active fees for exposure available elsewhere.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ---------------------------------------------------- Three questions */}
-      <section className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-28">
-        <Eyebrow>The whole product</Eyebrow>
-        <h2 className="mt-5 max-w-2xl font-serif text-3xl leading-[1.12] font-semibold tracking-[-0.01em] text-balance sm:text-[2.6rem]">
-          Understand your portfolio in three questions.
-        </h2>
-
-        <div className="mt-14 grid gap-px overflow-hidden rounded-2xl border border-rule bg-rule md:grid-cols-3">
-          {[
-            {
-              q: "What do I really own?",
-              a: "Look through your funds to the underlying securities and economic exposures.",
-            },
-            {
-              q: "Am I actually diversified?",
-              a: "Identify repeated bets and concentrations that traditional allocation charts miss.",
-            },
-            {
-              q: "What am I paying for?",
-              a: "Compare fund fees with the differentiated exposure and estimated value delivered.",
-            },
-          ].map((x) => (
-            <div key={x.q} className="bg-white p-7 sm:p-8">
-              <h3 className="font-serif text-xl font-semibold text-ink">
-                {x.q}
-              </h3>
-              <p className="mt-3 text-sm leading-relaxed text-ink-soft">{x.a}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ------------------------------------------------ Not another pie chart */}
-      <section className="border-y border-rule bg-white">
-        <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-28">
-          <div className="grid gap-14 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)] lg:items-center lg:gap-20">
+        <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
+          <div className="grid gap-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] md:gap-16">
             <div>
-              <Eyebrow>Am I actually diversified?</Eyebrow>
+              <Eyebrow>Know when it changes</Eyebrow>
               <h2 className="mt-5 font-serif text-3xl leading-[1.12] font-semibold tracking-[-0.01em] text-balance sm:text-[2.6rem]">
-                More than another portfolio pie chart.
+                Know when the investment changes.
               </h2>
-              <p className="mt-6 leading-relaxed text-ink-soft">
-                A typical portfolio tool might tell you that 24% of your money is
-                in technology.
+            </div>
+            <div>
+              <p className="text-lg leading-relaxed text-ink-soft">
+                A fund can keep the same name while quietly becoming a very
+                different investment — new sector bets, drifting factor tilts, a
+                fresh manager reshaping the book.
               </p>
               <p className="mt-5 leading-relaxed text-ink-soft">
-                FundScore tells you that three of your funds all hold Nvidia,
-                that it is {DEMO_LT_NVDA_PCT} of everything you own, that your top
-                ten names are {DEMO_LT_TOP10_PCT} of the book — and that you are
-                paying {DEMO_PORTFOLIO_FEE_BPS} basis points for a portfolio the
-                index would have handed you for {DEMO_BLEND_FEE_BPS}. That gap is{" "}
-                {DEMO_COST_PER_100K} a year on $100,000.
-              </p>
-              <p className="mt-7 font-serif text-xl leading-snug font-semibold text-ink">
-                Knowing the category is not the same as understanding the bet.
+                FundScore tracks changes in a fund&apos;s positioning and tells
+                you when it drifts from the role you hired it to play — so you
+                learn it from the filings, not from the next statement.
               </p>
             </div>
-
-            <Shot
-              src={xrayShot}
-              alt="FundScore Portfolio X-Ray fee gap: a blended fee of 36 basis points against a passive blend costing 13, a gap of 23 basis points or $227 a year on $100,000, and the solved blend of IWF and VEU."
-              caption="The same three funds, priced against the passive blend that tracks them (R² 0.97). Where a holding has no honest passive match, FundScore says so rather than forcing one."
-            />
           </div>
         </div>
       </section>
 
-      {/* -------------------------------------------------------- How it works */}
-      <section className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
-        <Eyebrow>How it works</Eyebrow>
-        <h2 className="mt-5 max-w-2xl font-serif text-3xl leading-[1.12] font-semibold tracking-[-0.01em] text-balance sm:text-[2.6rem]">
-          From diagnosis to research.
-        </h2>
-        <p className="mt-6 max-w-2xl leading-relaxed text-ink-soft">
-          FundScore does not choose investments for you. It helps you compare
-          funds, test substitutions, and see how each choice would change your
-          portfolio. You choose the question. FundScore shows you what is
-          underneath.
-        </p>
+      {/* ------------------------------------------------------ Built on data */}
+      <section className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-28">
+        <div className="grid gap-12 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] md:gap-16">
+          <div>
+            <Eyebrow>Where the numbers come from</Eyebrow>
+            <h2 className="mt-5 font-serif text-3xl leading-[1.12] font-semibold tracking-[-0.01em] text-balance sm:text-[2.6rem]">
+              Built from the ground up on hard data.
+            </h2>
+          </div>
+          <div className="space-y-7">
+            <p className="text-lg leading-relaxed text-ink-soft">
+              FundScore analyses the actual holdings inside every fund, sourced
+              directly from SEC filings — not fund names, marketing language,
+              category labels, or vague reputations. Every exposure traces back
+              to the securities underneath it. Every assessment shows the
+              components behind the number.
+            </p>
 
-        <ol className="mt-14 grid gap-px overflow-hidden rounded-2xl border border-rule bg-rule md:grid-cols-3">
-          {[
-            {
-              step: "01",
-              title: "Add your portfolio",
-              body: "Enter your holdings, or upload a file exported from your brokerage. Your holdings stay on your device.",
-            },
-            {
-              step: "02",
-              title: "See the hidden exposures",
-              body: "FundScore analyses the underlying holdings across companies, themes, factors and macro risks.",
-            },
-            {
-              step: "03",
-              title: "Explore the alternatives",
-              body: "Compare funds, investigate concentrations, and screen for the exposures you actually want.",
-            },
-          ].map((s) => (
-            <li key={s.step} className="bg-white p-7 sm:p-8">
-              <span className="font-mono text-[11px] font-medium tracking-[0.16em] text-primary">
-                {s.step}
-              </span>
-              <h3 className="mt-3 font-serif text-xl font-semibold text-ink">
-                {s.title}
-              </h3>
-              <p className="mt-2.5 text-sm leading-relaxed text-ink-soft">
-                {s.body}
+            <div className="rounded-2xl border border-primary/20 bg-primary-light px-6 py-5">
+              <p className="leading-relaxed text-primary-dark">
+                We charge users, not fund companies. No paid placements. No
+                affiliate-incentive ranking. The scores you see are not for sale.
               </p>
-            </li>
-          ))}
-        </ol>
+            </div>
 
-        <p className="mt-6 text-sm text-ink-soft">
-          No brokerage password. No trading access.
-        </p>
+            <div>
+              <h3 className="font-serif text-lg font-semibold text-ink">
+                Wrong data is worse than no data.
+              </h3>
+              <p className="mt-2 leading-relaxed text-ink-soft">
+                When something is missing, stale, or unsupported, we say so and
+                suppress the claim rather than fill the hole. A fund with no fair
+                passive stand-in does not get a number it hasn&apos;t earned.
+              </p>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* ------------------------------------------------------ Institutional */}
@@ -452,26 +463,6 @@ export default function HomePage() {
                 <br />
                 No brokerage connection required.
               </p>
-
-              <div className="rounded-2xl border border-primary/20 bg-primary-light px-6 py-5">
-                <p className="leading-relaxed text-primary-dark">
-                  We charge users, not fund companies. No paid placements. No
-                  affiliate-incentive ranking. The scores you see are not for
-                  sale.
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-serif text-lg font-semibold text-ink">
-                  Wrong data is worse than no data.
-                </h3>
-                <p className="mt-2 leading-relaxed text-ink-soft">
-                  When something is missing, stale, or unsupported, we say so and
-                  suppress the claim rather than fill the hole. A fund with no
-                  fair passive stand-in does not get a number it hasn&apos;t
-                  earned.
-                </p>
-              </div>
 
               <dl className="grid grid-cols-2 gap-x-6 gap-y-8 border-t border-rule pt-7 sm:grid-cols-4">
                 {[
@@ -502,11 +493,13 @@ export default function HomePage() {
       <section id="early-access" className="scroll-mt-8 bg-ink">
         <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
           <h2 className="max-w-2xl font-serif text-3xl leading-[1.12] font-semibold tracking-[-0.01em] text-balance text-white sm:text-[2.8rem]">
-            Give your portfolio some radical candor.
+            Different funds don&apos;t always mean different bets.
           </h2>
           <p className="mt-6 max-w-lg text-lg leading-relaxed text-white/70">
-            You may be diversified. Or you may own the same bet seven different
-            ways.
+            See what&apos;s driving your portfolio, what you&apos;re paying for,
+            and whether your active managers delivered something genuinely
+            different. Your portfolio may be diversified. Or it may be the same
+            trade in seven different wrappers.
           </p>
           <p className="mt-5 max-w-lg leading-relaxed text-white/60">
             FundScore is opening in stages. Leave your email and we&apos;ll let

@@ -18,16 +18,7 @@ export const metadata: Metadata = {
 
 export default function XRayPage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Portfolio X-Ray</h1>
-        <p className="mt-2 max-w-2xl text-gray-500">
-          Enter the funds and ETFs you hold. We solve one passive ETF blend for
-          your whole book, then show what you&apos;d pay versus that blend and
-          where your sector exposure differs from it.
-        </p>
-      </div>
-
+    <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
       <PortfolioXray />
     </div>
   );
