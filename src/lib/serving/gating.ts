@@ -173,8 +173,10 @@ export interface TheTake {
 // --- value_score (CURRENT value verdict, 2026-06-29) — the hero ----------------
 // Net active value over the passive alternative. RELATIVE/DIAGNOSTIC, never
 // "beats passive". The verdict (coverage_state, breakeven_state, passive alt,
-// confidence) is public/free; the precise figures + the gross/fee receipt are
-// paid (verdict free, precision paid — nulled by applyGates below the paid tier).
+// confidence) is public/free, as is replica_r2 (Crescent v2 fill mark — a
+// confidence detail, not a precise figure); the precise figures + the
+// gross/fee receipt stay paid (verdict free, precision paid — nulled by
+// applyGates below the paid tier).
 export interface ValueScore {
   coverage_state: string | null; // scored | too_new | not_comparable | fee_unavailable
   scored: boolean | null;
@@ -188,7 +190,7 @@ export interface ValueScore {
   passive_alt_label: string | null; // ALWAYS shown beside the verdict
   passive_alt_fee_bps: number | null; // the index's OWN fee — symmetric comparison (paid)
   beta: number | null; // (paid)
-  replica_r2: number | null; // replica quality (paid — confidence detail)
+  replica_r2: number | null; // replica quality — PUBLIC (Crescent v2 fill mark)
   n_weeks: number | null; // track-record length (paid — window detail)
   framing: string | null; // 'relative_diagnostic'
   method_version: string | null;
@@ -855,10 +857,13 @@ export function applyGates(row: FactRow, userState: UserState): FactRow {
 
   // Field-level: the Value Score VERDICT is public/free — coverage_state,
   // breakeven_state (above/≈/below the passive alternative), the passive alt
-  // label, confidence, and framing. The PRECISE figures (exact 0-100, net bps,
-  // the gross/fee receipt, the index's own fee, replica R²/window/beta) are
-  // paid/pro: withhold the noisiest digits from the least-sophisticated tier
-  // (verdict free, precision paid). Mirrors the legacy value_index paid-gate.
+  // label, confidence, and framing. replica_r2 is ALSO public (Crescent v2:
+  // the fill mark/chip/verdict strip need it below the paid tier — it's a
+  // replica-quality confidence detail, not a precise value figure). The
+  // remaining PRECISE figures (exact 0-100, net bps, the gross/fee receipt,
+  // the index's own fee, window/beta) stay paid/pro: withhold the noisiest
+  // digits from the least-sophisticated tier (verdict free, precision paid).
+  // Mirrors the legacy value_index paid-gate.
   if (out.valueScore && !isLocked(out.valueScore) && rank < TIER_RANK.paid) {
     const vs = out.valueScore as ValueScore;
     out.valueScore = {
@@ -868,7 +873,6 @@ export function applyGates(row: FactRow, userState: UserState): FactRow {
       gross_alpha_bps: null,
       fee_bps: null,
       passive_alt_fee_bps: null,
-      replica_r2: null,
       n_weeks: null,
       beta: null,
       locked_fields: [
@@ -877,7 +881,6 @@ export function applyGates(row: FactRow, userState: UserState): FactRow {
         "gross_alpha_bps",
         "fee_bps",
         "passive_alt_fee_bps",
-        "replica_r2",
         "n_weeks",
         "beta",
       ],

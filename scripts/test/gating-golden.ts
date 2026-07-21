@@ -170,6 +170,35 @@ const FCNTX_ROW = {
     eval_date: "2025-09-30",
     method_version: "alternatives_v1",
   },
+  // value_score section has no section-level gate (not in GATED_SECTIONS —
+  // it's public by default); applyGates field-strips it directly. Verdict
+  // fields (coverage_state/breakeven_state/confidence/passive_alt_label) AND
+  // replica_r2 are public; the remaining precise figures are paid. Verdict +
+  // replica_r2 values are FCNTX's real value_score.parquet read (as_of
+  // 2026-07-11); beta reuses this fixture's own real nav_series/
+  // positioning_context beta (0.90444) — gating.ts documents them as the same
+  // underlying β. n_weeks/breakeven_state are illustrative test values (no
+  // verified production source for those two specifically) — irrelevant to
+  // the strip mechanics under test.
+  valueScore: {
+    coverage_state: "scored",
+    scored: true,
+    breakeven_state: "near",
+    above_breakeven: true,
+    confidence: "high",
+    value_bps: 20, // PAID scalar — must not survive anon/free
+    score100: 55, // PAID scalar — must not survive anon/free
+    gross_alpha_bps: 80, // PAID scalar — must not survive anon/free
+    fee_bps: 74, // PAID scalar — must not survive anon/free
+    passive_alt_label: "IWF",
+    passive_alt_fee_bps: 18, // PAID scalar — must not survive anon/free
+    beta: 0.90444, // PAID scalar — must not survive anon/free
+    replica_r2: 0.9479, // PUBLIC (Crescent v2) — must survive anon/free
+    n_weeks: 938, // PAID scalar — must not survive anon/free
+    framing: "relative_diagnostic",
+    method_version: "value_score_v0.3.1",
+    as_of_date: "2026-07-11",
+  },
   // nav_series gate=public (the fund-only growth chart is free), but the
   // vs-passive legs + full period table are paid: applyGates nulls the passive /
   // beta-adjusted point legs + the β, and collapses the period table to ONE free
@@ -564,6 +593,57 @@ check(
   !hasLiveNumber(anon.navSeries, "beta_adj_diff_bps"),
 );
 
+// value_score (no section-level gate — public by default): the verdict is
+// public/free, AND replica_r2 is public/free (Crescent v2 fill mark — a
+// confidence detail, not a precise figure); the precise figures stay paid.
+const anonVs = anon.valueScore as {
+  coverage_state?: string | null;
+  breakeven_state?: string | null;
+  confidence?: string | null;
+  passive_alt_label?: string | null;
+  replica_r2?: number | null;
+  locked_fields?: string[];
+} | null;
+check("value_score NOT locked for anon (no section gate)", !isLocked(anon.valueScore));
+check(
+  "value_score verdict fields survive for anon",
+  anonVs?.coverage_state === "scored" &&
+    anonVs?.breakeven_state === "near" &&
+    anonVs?.confidence === "high" &&
+    anonVs?.passive_alt_label === "IWF",
+);
+check(
+  "value_score replica_r2 SURVIVES for anon (Crescent v2: public)",
+  anonVs?.replica_r2 === 0.9479,
+);
+check(
+  "value_score precise figures (value_bps/score100/gross_alpha_bps/fee_bps/passive_alt_fee_bps/beta/n_weeks) do NOT survive for anon",
+  !hasLiveNumber(anon.valueScore, "value_bps") &&
+    !hasLiveNumber(anon.valueScore, "score100") &&
+    !hasLiveNumber(anon.valueScore, "gross_alpha_bps") &&
+    !hasLiveNumber(anon.valueScore, "fee_bps") &&
+    !hasLiveNumber(anon.valueScore, "passive_alt_fee_bps") &&
+    !hasLiveNumber(anon.valueScore, "beta") &&
+    !hasLiveNumber(anon.valueScore, "n_weeks"),
+);
+check(
+  "value_score locked_fields no longer names replica_r2 (regression tripwire)",
+  Array.isArray(anonVs?.locked_fields) && !anonVs!.locked_fields!.includes("replica_r2"),
+);
+// Denormalized scalars mirror the precise figures — strip them too.
+check(
+  "valueScoreBps/valueScore100 denormalized scalars do NOT survive for anon",
+  !hasLiveNumber(anon, "valueScoreBps") && !hasLiveNumber(anon, "valueScore100"),
+);
+
+// value_score at the free tier (same rank < paid strip applies): replica_r2
+// must ALSO survive free, not just anonymous.
+const freeVs = applyGates(FCNTX_ROW, "free").valueScore as { replica_r2?: number | null } | null;
+check(
+  "value_score replica_r2 SURVIVES for free (Crescent v2: public)",
+  freeVs?.replica_r2 === 0.9479,
+);
+
 // ============================================================================
 // 2. Paid payload — positive control: gating opens at the right tier.
 // ============================================================================
@@ -627,6 +707,32 @@ check(
   "nav_series beta_adj_diff_bps present for paid (positive control)",
   hasLiveNumber(paid.navSeries, "beta_adj_diff_bps"),
 );
+
+// value_score: the paid tier sees the full precise figures (positive control),
+// including replica_r2 (which is now also public — paid must never regress).
+const paidVs = paid.valueScore as {
+  value_bps?: number | null;
+  score100?: number | null;
+  gross_alpha_bps?: number | null;
+  fee_bps?: number | null;
+  passive_alt_fee_bps?: number | null;
+  beta?: number | null;
+  replica_r2?: number | null;
+  n_weeks?: number | null;
+  locked_fields?: string[];
+} | null;
+check(
+  "value_score precise figures present for paid (positive control)",
+  paidVs?.value_bps === 20 &&
+    paidVs?.score100 === 55 &&
+    paidVs?.gross_alpha_bps === 80 &&
+    paidVs?.fee_bps === 74 &&
+    paidVs?.passive_alt_fee_bps === 18 &&
+    paidVs?.beta === 0.90444 &&
+    paidVs?.n_weeks === 938,
+);
+check("value_score replica_r2 present for paid", paidVs?.replica_r2 === 0.9479);
+check("value_score carries no locked_fields for paid", paidVs?.locked_fields === undefined);
 
 // Even the full paid payload carries no retired legacy key (schema is clean).
 for (const k of LEGACY_KEYS) {
