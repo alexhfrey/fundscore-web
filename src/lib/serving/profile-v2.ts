@@ -1,4 +1,8 @@
 import type { FactRow, UserState, Locked, TeRollupRow } from "./profile";
+import type {
+  ArchetypeFixture,
+  ArchetypeRulesFixture,
+} from "../fixtures/crescent-archetypes";
 
 // ============================================================================
 // Profile v2 (eight-section redesign) — payload types for the SEVEN data
@@ -552,6 +556,12 @@ export interface FactRowV2 extends FactRow {
   // as Record<string, unknown>) — the page narrows it to RiskBehavior | Locked
   // at the read site. riskExplainers is DERIVED copy (buildRiskExplainers),
   // computed in-page from displayed numbers — neither rides this overlay type.
+  // Crescent archetype classifier (concept, awaiting go/no-go — no backend
+  // spec yet): types + fixture data live in fixtures/crescent-archetypes.ts,
+  // NOT keyed to the FCNTX-only V2Fixtures map (getArchetypeFixture covers its
+  // own 7-ticker set independently). Additive-only; nothing serves this yet.
+  archetype?: ArchetypeFixture | null;
+  archetypeRules?: ArchetypeRulesFixture | null;
 }
 
 /**
@@ -565,8 +575,20 @@ export async function overlayV2Fixtures(
   ticker: string,
 ): Promise<FactRowV2> {
   const { getV2Fixtures } = await import("../fixtures/profile-v2-fcntx");
+  const { getArchetypeFixture, ARCHETYPE_RULES } = await import(
+    "../fixtures/crescent-archetypes"
+  );
   const fx = getV2Fixtures(ticker);
   const out: FactRowV2 = { ...row };
+  // Archetype overlay is INDEPENDENT of the FCNTX-only V2Fixtures map above —
+  // a ticker with no other v2 fixtures (e.g. DODGX) still gets its archetype.
+  // Additive-only: nothing serves archetype yet, so this can never shadow
+  // real data (matches the `?? fx...` pattern below).
+  const archetypeFx = getArchetypeFixture(ticker);
+  if (archetypeFx) {
+    out.archetype = out.archetype ?? archetypeFx;
+    out.archetypeRules = out.archetypeRules ?? ARCHETYPE_RULES;
+  }
   if (!fx) return out;
   // navSeries is SERVED (profile-nav-series shipped) — no fixture overlay; the
   // applyGates field-gate owns its public/paid split on the base row.
