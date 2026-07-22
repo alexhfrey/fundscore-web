@@ -35,6 +35,8 @@ import {
   SectionNav,
   ProfileHero,
   VerdictBlock,
+  FeeReceipt,
+  HurdlePanel,
   AISummary,
   HistoricalPerformance,
   AttributionSection,
@@ -326,6 +328,76 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
           />
         </div>
 
+        {/* Crescent proof (Step 5, Blocks 3+4) — the fee receipt + the hurdle,
+            right after the hero, before the numbered dossier sections. The
+            old standalone 03/04/07 placements are demoted into <details>
+            drill-downs under these two cards (reparented UNCHANGED below). */}
+        <div className="mt-10 grid gap-6 lg:grid-cols-2 lg:items-start">
+          <div className="space-y-3">
+            <FeeReceipt
+              fees={fees}
+              periodTable={navSeries?.period_table ?? null}
+              seriesStart={navSeries?.series_start ?? null}
+              free={free}
+            />
+            <details className="group rounded-2xl border border-gray-200 bg-white/60 shadow-sm">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
+                <span className="text-sm font-semibold text-gray-700">The full fee-fairness ruler</span>
+                <span className="text-xs text-gray-400">
+                  <span className="group-open:hidden">show</span>
+                  <span className="hidden group-open:inline">hide</span>
+                </span>
+              </summary>
+              <div className="border-t border-gray-100 px-5 py-6">
+                <FeeFairnessV2 fees={fees} isPassive={isPassive} free={free} />
+              </div>
+            </details>
+          </div>
+          <div className="space-y-3">
+            <HurdlePanel navSeries={navSeries} fees={fees} passiveLabel={passiveLabel} paid={paid} />
+            <details className="group rounded-2xl border border-gray-200 bg-white/60 shadow-sm">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
+                <span className="text-sm font-semibold text-gray-700">Growth of $1,000</span>
+                <span className="text-xs text-gray-400">
+                  <span className="group-open:hidden">show</span>
+                  <span className="hidden group-open:inline">hide</span>
+                </span>
+              </summary>
+              <div className="border-t border-gray-100 px-5 py-6">
+                <HistoricalPerformance
+                  navSeries={navSeries}
+                  showComparison={paid}
+                  riskBehavior={riskBehavior}
+                  riskLocked={riskLocked}
+                  pricingStamp={pricingStamp}
+                  headlineTeNote={headlineTeNote}
+                  headlineBetaNote={headlineBetaNote}
+                  isPassive={isPassive}
+                />
+              </div>
+            </details>
+            <details className="group rounded-2xl border border-gray-200 bg-white/60 shadow-sm">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
+                <span className="text-sm font-semibold text-gray-700">What the bets did</span>
+                <span className="text-xs text-gray-400">
+                  <span className="group-open:hidden">show</span>
+                  <span className="hidden group-open:inline">hide</span>
+                </span>
+              </summary>
+              <div className="border-t border-gray-100 px-5 py-6">
+                <AttributionSection
+                  summary={attrSummary}
+                  present={attrPresent}
+                  returnAttribution={row.returnAttribution as { rows?: unknown[] } | Locked | null}
+                  riskExplainers={riskExplainers}
+                  paid={paid}
+                  passiveLabel={passiveLabel}
+                />
+              </div>
+            </details>
+          </div>
+        </div>
+
         {/* 01 · Verdict */}
         <section id="s1" className="mt-16 scroll-mt-24">
           <ProfileHero
@@ -342,27 +414,8 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
           {/* 02 · Summary */}
           <AISummary summary={aiSummary} full={free} />
 
-          {/* 03 · Historical performance */}
-          <HistoricalPerformance
-            navSeries={navSeries}
-            showComparison={paid}
-            riskBehavior={riskBehavior}
-            riskLocked={riskLocked}
-            pricingStamp={pricingStamp}
-            headlineTeNote={headlineTeNote}
-            headlineBetaNote={headlineBetaNote}
-            isPassive={isPassive}
-          />
-
-          {/* 04 · Performance attribution */}
-          <AttributionSection
-            summary={attrSummary}
-            present={attrPresent}
-            returnAttribution={row.returnAttribution as { rows?: unknown[] } | Locked | null}
-            riskExplainers={riskExplainers}
-            paid={paid}
-            passiveLabel={passiveLabel}
-          />
+          {/* 03 (Historical performance) and 04 (Performance attribution) now
+              live as drill-downs under Block 4 (HurdlePanel) above. */}
 
           {/* 05 · Current positioning */}
           <CurrentPositioning
@@ -387,8 +440,8 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
           {/* 06 · Recent changes */}
           <RecentChanges changes={recentChanges} present={rcPresent} free={free} paid={paid} />
 
-          {/* 07 · Fee fairness (REAL served fees) */}
-          <FeeFairnessV2 fees={fees} isPassive={isPassive} free={free} />
+          {/* 07 (Fee fairness) now lives as a drill-down under Block 3
+              (FeeReceipt) above. */}
 
           {/* 08 · Fund family */}
           <FundFamily family={fundFamily} present={familyPresent} free={free} />

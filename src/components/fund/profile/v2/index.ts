@@ -13,3 +13,5 @@ export { VerdictBlock } from "./crescent/VerdictBlock";
 export { ArchetypeChip } from "./crescent/ArchetypeChip";
 export { DistributionStrip } from "./crescent/DistributionStrip";
 export { CrescentMark } from "./crescent/CrescentMark";
+export { FeeReceipt } from "./crescent/FeeReceipt";
+export { HurdlePanel } from "./crescent/HurdlePanel";
