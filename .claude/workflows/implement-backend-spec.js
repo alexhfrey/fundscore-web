@@ -13,15 +13,30 @@ export const meta = {
 
 // args = { webRoot, fundScoreRoot, specPath, slug, model?, effort? }
 // model/effort come from the spec's frontmatter (`model: fable|opus|sonnet`, `effort:
-// low|medium|high|xhigh`) and apply to the IMPLEMENTER segments only — the data-reviewer /
-// data-scientist gate agents stay on the session default so review quality never drops with a
-// cheaper implementer. Without a spec-level pin the implementer defaults to opus — the gates
-// (data-reviewer, data-scientist) stay on the session model, so reviewer ≥ implementer holds.
+// low|medium|high|xhigh`) and apply to the IMPLEMENTER segments only. The gates are PINNED,
+// not inherited: review quality must never depend on which model the orchestration session
+// happens to run on (a Sonnet-driven /loop must not silently tier down the data gate).
+// Tiering doctrine (owner, 2026-07-22): "optimize on intelligent design and speccing,
+// implement with lower-cost, have hard gates." The quality GUARANTEE is the final data gate
+// (+ codex): nothing ships without passing it, so it runs on fable, unconditionally. The
+// intermediate checkpoints protect REWORK COST, not shipped quality — anything they miss
+// still has to pass the fable final gate — and they differ in judgment density:
+//   sample checkpoint → fable   (semantic review of the logic — basis/labels/joins — on small
+//                                data; the cheapest place to catch plausible-but-wrong)
+//   full-build checkpoint → opus (scale-up mechanics of already-fable-validated logic:
+//                                coverage, distributions; most tokens, least judgment)
+// data-scientist EDA/plots → opus (its claims are re-verified by the reviewer checkpoints).
+// Override via A.sampleReviewModel / A.fullReviewModel / A.gateModel / A.edaModel only for
+// deliberate experiments.
 const A = typeof args === 'string' ? JSON.parse(args) : (args || {})
 const { webRoot, fundScoreRoot, specPath, slug, model, effort } = A
 if (!webRoot || !fundScoreRoot || !specPath || !slug)
   throw new Error('args requires webRoot, fundScoreRoot, specPath, slug')
 const implOpts = { model: model || 'opus', ...(effort ? { effort } : {}) }
+const sampleReviewModel = A.sampleReviewModel || 'fable'
+const fullReviewModel = A.fullReviewModel || 'opus'
+const gateModel = A.gateModel || 'fable'
+const edaModel = A.edaModel || 'opus'
 
 // Shared backend personas live in the fundscore-harness plugin checkout (single source of
 // truth; also registered as `fundscore-data:<name>` plugin agents in both repos). Derive the
@@ -104,15 +119,27 @@ const impl = (segment, extra = '', schema = SEGMENT_SCHEMA) =>
       `\n\nDo ONLY the **${segment}** segment, then stop for review.${extra}`,
     { label: `impl:${segment}`, schema, phase: phaseOf(segment), ...implOpts }
   )
-const review = (step, payload) =>
+// Re-reviews run the SAME full checklist (a fix can break what previously passed; rigor never
+// drops) but get the prior review so they verify fixes rather than re-derive everything.
+const reReviewNote = (prior) =>
+  prior
+    ? `\n\nRE-REVIEW after a revision round. Your prior review of the previous version is below — run the\n` +
+      `SAME full checklist (a fix can break what previously passed; rigor never drops), but use the prior\n` +
+      `findings to verify rather than re-derive: confirm each prior blocking issue is fixed AT THE SOURCE,\n` +
+      `then re-verify the remaining checks efficiently.\nPRIOR REVIEW (JSON):\n${JSON.stringify(prior, null, 2)}`
+    : ''
+const reviewModelOf = (step) => (step.includes('sample') ? sampleReviewModel : fullReviewModel)
+const review = (step, payload, prior) =>
   agent(
     common.replace('PERSONA', 'data-reviewer') +
       `\n\nReview the **${step}** output below. Run the full verification gate (atomic spot checks vs raw\n` +
       `source, aggregate sanity vs baseline, COVERAGE/RECALL gate [realized coverage % + honest-missing vs\n` +
       `recoverable-missing split, spot-checked on the raw source — a large recoverable miss is BLOCKING, not\n` +
       `acceptable "partial coverage"], statistical coherence, no-leakage, naming, fabrication scan).\n` +
-      `Return verdict pass/fail — any blocking issue is a fail.\n\nIMPLEMENTER OUTPUT (JSON):\n${JSON.stringify(payload, null, 2)}`,
-    { label: `review:${step}`, schema: REVIEW_SCHEMA, phase: phaseOf(step) }
+      `Return verdict pass/fail — any blocking issue is a fail.` +
+      reReviewNote(prior) +
+      `\n\nIMPLEMENTER OUTPUT (JSON):\n${JSON.stringify(payload, null, 2)}`,
+    { label: `review:${step}`, schema: REVIEW_SCHEMA, phase: phaseOf(step), model: reviewModelOf(step) }
   )
 function phaseOf(s) {
   if (s.includes('sample')) return 'Sample'
@@ -139,7 +166,7 @@ const reviewedSegment = async (segment, step, extra = '') => {
         `for re-review.\nBLOCKING ISSUES (JSON):\n${JSON.stringify(rev.blocking_issues || [], null, 2)}`
     )
     if (out?.blocker) return { out, rev, stop: [segment, out.blocker] }
-    rev = await review(`${step} (revision ${round})`, out)
+    rev = await review(`${step} (revision ${round})`, out, rev)
   }
   if (!rev || rev.verdict === 'fail') return { out, rev, stop: [`checkpoint (${step})`, rev] }
   return { out, rev, stop: null }
@@ -156,7 +183,7 @@ const eda = await agent(
     `(no source data) vs recoverable-missing (data IS in the source but a naive extractor misses it —\n` +
     `confirm by spot-checking raw records). Return it in coverage_estimate. A low rate or large\n` +
     `recoverable-missing fraction is a caution/no-go — do not wave it through as "partial coverage".`,
-  { label: 'eda', schema: DS_SCHEMA, phase: 'EDA' }
+  { label: 'eda', schema: DS_SCHEMA, phase: 'EDA', model: edaModel }
 )
 if (eda && eda.verdict === 'no-go') return stopped('EDA', eda)
 if (eda?.coverage_estimate) log(`EDA coverage ceiling: ${eda.coverage_estimate}`)
@@ -179,7 +206,7 @@ const ds2 = await agent(
   common.replace('PERSONA', 'data-scientist') +
     `\n\nMode 2 (post-build output review): visualize the built output (${JSON.stringify(s2?.output_paths || [])}).\n` +
     `Emit a self-contained HTML report to ${fundScoreRoot}/reports/feature_pipeline/${slug}_output.html for human review.`,
-  { label: 'output-plots', schema: DS_SCHEMA, phase: 'Full build' }
+  { label: 'output-plots', schema: DS_SCHEMA, phase: 'Full build', model: edaModel }
 )
 
 // ---- Serving integration + FINAL DATA GATE ----------------------------------
@@ -191,7 +218,7 @@ let s3 = await impl('serving-integration')
 if (s3?.blocker) return stopped('serving-integration', s3.blocker)
 
 const builtOutputs = () => [...new Set([...(s2?.output_paths || []), ...(s3?.output_paths || [])])]
-const finalGate = (payload, tag) =>
+const finalGate = (payload, tag, prior) =>
   agent(
     common.replace('PERSONA', 'data-reviewer') +
       `\n\nFINAL DATA GATE${tag} (verdict only — fix nothing). This single pass is BOTH the serving\n` +
@@ -204,8 +231,10 @@ const finalGate = (payload, tag) =>
       `    ${JSON.stringify(builtOutputs(), null, 2)}\n` +
       `Write ONE combined markdown report to ${fundScoreRoot}/reports/${slug}_check_data.md and return\n` +
       `its path in report_path. verdict = fail if ANY blocking issue or any check FAILs; put check-data\n` +
-      `WARNs in warnings.\n\nIMPLEMENTER OUTPUT (JSON):\n${JSON.stringify(payload, null, 2)}`,
-    { label: `final-data-gate${tag}`, schema: FINAL_GATE_SCHEMA, phase: 'Serving' }
+      `WARNs in warnings.` +
+      reReviewNote(prior) +
+      `\n\nIMPLEMENTER OUTPUT (JSON):\n${JSON.stringify(payload, null, 2)}`,
+    { label: `final-data-gate${tag}`, schema: FINAL_GATE_SCHEMA, phase: 'Serving', model: gateModel }
   )
 
 let r3 = await finalGate(s3, '')
@@ -218,7 +247,7 @@ if (r3 && r3.verdict === 'fail') {
       `BLOCKING ISSUES (JSON):\n${JSON.stringify(r3.blocking_issues || [], null, 2)}`
   )
   if (s3?.blocker) return stopped('serving-integration', s3.blocker)
-  r3 = await finalGate(s3, ' (revision 1)')
+  r3 = await finalGate(s3, ' (revision 1)', r3)
 }
 if (!r3 || r3.verdict === 'fail') return stopped('final data gate', r3)
 if ((r3.warnings || []).length) log(`final data gate WARNs — surfacing to owner: ${r3.warnings.join('; ')}`)

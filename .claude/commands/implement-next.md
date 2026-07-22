@@ -96,8 +96,12 @@ Steps:
      This is the reviewed assembly line (EDA → implement → data-reviewer checkpoint after each step
      → one combined final data gate [served==gold + /check-data] → codex-gated commit), which halts
      on any FAIL and fails closed (a non-pass codex gate or a killed finalize returns `stopped`,
-     never `done`). The model/effort override applies to implementer segments only; reviewer/EDA
-     gate agents stay on the session default.
+     never `done`). The model/effort override applies to implementer segments only; reviewer/gate
+     agents are PINNED in the workflow and never tier down with the implementer or the session:
+     sample checkpoint + final data gate → fable (the final gate is the quality guarantee; the
+     sample checkpoint is the cheapest place to catch semantic errors), full-build checkpoint →
+     opus (scale-up mechanics of fable-validated logic — anything it misses still hits the fable
+     final gate), data-scientist EDA/plots → opus.
 6. **Codex sign-off gate (MANDATORY for code changes, lane-sized).** After the implementation's own gates
    pass, run the gate from the repo the change landed in (WEBROOT for frontend, FUNDSCORE for backend) —
    `~/Projects/fundscore-harness/plugins/fundscore-data/scripts/codex-review.sh --uncommitted` (the plugin
@@ -110,7 +114,12 @@ Steps:
    If `CODEX_GATE: blocked`, fix every P0/P1 finding (or hand it back to the implementer), then re-run;
    repeat until `CODEX_GATE: pass`. Cap ~3 rounds, then escalate. **The spec may NOT move to `done/` until
    the default (high-tier) `codex-review.sh --uncommitted` reports `CODEX_GATE: pass`** — and an unrunnable
-   gate (network/CLI error) is blocked, never a pass. For the reviewed lane the workflow already enforces
+   gate (network/CLI error) is blocked, never a pass. This is also enforced mechanically: a PreToolUse
+   hook (`codex-commit-gate.sh`, fundscore-harness plugin, registered in both repos) blocks any
+   `git commit` whose pending changes include code files unless a fresh high-tier passing verdict
+   (`codex-verdict-<HEAD>.json` with `gates_commit: true`, newer than the changes) exists in
+   `feature-pipeline/reviews/`. Docs/prompt-only commits pass the hook automatically;
+   `SKIP_CODEX_GATE=1` overrides deliberately (say why in the commit message). For the reviewed lane the workflow already enforces
    this inside its finalize stage; verify its returned `codex.gate == pass` + `commit_sha` instead of
    re-running the gate on an unchanged branch. Surface P2/P3 advisories as warnings.
 7. **Reconcile the backlog, then report.** If the spec moved to `done/` AND a line in `backlog.md`'s
