@@ -38,13 +38,13 @@ import {
   AnatomySection,
   FeeReceipt,
   HurdlePanel,
-  AISummary,
   HistoricalPerformance,
   AttributionSection,
   CurrentPositioning,
   RecentChanges,
   FeeFairnessV2,
   FundFamily,
+  TwinPanel,
 } from "@/components/fund/profile/v2";
 import { topVsBenchmarkTilt } from "@/components/fund/profile/v2/crescent/VerdictBlock";
 import { orientFromTilt } from "@/lib/crescent";
@@ -98,22 +98,6 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
   // pass ONLY that to the components — gated fixture numbers never reach a
   // below-the-gate client (mirrors how applyGates strips the real sections).
   // ------------------------------------------------------------------------
-  const firstSentence = (p: string): string => {
-    const m = /^(.*?[.!?])(\s|$)/.exec(p);
-    return m ? m[1] : p;
-  };
-
-  // AI summary — first sentence public, full free.
-  const aiFx = row.aiSummary ?? null;
-  const aiSummary = aiFx
-    ? free
-      ? aiFx
-      : {
-          ...aiFx,
-          paragraphs: aiFx.paragraphs?.length ? [firstSentence(aiFx.paragraphs[0])] : [],
-        }
-    : null;
-
   // Nav series — SERVED (profile-nav-series; gate public). applyGates already
   // field-stripped below paid: passive/β-adj point legs + β nulled, and the
   // period table collapsed to ONE free proof-point row (its β-adj diff nulled).
@@ -316,10 +300,8 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
 
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Crescent hero (Step 4, Block 1) — masthead/identity only from
-            ProfileHero, then the Crescent verdict block. Added ABOVE the
-            existing "01 · Verdict" section below without removing/renumbering
-            it; that swap is steps 5-7's job. */}
-        <div className="space-y-6">
+            ProfileHero, then the Crescent verdict block. */}
+        <div id="b1" className="space-y-6 scroll-mt-24">
           <ProfileHero
             variant="identity"
             identity={identity}
@@ -344,41 +326,44 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
 
         {/* Crescent anatomy (Step 6, Block 2) — the hatched mark + split
             sentence, with the positioning dossier (old 05) and Recent shifts
-            (old 06) reparented UNCHANGED beneath. Their chapter headers get
-            renumbered in step 7 chrome. */}
-        <AnatomySection
-          ticker={identity.ticker ?? ticker.toUpperCase()}
-          valueScore={valueScore}
-          idioRiskShare={idioRiskShare}
-          orientDeg={anatomyOrientDeg}
-        >
-          <CurrentPositioning
-            positioning={positioningContext}
-            riskExplainers={riskExplainers}
-            teDecomposition={teDecomposition}
-            teProof={teProof}
-            teLocked={teLocked}
-            bridges={bridges}
-            top10={top10}
-            holdingsFullTeaser={holdingsFullTeaser}
-            loadHoldingsFullRows={loadHoldingsFullRows}
-            exposureXray={exposureXray}
-            present={tePresent || row.top10VsIwf != null || positioningPresent || holdingsFullTeaser != null}
-            free={free}
-            paid={paid}
-            passiveLabel={passiveLabel}
-            l2BlendEtfs={l2BlendEtfs}
-            attributedFactorIds={attributedFactorIds}
-          />
-          <RecentChanges changes={recentChanges} present={rcPresent} free={free} paid={paid} />
-        </AnatomySection>
+            (old 06) reparented beneath as demoted SUB-headers (step 7
+            chrome) rather than standalone numbered chapters. */}
+        <div id="b2" className="scroll-mt-24">
+          <AnatomySection
+            ticker={identity.ticker ?? ticker.toUpperCase()}
+            valueScore={valueScore}
+            idioRiskShare={idioRiskShare}
+            orientDeg={anatomyOrientDeg}
+          >
+            <CurrentPositioning
+              positioning={positioningContext}
+              riskExplainers={riskExplainers}
+              teDecomposition={teDecomposition}
+              teProof={teProof}
+              teLocked={teLocked}
+              bridges={bridges}
+              top10={top10}
+              holdingsFullTeaser={holdingsFullTeaser}
+              loadHoldingsFullRows={loadHoldingsFullRows}
+              exposureXray={exposureXray}
+              present={tePresent || row.top10VsIwf != null || positioningPresent || holdingsFullTeaser != null}
+              free={free}
+              paid={paid}
+              passiveLabel={passiveLabel}
+              l2BlendEtfs={l2BlendEtfs}
+              attributedFactorIds={attributedFactorIds}
+              demoted
+            />
+            <RecentChanges changes={recentChanges} present={rcPresent} free={free} paid={paid} demoted />
+          </AnatomySection>
+        </div>
 
         {/* Crescent proof (Step 5, Blocks 3+4) — the fee receipt + the hurdle,
             right after the hero, before the numbered dossier sections. The
             old standalone 03/04/07 placements are demoted into <details>
             drill-downs under these two cards (reparented UNCHANGED below). */}
         <div className="mt-10 grid gap-6 lg:grid-cols-2 lg:items-start">
-          <div className="space-y-3">
+          <div id="b3" className="space-y-3 scroll-mt-24">
             <FeeReceipt
               fees={fees}
               periodTable={navSeries?.period_table ?? null}
@@ -398,7 +383,7 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
               </div>
             </details>
           </div>
-          <div className="space-y-3">
+          <div id="b4" className="space-y-3 scroll-mt-24">
             <HurdlePanel navSeries={navSeries} fees={fees} passiveLabel={passiveLabel} paid={paid} />
             <details className="group rounded-2xl border border-gray-200 bg-white/60 shadow-sm">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
@@ -443,42 +428,31 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
           </div>
         </div>
 
-        {/* 01 · Verdict */}
-        <section id="s1" className="mt-16 scroll-mt-24">
-          <ProfileHero
-            identity={identity}
-            requestedTicker={ticker}
-            valueScore={valueScore}
+        {/* Crescent twin + more (Step 7, Block 5) — the passive-twin lead
+            card, then the remaining drill-downs that don't have a Block 3/4
+            home: fund family, alternatives, sources. The old numbered-chapter
+            scheme (01 Verdict / 02 Summary standalone sections, 08 Family as
+            its own chapter) is retired — 01/02 are superseded by Block 1
+            above; 08 lives here as a "More detail" drill-down alongside
+            alternatives/sources. */}
+        <div id="b5" className="mt-10 scroll-mt-24 space-y-4">
+          <TwinPanel
+            passiveLabel={passiveLabel}
             fees={fees}
-            holdingsAsOf={holdingsAsOf}
-            holdingsStale={holdingsStale}
+            valueScore={valueScore}
+            teBps={positioningContext?.te_bps ?? null}
           />
-        </section>
 
-        <div className="mt-16 space-y-16">
-          {/* 02 · Summary */}
-          <AISummary summary={aiSummary} full={free} />
-
-          {/* 03 (Historical performance) and 04 (Performance attribution) now
-              live as drill-downs under Block 4 (HurdlePanel) above. */}
-
-          {/* 05 (Current positioning) and 06 (Recent changes) now live inside
-              Block 2 (AnatomySection) above. 07 (Fee fairness) lives as a
-              drill-down under Block 3 (FeeReceipt) above. */}
-
-          {/* 08 · Fund family */}
-          <FundFamily family={fundFamily} present={familyPresent} free={free} />
-
-          {/* More detail — reuse existing Alternatives + SourceFooter as-is */}
           <details className="group rounded-2xl border border-gray-200 bg-white/60 shadow-sm">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
               <span className="text-lg font-bold text-gray-900">More detail</span>
               <span className="text-sm text-gray-400">
-                <span className="group-open:hidden">alternatives · sources — show</span>
+                <span className="group-open:hidden">fund family · alternatives · sources — show</span>
                 <span className="hidden group-open:inline">Hide</span>
               </span>
             </summary>
             <div className="space-y-12 border-t border-gray-100 px-5 py-8">
+              <FundFamily family={fundFamily} present={familyPresent} free={free} />
               {/* Alternatives handles its own Locked marker (paid gate) + preview. */}
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               <Alternatives alts={row.alternatives as any} />

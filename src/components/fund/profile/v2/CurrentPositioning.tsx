@@ -174,6 +174,7 @@ export function CurrentPositioning({
   passiveLabel,
   l2BlendEtfs,
   attributedFactorIds,
+  demoted = false,
 }: {
   // SERVED positioning_context (gate: free) — passed only when entitled.
   positioning: PositioningContext | null;
@@ -209,13 +210,18 @@ export function CurrentPositioning({
   // — drives the honest "own row in attribution" / "grouped under smaller
   // factor bets" cross-reference tag; null = no attribution list → em-dash.
   attributedFactorIds?: ReadonlySet<string> | null;
+  // Crescent v2 (Step 7): renders the chapter header as a smaller SUB-header
+  // (no "Section 05 · of total" eyebrow) when this section is reparented
+  // under Block 2 (AnatomySection) instead of standing as its own chapter.
+  // Default false = unchanged standalone-chapter behavior.
+  demoted?: boolean;
 }) {
   const pass = passiveLabel ?? "IWF";
 
   if (!present) {
     return (
       <section id="s5" className="scroll-mt-24">
-        <ChapterHeader index={5} title="Current positioning" />
+        <ChapterHeader index={5} title="Current positioning" total={5} demoted={demoted} />
         <Unavailable>
           The cohort context, bet decomposition and holdings comparison aren&apos;t
           served for this fund yet.
@@ -229,7 +235,7 @@ export function CurrentPositioning({
   if (!free) {
     return (
       <section id="s5" className="scroll-mt-24">
-        <ChapterHeader index={5} title="Current positioning" />
+        <ChapterHeader index={5} title="Current positioning" total={5} demoted={demoted} />
         <LockedNotice tier="free">
           See where this fund&apos;s market sensitivity and benchmark-relative risk
           sit versus its cohort, its active bets, and its holdings versus {pass}.
@@ -355,6 +361,8 @@ export function CurrentPositioning({
             : undefined
         }
         takeaway={takeaway}
+        total={5}
+        demoted={demoted}
       />
       {/* No section-level Sample badge: the gauges + bets table are SERVED
           (positioning_context / te_decomposition). Only the top-10 sub-block
