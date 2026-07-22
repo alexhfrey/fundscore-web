@@ -57,16 +57,23 @@ export function FeeFairnessV2({
   fees,
   isPassive,
   free,
+  demoted = false,
 }: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fees: any;
   isPassive: boolean;
   free: boolean;
+  // Crescent v2 (Step 8): renders the chapter header as a smaller SUB-header
+  // (no "Section 07 · of total" eyebrow) when this section is reparented
+  // under the page's "The full fee-fairness ruler" <details> drill-down
+  // instead of standing as its own numbered chapter. Default false =
+  // unchanged standalone-chapter behavior.
+  demoted?: boolean;
 }) {
   if (!free) {
     return (
       <section id="s7" className="scroll-mt-24">
-        <ChapterHeader index={7} title="Fee fairness" />
+        <ChapterHeader index={7} title="Fee fairness" demoted={demoted} />
         <LockedNotice tier="free">
           See what you pay above the closest passive alternative and how that fee
           compares with a fair-fee estimate for this fund&apos;s level of active work.
@@ -117,6 +124,7 @@ export function FeeFairnessV2({
       <ChapterHeader
         index={7}
         title="Fee fairness"
+        demoted={demoted}
         asOf={ff.eval_date ? `SEC expense filings · FundScore fee analysis · eval ${ff.eval_date}` : undefined}
         takeaway={
           <>

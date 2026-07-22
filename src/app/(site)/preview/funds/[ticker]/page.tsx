@@ -379,7 +379,7 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
                 </span>
               </summary>
               <div className="border-t border-gray-100 px-5 py-6">
-                <FeeFairnessV2 fees={fees} isPassive={isPassive} free={free} />
+                <FeeFairnessV2 fees={fees} isPassive={isPassive} free={free} demoted />
               </div>
             </details>
           </div>
@@ -403,6 +403,7 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
                   headlineTeNote={headlineTeNote}
                   headlineBetaNote={headlineBetaNote}
                   isPassive={isPassive}
+                  demoted
                 />
               </div>
             </details>
@@ -422,6 +423,7 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
                   riskExplainers={riskExplainers}
                   paid={paid}
                   passiveLabel={passiveLabel}
+                  demoted
                 />
               </div>
             </details>
@@ -452,7 +454,7 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
               </span>
             </summary>
             <div className="space-y-12 border-t border-gray-100 px-5 py-8">
-              <FundFamily family={fundFamily} present={familyPresent} free={free} />
+              <FundFamily family={fundFamily} present={familyPresent} free={free} demoted />
               {/* Alternatives handles its own Locked marker (paid gate) + preview. */}
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               <Alternatives alts={row.alternatives as any} />

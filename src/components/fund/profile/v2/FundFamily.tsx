@@ -20,6 +20,7 @@ export function FundFamily({
   family,
   present,
   free,
+  demoted = false,
 }: {
   // `family` is passed only when the caller is free-entitled (gated data never
   // reaches an anon client); `present` says the served section exists so the
@@ -27,11 +28,17 @@ export function FundFamily({
   family: FundFamilyPanel | null;
   present: boolean;
   free: boolean;
+  // Crescent v2 (Step 8): renders the chapter header as a smaller SUB-header
+  // (no "Section 08 · of total" eyebrow) when this section is reparented
+  // under the page's "More detail" <details> drill-down instead of standing
+  // as its own numbered chapter. Default false = unchanged standalone-chapter
+  // behavior.
+  demoted?: boolean;
 }) {
   if (!present) {
     return (
       <section id="s8" className="scroll-mt-24">
-        <ChapterHeader index={8} title="Fund family" />
+        <ChapterHeader index={8} title="Fund family" demoted={demoted} />
         <Unavailable>
           A family-level value comparison isn&apos;t served for this fund yet.
         </Unavailable>
@@ -42,7 +49,7 @@ export function FundFamily({
   if (!free || !family) {
     return (
       <section id="s8" className="scroll-mt-24">
-        <ChapterHeader index={8} title="Fund family" />
+        <ChapterHeader index={8} title="Fund family" demoted={demoted} />
         <LockedNotice tier="free">
           See how this fund&apos;s family ranks among fund families on after-fee
           value, and where the fund sits among its family&apos;s largest funds.
@@ -65,6 +72,7 @@ export function FundFamily({
       <ChapterHeader
         index={8}
         title="Fund family"
+        demoted={demoted}
         asOf={
           [family.as_of ? `value as of ${family.as_of}` : null, aumRange]
             .filter(Boolean)
