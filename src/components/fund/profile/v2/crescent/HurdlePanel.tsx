@@ -35,50 +35,78 @@ interface FeesShape {
   } | null;
 }
 
-const EYEBROW = "The hurdle · after all fees vs its free twin";
 const PERIOD_ORDER = ["1Y", "3Y", "5Y", "SI"];
+/** Longest-first — the headline speaks for the longest served window. */
+const HEADLINE_ORDER = ["SI", "5Y", "3Y", "1Y"];
 
 function periodLabel(period: string, seriesStart: string | null): string {
   return period === "SI" ? `Since ${seriesStart ?? "series start"}` : period;
-}
-
-function Eyebrow() {
-  return (
-    <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-gray-400">{EYEBROW}</p>
-  );
 }
 
 function Card({ children }: { children: React.ReactNode }) {
   return <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">{children}</div>;
 }
 
-/** Ports hurdleCopyStr (mockup L557-562): "Must beat X by ≈Y bps/yr just to
- *  cover its extra fee; over its {period} window it beat/trailed by Z bps/yr
- *  after all fees." Either clause is independently omittable when its inputs
- *  are missing — never a fabricated number. */
+/**
+ * The Performance section's serif headline (design pass 2026-07-22): one
+ * sentence for the LONGEST served window with a real diff — "Since 2008, it
+ * has trailed SPY by 111 bps a year after all fees." Plain diff_bps basis
+ * only (the β-adjusted read stays a labeled secondary inside the card);
+ * the SI clock is the common paired window's start year (series_start),
+ * consistent with the row labels. Falls back to a plain question when no
+ * window has a diff — never a fabricated number.
+ */
+export function HurdleHeadline({
+  navSeries,
+  passiveLabel,
+}: {
+  navSeries: NavSeries | null;
+  passiveLabel: string | null;
+}) {
+  const table = navSeries?.period_table ?? [];
+  const row =
+    HEADLINE_ORDER.map((p) => table.find((r) => r.period === p && r.diff_bps != null)).find(
+      (r) => r != null,
+    ) ?? null;
+  if (!row) return <>Did it earn its keep?</>;
+
+  const beat = (row.diff_bps as number) >= 0;
+  const twin = passiveLabel ?? "its free twin";
+  const amount = `${Math.abs(Math.round(row.diff_bps as number))} bps a year`;
+  const verbSpan = (
+    <span className={beat ? "text-crescent-good" : "text-crescent-bad"}>
+      {beat ? "beaten" : "trailed"} {twin} by {amount}
+    </span>
+  );
+  if (row.period === "SI") {
+    const year = navSeries?.series_start ? navSeries.series_start.slice(0, 4) : null;
+    return (
+      <>
+        {year ? `Since ${year}, ` : "Over its full paired history, "}it has {verbSpan} after all
+        fees.
+      </>
+    );
+  }
+  const windowWord = row.period === "1Y" ? "the last year" : `the last ${row.period.replace("Y", " years")}`;
+  return (
+    <>
+      Over {windowWord}, it has {verbSpan} after all fees.
+    </>
+  );
+}
+
+/** Ports hurdleCopyStr's first clause (mockup L557-562). The outcome clause
+ *  moved up to HurdleHeadline (the section headline) in the 2026-07-22 design
+ *  pass — keeping it here too would say the same thing twice on one screen. */
 function hurdleLede({
   passiveLabel,
   surchargeBps,
-  row,
 }: {
   passiveLabel: string | null;
   surchargeBps: number | null;
-  row: NavPeriodRow | null;
 }): string | null {
-  const clauses: string[] = [];
-  if (surchargeBps != null) {
-    clauses.push(
-      `Must beat ${passiveLabel ?? "its free twin"} by ≈${Math.round(surchargeBps)} bps/yr just to cover its extra fee`,
-    );
-  }
-  if (row && row.diff_bps != null) {
-    const verb = row.diff_bps >= 0 ? "beat" : "trailed";
-    clauses.push(
-      `over its ${row.period} window it ${verb} it by ${Math.abs(Math.round(row.diff_bps))} bps/yr after all fees`,
-    );
-  }
-  if (clauses.length === 0) return null;
-  return `${clauses.join("; ")}.`;
+  if (surchargeBps == null) return null;
+  return `The bar: must beat ${passiveLabel ?? "its free twin"} by ≈${Math.round(surchargeBps)} bps/yr just to cover its extra fee.`;
 }
 
 export function HurdlePanel({
@@ -98,10 +126,7 @@ export function HurdlePanel({
   if (!navSeries || navSeries.period_table.length === 0) {
     return (
       <Card>
-        <Eyebrow />
-        <div className="mt-3">
-          <Unavailable>Performance history isn&apos;t available for this fund.</Unavailable>
-        </div>
+        <Unavailable>Performance history isn&apos;t available for this fund.</Unavailable>
       </Card>
     );
   }
@@ -121,8 +146,7 @@ export function HurdlePanel({
   );
 
   const table = navSeries.period_table;
-  const repRow = table.find((r) => r.period === "5Y") ?? table.find((r) => r.period === "SI") ?? null;
-  const lede = hurdleLede({ passiveLabel, surchargeBps: receipt?.surchargeBps ?? null, row: repRow });
+  const lede = hurdleLede({ passiveLabel, surchargeBps: receipt?.surchargeBps ?? null });
 
   const scale = hurdleScale(table);
   const ordered = PERIOD_ORDER.map((p) => table.find((r) => r.period === p)).filter(
@@ -134,8 +158,7 @@ export function HurdlePanel({
 
   return (
     <Card>
-      <Eyebrow />
-      {lede && <p className="mt-3 text-[13.5px] leading-relaxed text-gray-600">{lede}</p>}
+      {lede && <p className="text-[13.5px] leading-relaxed text-gray-600">{lede}</p>}
 
       <div className="mt-5 grid grid-cols-[76px_1fr_120px] items-center gap-3 font-mono text-[10px] text-gray-400">
         <span />

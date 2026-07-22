@@ -24,6 +24,7 @@
 import type { ValueScore } from "@/lib/serving/profile";
 import { anatomyHatch, fillFromR2, fillPctStr } from "@/lib/crescent";
 import { CrescentMark } from "./CrescentMark";
+import { BlockHeader } from "./BlockHeader";
 
 export function AnatomySection({
   ticker,
@@ -50,17 +51,29 @@ export function AnatomySection({
   const fhatch = anatomyHatch(fill, idioRiskShare);
 
   return (
-    <section className="mt-16">
-      <p className="font-mono text-[10.5px] uppercase tracking-[0.17em] text-gray-400">
-        The gold, under a microscope
-      </p>
-      <h2 className="mt-1 font-serif text-2xl font-semibold tracking-tight text-gray-900">
-        {/* The fill-specific promise renders only when the anatomy card that
-            redeems it (idio split) actually follows — review finding, step 6. */}
-        {fillPct != null && idioPct != null
-          ? `What the ${fillPct}% the twin can't reproduce is made of`
-          : "What the active part is made of"}
-      </h2>
+    <section className="mt-14 border-t border-gray-100 pt-10">
+      <BlockHeader
+        eyebrow="The gold, under a microscope · current positioning"
+        headline={
+          /* The fill-specific promise renders only when the anatomy card that
+             redeems it (idio split) actually follows — review finding, step 6. */
+          fillPct != null && idioPct != null
+            ? `What the ${fillPct}% the twin can't reproduce is made of`
+            : "What the active part is made of"
+        }
+        sub={
+          idioPct != null ? (
+            <>
+              The named rows below are <strong className="font-medium text-gray-600">risk-model
+              tilts</strong> — sector, theme and macro exposures measured against its free twin.
+              Individual stock picks don&apos;t get named rows here; they ARE the{" "}
+              <strong className="font-medium text-gray-600">own-picks share</strong> of active
+              risk, and their realized payoffs are named one-by-one in the attribution drill-down
+              under Performance.
+            </>
+          ) : undefined
+        }
+      />
 
       {idioPct != null && (
         <div className="mt-6 flex flex-col items-start gap-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center">

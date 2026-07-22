@@ -78,7 +78,7 @@ export function ChapterHeader({
     return (
       <div>
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <h3 className="text-base font-bold tracking-tight text-gray-900">{title}</h3>
+          <h3 className="font-serif text-lg font-semibold tracking-tight text-gray-900">{title}</h3>
           <div className="flex items-center gap-2">
             {asOf && <span className="text-xs text-gray-400">{asOf}</span>}
             {sample && <SampleChip />}
@@ -131,7 +131,7 @@ export function Panel({
 }) {
   return (
     <div
-      className={`mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ${className}`}
+      className={`mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm ${className}`}
     >
       {children}
     </div>

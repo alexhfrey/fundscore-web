@@ -186,6 +186,18 @@ export function VerdictBlock({
             ariaLabel={fillPct != null ? `Crescent: ${fillPct}% gold fill` : "Crescent mark"}
           />
 
+          {/* How to read the mark — one quiet line (design pass 2026-07-22). */}
+          <p className="mt-2.5 flex items-center gap-x-3 font-mono text-[10.5px] text-gray-400">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-block h-2 w-2 rounded-full bg-crescent-twin" />
+              its free twin
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="inline-block h-2 w-2 rounded-full bg-crescent-accent" />
+              what the twin can&apos;t reproduce
+            </span>
+          </p>
+
           {archetype && archetypeRules && (
             <ArchetypeChip fixture={archetype} rules={archetypeRules} ticker={ticker} fillPct={fillPct} />
           )}

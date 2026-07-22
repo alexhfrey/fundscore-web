@@ -47,6 +47,8 @@ import {
   TwinPanel,
 } from "@/components/fund/profile/v2";
 import { topVsBenchmarkTilt } from "@/components/fund/profile/v2/crescent/VerdictBlock";
+import { BlockHeader } from "@/components/fund/profile/v2/crescent/BlockHeader";
+import { HurdleHeadline } from "@/components/fund/profile/v2/crescent/HurdlePanel";
 import { orientFromTilt } from "@/lib/crescent";
 
 // Per-user dynamic render: reads the session to gate by tier server-side, and
@@ -358,12 +360,16 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
           </AnatomySection>
         </div>
 
-        {/* Crescent proof (Step 5, Blocks 3+4) — the fee receipt + the hurdle,
-            right after the hero, before the numbered dossier sections. The
-            old standalone 03/04/07 placements are demoted into <details>
-            drill-downs under these two cards (reparented UNCHANGED below). */}
-        <div className="mt-10 grid gap-6 lg:grid-cols-2 lg:items-start">
-          <div id="b3" className="space-y-3 scroll-mt-24">
+        {/* Block 3 — PRICE (design pass 2026-07-22: the old 2-col proof grid
+            split into two full sections so Performance can carry its own
+            headline). The receipt is the statement; keep it a calm, narrow
+            column. Fee-fairness ruler stays its drill-down. */}
+        <section id="b3" className="mt-14 border-t border-gray-100 pt-10 scroll-mt-24">
+          <BlockHeader
+            eyebrow="The receipt · what the active part costs"
+            headline="What you pay, line by line"
+          />
+          <div className="mt-6 max-w-xl space-y-3">
             <FeeReceipt
               fees={fees}
               periodTable={navSeries?.period_table ?? null}
@@ -383,33 +389,35 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
               </div>
             </details>
           </div>
-          <div id="b4" className="space-y-3 scroll-mt-24">
+        </section>
+
+        {/* Block 4 — PERFORMANCE, its own headlined section (owner ask,
+            2026-07-22): serif verdict headline for the longest served window,
+            the hurdle bars full-width, growth chart PROMOTED out of its
+            details, Brinson attribution stays the drill-down. */}
+        <section id="b4" className="mt-14 border-t border-gray-100 pt-10 scroll-mt-24">
+          <BlockHeader
+            eyebrow="The hurdle · after all fees vs its free twin"
+            headline={<HurdleHeadline navSeries={navSeries} passiveLabel={passiveLabel} />}
+          />
+          <div className="mt-6 space-y-6">
             <HurdlePanel navSeries={navSeries} fees={fees} passiveLabel={passiveLabel} paid={paid} />
+            <HistoricalPerformance
+              navSeries={navSeries}
+              showComparison={paid}
+              riskBehavior={riskBehavior}
+              riskLocked={riskLocked}
+              pricingStamp={pricingStamp}
+              headlineTeNote={headlineTeNote}
+              headlineBetaNote={headlineBetaNote}
+              isPassive={isPassive}
+              demoted
+            />
             <details className="group rounded-2xl border border-gray-200 bg-white/60 shadow-sm">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
-                <span className="text-sm font-semibold text-gray-700">Growth of $1,000</span>
-                <span className="text-xs text-gray-400">
-                  <span className="group-open:hidden">show</span>
-                  <span className="hidden group-open:inline">hide</span>
+                <span className="text-sm font-semibold text-gray-700">
+                  What the bets did — realized return attribution
                 </span>
-              </summary>
-              <div className="border-t border-gray-100 px-5 py-6">
-                <HistoricalPerformance
-                  navSeries={navSeries}
-                  showComparison={paid}
-                  riskBehavior={riskBehavior}
-                  riskLocked={riskLocked}
-                  pricingStamp={pricingStamp}
-                  headlineTeNote={headlineTeNote}
-                  headlineBetaNote={headlineBetaNote}
-                  isPassive={isPassive}
-                  demoted
-                />
-              </div>
-            </details>
-            <details className="group rounded-2xl border border-gray-200 bg-white/60 shadow-sm">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
-                <span className="text-sm font-semibold text-gray-700">What the bets did</span>
                 <span className="text-xs text-gray-400">
                   <span className="group-open:hidden">show</span>
                   <span className="hidden group-open:inline">hide</span>
@@ -428,7 +436,7 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
               </div>
             </details>
           </div>
-        </div>
+        </section>
 
         {/* Crescent twin + more (Step 7, Block 5) — the passive-twin lead
             card, then the remaining drill-downs that don't have a Block 3/4
@@ -437,7 +445,7 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
             its own chapter) is retired — 01/02 are superseded by Block 1
             above; 08 lives here as a "More detail" drill-down alongside
             alternatives/sources. */}
-        <div id="b5" className="mt-10 scroll-mt-24 space-y-4">
+        <div id="b5" className="mt-14 border-t border-gray-100 pt-10 scroll-mt-24 space-y-4">
           <TwinPanel
             passiveLabel={passiveLabel}
             fees={fees}
