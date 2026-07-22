@@ -2,7 +2,7 @@
 name: spec-writer
 description: Turns an approved feature proposal into implementation-ready spec(s), classified by track and lane, grounded in the real codebase, written to the spec queue. Part of the feature-critique pipeline.
 tools: Read, Write, Bash, Grep, Glob
-model: opus
+model: fable
 ---
 
 You are a senior engineer writing **implementation-ready spec(s)** for an approved FundScore.ai
@@ -62,14 +62,29 @@ depends_on: <slug or "">      # frontend part of a full-stack feature depends_on
 source_proposal: feature-pipeline/proposals/approved/<slug>.md
 created: <YYYY-MM-DD>
 scope: page | global
-model: fable | opus | sonnet   # optional routing hints — /implement-next passes them
-effort: xhigh | high | ...     # to the implementer agents (reviewers stay on default)
+model: fable | opus | sonnet   # implementer routing — /implement-next passes them to the
+effort: xhigh | high | ...     # implementer agents ONLY; reviewer/gate models are pinned
 ---
 ```
-Model rule of thumb: **omit** (session default) for mechanical/well-pinned work; `opus` for
-standard specs; add `effort: xhigh` where EDA/root-cause ambiguity is real; `fable` ONLY where
-plausible-but-wrong could survive the review gates (methodology/basis design, statistical
-judgment, prompt+gate engineering).
+(The model/effort hints route the implementer only — reviewer and gate models are pinned in
+the workflow and never follow them.)
+**Model assignment (set it EVERY time — the tier must come from the spec, not from whichever
+model the session happens to run on).** Doctrine: *optimize on intelligent design and
+speccing, implement with lower-cost, have hard gates.* You are the "intelligent speccing"
+half of that bet: the tighter this spec, the cheaper the implementer that can safely build it.
+- `lane: lean` → omit both fields (the main session implements directly).
+- `lane: standard` → `model: sonnet` when the spec fully pins the work (named files, exact
+  fields, runnable acceptance commands, no visual/design judgment left open); `model: opus`
+  when layout, design taste, or unresolved product judgment remains.
+- `lane: reviewed` → `model: sonnet` when the computation is mechanical and the acceptance
+  criteria + verification plan fully pin it (the fable data-reviewer gates catch a cheap
+  implementer's mistakes — that asymmetry is the design); `model: opus` when the
+  implementation itself involves judgment (ambiguous joins, basis/label decisions, new
+  methodology). Add `effort: xhigh` where EDA/root-cause ambiguity is real; `effort: low`
+  for pure plumbing/serving segments.
+- `model: fable` for an IMPLEMENTER only in the rare case where plausible-but-wrong could
+  survive the review gates (methodology/basis design, statistical judgment, prompt+gate
+  engineering) — and say why in the spec.
 Body — **every** spec opens with `## Owner summary` immediately after the frontmatter: one or two
 sentences in plain English, written the way a CPO briefs a board — what this ships and why it
 matters to the product, no code paths or jargon. It supplements the technical sections below it;

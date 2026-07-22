@@ -10,6 +10,10 @@
           {
             "type": "command",
             "command": "/Users/alexfrey/Projects/fundscore-harness/plugins/fundscore-data/scripts/branch-guard.sh"
+          },
+          {
+            "type": "command",
+            "command": "/Users/alexfrey/Projects/fundscore-harness/plugins/fundscore-data/scripts/codex-commit-gate.sh"
           }
         ]
       }
