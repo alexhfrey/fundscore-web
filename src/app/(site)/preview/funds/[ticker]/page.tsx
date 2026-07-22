@@ -35,6 +35,7 @@ import {
   SectionNav,
   ProfileHero,
   VerdictBlock,
+  AnatomySection,
   FeeReceipt,
   HurdlePanel,
   AISummary,
@@ -45,6 +46,8 @@ import {
   FeeFairnessV2,
   FundFamily,
 } from "@/components/fund/profile/v2";
+import { topVsBenchmarkTilt } from "@/components/fund/profile/v2/crescent/VerdictBlock";
+import { orientFromTilt } from "@/lib/crescent";
 
 // Per-user dynamic render: reads the session to gate by tier server-side, and
 // (PREVIEW ONLY) honors a ?tier= override so reviewers can walk the tier matrix.
@@ -295,6 +298,17 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
     ? (getPreview(row.exposureXray) as ExposurePreview | null)
     : null;
 
+  // Block 2 (Anatomy) inputs — the idio share comes from whichever te-decomp
+  // view this tier is entitled to (paid full object, else the free proof
+  // point); anonymous gets neither and the anatomy movement simply doesn't
+  // render. Orientation reuses the hero's own tilt-row selection so the two
+  // marks can never point different ways.
+  const idioRiskShare = teDecomposition?.idio_risk_share ?? teProof?.idio_risk_share ?? null;
+  const anatomyOrientDeg = orientFromTilt(
+    topVsBenchmarkTilt((exposureXray?.rows as Record<string, unknown>[] | undefined) ?? null) ??
+      exposurePreview,
+  );
+
   return (
     <div className="bg-white">
       <PreviewBanner tier={userState} />
@@ -327,6 +341,37 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
             archetypeRules={row.archetypeRules ?? null}
           />
         </div>
+
+        {/* Crescent anatomy (Step 6, Block 2) — the hatched mark + split
+            sentence, with the positioning dossier (old 05) and Recent shifts
+            (old 06) reparented UNCHANGED beneath. Their chapter headers get
+            renumbered in step 7 chrome. */}
+        <AnatomySection
+          ticker={identity.ticker ?? ticker.toUpperCase()}
+          valueScore={valueScore}
+          idioRiskShare={idioRiskShare}
+          orientDeg={anatomyOrientDeg}
+        >
+          <CurrentPositioning
+            positioning={positioningContext}
+            riskExplainers={riskExplainers}
+            teDecomposition={teDecomposition}
+            teProof={teProof}
+            teLocked={teLocked}
+            bridges={bridges}
+            top10={top10}
+            holdingsFullTeaser={holdingsFullTeaser}
+            loadHoldingsFullRows={loadHoldingsFullRows}
+            exposureXray={exposureXray}
+            present={tePresent || row.top10VsIwf != null || positioningPresent || holdingsFullTeaser != null}
+            free={free}
+            paid={paid}
+            passiveLabel={passiveLabel}
+            l2BlendEtfs={l2BlendEtfs}
+            attributedFactorIds={attributedFactorIds}
+          />
+          <RecentChanges changes={recentChanges} present={rcPresent} free={free} paid={paid} />
+        </AnatomySection>
 
         {/* Crescent proof (Step 5, Blocks 3+4) — the fee receipt + the hurdle,
             right after the hero, before the numbered dossier sections. The
@@ -417,31 +462,9 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
           {/* 03 (Historical performance) and 04 (Performance attribution) now
               live as drill-downs under Block 4 (HurdlePanel) above. */}
 
-          {/* 05 · Current positioning */}
-          <CurrentPositioning
-            positioning={positioningContext}
-            riskExplainers={riskExplainers}
-            teDecomposition={teDecomposition}
-            teProof={teProof}
-            teLocked={teLocked}
-            bridges={bridges}
-            top10={top10}
-            holdingsFullTeaser={holdingsFullTeaser}
-            loadHoldingsFullRows={loadHoldingsFullRows}
-            exposureXray={exposureXray}
-            present={tePresent || row.top10VsIwf != null || positioningPresent || holdingsFullTeaser != null}
-            free={free}
-            paid={paid}
-            passiveLabel={passiveLabel}
-            l2BlendEtfs={l2BlendEtfs}
-            attributedFactorIds={attributedFactorIds}
-          />
-
-          {/* 06 · Recent changes */}
-          <RecentChanges changes={recentChanges} present={rcPresent} free={free} paid={paid} />
-
-          {/* 07 (Fee fairness) now lives as a drill-down under Block 3
-              (FeeReceipt) above. */}
+          {/* 05 (Current positioning) and 06 (Recent changes) now live inside
+              Block 2 (AnatomySection) above. 07 (Fee fairness) lives as a
+              drill-down under Block 3 (FeeReceipt) above. */}
 
           {/* 08 · Fund family */}
           <FundFamily family={fundFamily} present={familyPresent} free={free} />

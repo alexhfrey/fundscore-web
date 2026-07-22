@@ -36,9 +36,10 @@ interface FeesShape {
  * Top |difference| sector/theme vs-benchmark row — mirrors the server's own
  * ExposurePreview projector (gating.ts pickTopExposureDiff) so the entitled
  * path and the anonymous-tier preview fallback can never pick a different
- * row for the same fund.
+ * row for the same fund. Exported so AnatomySection's mark orients off the
+ * SAME row as the hero mark (one selection rule, two call sites).
  */
-function topVsBenchmarkTilt(rows: XrayRow[] | null): { exposure_type: string; difference: number } | null {
+export function topVsBenchmarkTilt(rows: XrayRow[] | null): { exposure_type: string; difference: number } | null {
   if (!rows) return null;
   const cands = rows.filter(
     (r): r is XrayRow & { exposure_type: string; difference: number } =>
