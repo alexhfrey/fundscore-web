@@ -11,6 +11,7 @@ import {
   type SourceStamp,
   type Locked,
   type TeProofPreview,
+  type ExposurePreview,
   type UserState,
 } from "@/lib/serving/profile";
 import { resolveSession } from "@/lib/serving/session";
@@ -33,6 +34,7 @@ import {
   PreviewBanner,
   SectionNav,
   ProfileHero,
+  VerdictBlock,
   AISummary,
   HistoricalPerformance,
   AttributionSection,
@@ -282,6 +284,14 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
   };
 
   const exposureXray = unlocked<{ rows?: unknown[] }>(row.exposureXray);
+  // The anon-tier free proof point for the Crescent hero's orientation tilt —
+  // the SAME whitelisted preview a locked exposure-X-ray section would surface
+  // (exposure_xray gate: free), read off the RAW pre-unlock value so it only
+  // fires when the section is actually locked (free+ already has `exposureXray`
+  // above). Mirrors the teProof / betsText pattern used elsewhere on this page.
+  const exposurePreview = isLocked(row.exposureXray)
+    ? (getPreview(row.exposureXray) as ExposurePreview | null)
+    : null;
 
   return (
     <div className="bg-white">
@@ -289,8 +299,35 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
       <SectionNav passiveNote={passiveLabel ? `read against ${passiveLabel} — closest passive alt` : null} />
 
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Crescent hero (Step 4, Block 1) — masthead/identity only from
+            ProfileHero, then the Crescent verdict block. Added ABOVE the
+            existing "01 · Verdict" section below without removing/renumbering
+            it; that swap is steps 5-7's job. */}
+        <div className="space-y-6">
+          <ProfileHero
+            variant="identity"
+            identity={identity}
+            requestedTicker={ticker}
+            valueScore={valueScore}
+            fees={fees}
+            holdingsAsOf={holdingsAsOf}
+            holdingsStale={holdingsStale}
+          />
+          <VerdictBlock
+            identity={identity}
+            requestedTicker={ticker}
+            valueScore={valueScore}
+            fees={fees}
+            passiveLabel={passiveLabel}
+            exposureXrayRows={(exposureXray?.rows as Record<string, unknown>[] | undefined) ?? null}
+            exposurePreview={exposurePreview}
+            archetype={row.archetype ?? null}
+            archetypeRules={row.archetypeRules ?? null}
+          />
+        </div>
+
         {/* 01 · Verdict */}
-        <section id="s1" className="scroll-mt-24">
+        <section id="s1" className="mt-16 scroll-mt-24">
           <ProfileHero
             identity={identity}
             requestedTicker={ticker}

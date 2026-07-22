@@ -9,3 +9,7 @@ export { CurrentPositioning } from "./CurrentPositioning";
 export { RecentChanges } from "./RecentChanges";
 export { FeeFairnessV2 } from "./FeeFairnessV2";
 export { FundFamily } from "./FundFamily";
+export { VerdictBlock } from "./crescent/VerdictBlock";
+export { ArchetypeChip } from "./crescent/ArchetypeChip";
+export { DistributionStrip } from "./crescent/DistributionStrip";
+export { CrescentMark } from "./crescent/CrescentMark";
