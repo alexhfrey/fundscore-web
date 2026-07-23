@@ -1,7 +1,7 @@
 ---
 id: serve-l2-passive-candidate-fit
 title: Serve per-candidate L2 passive-alternative fit scores (correlation / tracking error / beta) so "What's the closest passive alternative?" renders from data
-status: queued
+status: done
 track: backend
 repo: fund_score
 depends_on: ""
