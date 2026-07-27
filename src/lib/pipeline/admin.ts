@@ -6,7 +6,7 @@ import path from "node:path";
 import { cookies } from "next/headers";
 
 export type BacklogSectionName = "Open" | "Specced (in queue)" | "Done";
-export type BacklogItemType = "bug" | "data" | "story" | "unknown";
+export type BacklogItemType = "bug" | "data" | "story" | "chore" | "fast-follow" | "unknown";
 export type SpecStatus = "queue" | "done" | "rejected";
 export type PipelineProvider = "claude" | "codex";
 export type PipelineJobKind =
@@ -24,6 +24,10 @@ export interface BacklogItem {
   type: BacklogItemType;
   title: string;
   line: string;
+  /** The indented `**Owner summary:**` line beneath the item, when present. */
+  ownerSummary?: string;
+  /** Thread group from the nearest preceding `**Group name.** …` paragraph, when present. */
+  group?: string;
 }
 
 export interface BacklogSection {
@@ -178,7 +182,10 @@ export async function saveBacklogItem(
   // A backlog item is exactly one physical line: reject embedded newlines (an unanchored regex
   // would validate only the first line, then writeBacklogLines would split the rest into stray
   // lines and desync every line-number guard below it).
-  if (normalized.includes("\n") || !/^- \[[ x~]\] \((bug|data|story)\) .+$/.test(normalized)) {
+  if (
+    normalized.includes("\n") ||
+    !/^- \[[ x~]\] \((bug|data|story|chore|fast-follow)\) .+$/.test(normalized)
+  ) {
     throw new Error("Backlog item must be a single line: - [ ] (type) Title — context");
   }
   lines[lineNo] = normalized;
@@ -189,14 +196,17 @@ export async function closeBacklogItem(lineNo: number, originalLine: string): Pr
   await assertAdminAuthenticated();
   const lines = await readBacklogLines();
   assertCurrentLine(lines, lineNo, originalLine);
-  const doneLine = originalLine.replace(/^- \[[ x~]\]/, "- [x]");
-  lines.splice(lineNo, 1);
+  // Move the whole item block (item line + indented Owner-summary continuation), not just the
+  // item line — a single-line splice strands the summary as an orphan in the source section.
+  const block = lines.slice(lineNo, itemBlockEnd(lines, lineNo));
+  block[0] = originalLine.replace(/^- \[[ x~]\]/, "- [x]");
+  lines.splice(lineNo, block.length);
   const refreshedRanges = getSectionRanges(lines);
   const done = refreshedRanges.find((range) => range.name === "Done");
   if (!done) throw new Error("Could not find ## Done in backlog.md");
   let insertAt = done.headingLine + 1;
   if (lines[insertAt] === "") insertAt += 1;
-  lines.splice(insertAt, 0, doneLine);
+  lines.splice(insertAt, 0, ...block);
   await writeBacklogLines(lines);
 }
 
@@ -215,8 +225,31 @@ export async function moveBacklogItem(
   const index = itemLines.indexOf(lineNo);
   const swapWith = direction === "up" ? itemLines[index - 1] : itemLines[index + 1];
   if (swapWith == null) return;
-  [lines[lineNo], lines[swapWith]] = [lines[swapWith], lines[lineNo]];
+  // Swap whole blocks (item + Owner-summary continuation): swapping bare item lines while the
+  // summaries stay put re-pairs every summary with the wrong item. Interstitial lines (group
+  // headers, blanks) keep their position.
+  const aStart = Math.min(lineNo, swapWith);
+  const bStart = Math.max(lineNo, swapWith);
+  const aEnd = itemBlockEnd(lines, aStart);
+  const bEnd = itemBlockEnd(lines, bStart);
+  const rebuilt = [
+    ...lines.slice(bStart, bEnd),
+    ...lines.slice(aEnd, bStart),
+    ...lines.slice(aStart, aEnd),
+  ];
+  lines.splice(aStart, bEnd - aStart, ...rebuilt);
   await writeBacklogLines(lines);
+}
+
+/**
+ * End (exclusive) of a backlog item's block: the item line plus any directly following indented
+ * continuation lines (the `  **Owner summary:** …` convention). Blank lines and the next item
+ * terminate the block.
+ */
+function itemBlockEnd(lines: string[], itemLineNo: number): number {
+  let end = itemLineNo + 1;
+  while (end < lines.length && /^ {2,}\S/.test(lines[end])) end += 1;
+  return end;
 }
 
 export async function saveSpec(relPath: string, content: string): Promise<void> {
@@ -300,12 +333,13 @@ function relocateBacklogLine(
   newLine: string,
   sectionName: BacklogSectionName,
 ): void {
-  lines.splice(fromIdx, 1);
+  const block = [newLine, ...lines.slice(fromIdx + 1, itemBlockEnd(lines, fromIdx))];
+  lines.splice(fromIdx, block.length);
   const section = getSectionRanges(lines).find((range) => range.name === sectionName);
   if (!section) throw new Error(`Could not find ## ${sectionName} in backlog.md`);
   let insertAt = section.headingLine + 1;
   if (lines[insertAt] === "") insertAt += 1;
-  lines.splice(insertAt, 0, newLine);
+  lines.splice(insertAt, 0, ...block);
 }
 
 function escapeRegExp(value: string): string {
@@ -471,11 +505,18 @@ function parseBacklogItems(
   const range = ranges.find((item) => item.name === sectionName);
   if (!range) return [];
   const items: BacklogItem[] = [];
+  let group: string | undefined;
   for (let lineNo = range.headingLine + 1; lineNo < range.endLine; lineNo += 1) {
     const line = lines[lineNo];
+    const groupMatch = line.match(/^\*\*(.+?)\*\*/);
+    if (groupMatch) {
+      group = groupMatch[1].replace(/[.:]\s*$/, "").trim();
+      continue;
+    }
     const match = line.match(/^- \[([ x~])\]\s+\(([^)]+)\)\s*(.+)$/);
     if (!match) continue;
     const rawType = match[2];
+    const summaryMatch = lines[lineNo + 1]?.match(/^ {2,}\*\*Owner summary:\*\*\s*(.+)$/);
     items.push({
       lineNo,
       section: sectionName,
@@ -483,13 +524,27 @@ function parseBacklogItems(
       type: isBacklogItemType(rawType) ? rawType : "unknown",
       title: titleFromBody(match[3]),
       line,
+      ownerSummary: summaryMatch?.[1]?.trim(),
+      group,
     });
   }
   return items;
 }
 
 function titleFromBody(body: string): string {
-  return body.split(" — ")[0]?.trim() || body.slice(0, 120);
+  const plain = body.replace(/\*\*/g, "").trim();
+  const segments = plain.split(" — ");
+  let title = segments[0]?.trim() ?? "";
+  // Many lines open with a shipped/status stamp ("DONE 2026-07-17", "RE-GROUNDED …") that labels
+  // nothing on its own — fold in the next segment so the list shows the actual item.
+  if (
+    segments.length > 1 &&
+    title.length <= 80 &&
+    /^(DONE|FIXED|SHIPPED|RESOLVED|CLOSED|PAUSED|RE-GROUNDED|OWNER (DECIDED|ACTION))\b/.test(title)
+  ) {
+    title = `${title} — ${segments[1].trim()}`;
+  }
+  return title || plain.slice(0, 120);
 }
 
 function assertCurrentLine(lines: string[], lineNo: number, originalLine: string): void {
@@ -510,7 +565,9 @@ function isKnownSection(name: string): name is BacklogSectionName {
 }
 
 function isBacklogItemType(type: string): type is Exclude<BacklogItemType, "unknown"> {
-  return type === "bug" || type === "data" || type === "story";
+  return (
+    type === "bug" || type === "data" || type === "story" || type === "chore" || type === "fast-follow"
+  );
 }
 
 function isSpecStatus(value: string): value is SpecStatus {
