@@ -12,6 +12,15 @@ model: opus
 effort: xhigh
 ---
 
+> **RE-GROUNDING REQUIRED before implementation (2026-07-22):** this spec describes promoting the
+> *eight-section* v2 preview, but the Crescent five-block redesign (web branch
+> `feature/crescent-profile-v2`, on the preview since 2026-07-21) supersedes that section list, and
+> per the backlog story "Crescent v2 productionization" the five-block cutover folds in here. Also:
+> `ai-summary-generation` and `attribution-quarter-blocks` (referenced below) were REJECTED
+> 2026-07-22 — the Crescent design dropped the AI-summary section and demoted attribution to a
+> drill-down. Re-ground the section map, flip protocol, and dependency list against the Crescent
+> page before implementing.
+
 ## Owner summary
 The master plan for replacing today's fund page with the redesigned eight-section version. Six of the seven launch sections now run entirely on live data; what remains is one section's backend (recent portfolio changes), the final route swap with its launch-hygiene checks, and the operational data refreshes tracked below.
 

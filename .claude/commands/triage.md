@@ -38,7 +38,8 @@ Steps:
 4. Update `backlog.md` by outcome — a story has THREE possible outcomes, not two:
    - **Shipped** (the loop committed a change — always the case for a fixed `(bug)`/`(data)`; a `(story)` only
      if `/implement-next` implemented AND committed it in this pass): change `- [ ]` → `- [x]` and move the
-     line to the top of `## Done`. Then enforce the Done buffer: `## Done` keeps only the 3 newest
+     whole item block (item line + its indented `**Owner summary:**` line — they travel together) to the
+     top of `## Done`. Then enforce the Done buffer: `## Done` keeps only the 3 newest
      entries — move any overflow entry to the TOP of `feature-pipeline/backlog-archive.md` (the full
      changelog), so the operational backlog stays small.
    - **Specced but not shipped** (a `(story)` that produced a queued spec but wasn't built this pass — deferred,

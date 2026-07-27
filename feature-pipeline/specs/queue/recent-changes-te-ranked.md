@@ -4,7 +4,7 @@ title: Rank recent positioning changes by estimated tracking-error impact, class
 status: queued
 track: backend
 repo: fund_score
-depends_on: te-decomposition-by-bet
+depends_on: te-decomposition-by-bet, unify-te-decomposition-global-basis
 source_proposal: feature-pipeline/proposals/approved/profile-redesign-eight-sections.md
 created: 2026-07-01
 scope: global
@@ -14,6 +14,10 @@ effort: xhigh
 
 ## Owner summary
 Upgrades the "what changed recently in this portfolio" section from a list of trades to a ranked story — ordering each change by how much it moves the fund's risk, so customers see which moves actually matter. This is the last backend piece needed before the redesigned page can fully replace the old one.
+
+**Sequencing (2026-07-22):** now also depends on `unify-te-decomposition-global-basis` — the TE
+impact ranking must be computed on the unified 35-factor global basis that spec establishes, not on
+the per-fund `te-decomposition-by-bet` basis it retires. Do not implement this spec first.
 
 ## Goal
 Serve the Recent Changes section: "what has the manager actually been doing lately" — the most
