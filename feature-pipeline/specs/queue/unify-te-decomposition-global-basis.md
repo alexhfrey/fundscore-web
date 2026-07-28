@@ -51,6 +51,20 @@ sector-rotator, FBGRX theme-heavy, an EM fund, a macro-tilted fund). Deliverable
 2. **Display rule decision:** 35 fixed loadings ⇒ many near-zero bets. Propose top-N by
    |var_share| + an explicit labeled rollup row ("N smaller bets · X% of factor variance",
    never silently dropped); pick N/thresholds from the data.
+   **Display-contract input (owner, 2026-07-27, from the Crescent V3 design review):** each
+   displayed bet must carry (a) a plain-English direction badge (OVER/UNDER for weight-basis
+   sectors; LONG/AGAINST for returns-basis themes/macros — never a bare signed β), and (b) a
+   one-line "where it comes from" with real held names where they exist (holdings ∩ basket
+   membership, e.g. "holds 7 of the majors — XOM, CVX, COP…"; else "exposure from returns — no
+   single holding"). Reference rendering: `fund_score
+   docs/product/strategy/mockup_fund_profile_crescent_v3.html` — see **"the Book"** card: the
+   fused one-row-per-bet artifact (NOW dir+risk · 21-quarter exposure-path sparkline · PAID
+   held/moved) that collapsing positioning+attribution onto one basis enables. Note the Book's
+   path column needs the exposure-path β-path on the SAME basis — currently a deferred non-goal
+   here; either ship Book v1 with the path labeled as current-basis, or pull the exposure-path
+   rewire forward. Brand bar:
+   "no-nonsense elegant simplicity" (crescent spec § Brand principle) — jargon behind
+   affordances, t-stats/var-shares never inline.
 3. **Theme handling decision:** the 35-basis excludes themes (right for the skill measure, but
    FBGRX-class funds lose their story). Evaluate: (a) labeled theme overlay rows sourced from the
    existing theme panels, visually separate, never summed into the factor sleeve; (b) a
