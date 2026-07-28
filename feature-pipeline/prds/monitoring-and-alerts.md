@@ -4,10 +4,10 @@
 - **Source:** home-page value prop (`fund_score/docs/product/page_specs/home.md` § 6). Filed
   2026-07-17 from the home-page gap pass; the copy commits us to this experience and nothing
   covering it exists.
-- **Date:** 2026-07-17
-- **Status:** DRAFT — needs owner answers on the Open questions before a spec is written. This PRD
-  deliberately does NOT design the pipeline or serving layer (owner: "don't build the comprehensive
-  plans yet").
+- **Date:** 2026-07-17 (owner decisions 2026-07-27)
+- **Status:** OWNER-DECIDED (all 7) — **ready to spec.** Every product question is answered (see
+  **Owner decisions** below). This PRD still deliberately does NOT design the pipeline or serving
+  layer (owner: "don't build the comprehensive plans yet").
 - **Track (proposed):** full-stack (fundscore-web new surface + fund_score drift signal), likely
   phased. Reuses shipped change-detection panels; the new work is the watch list, the drift
   threshold logic, and a delivery channel.
@@ -87,7 +87,38 @@ here (per `prds/README.md`). At minimum the spec must pin: which dimensions trig
 threshold per dimension, the false-positive rate on a labeled sample, the non-advice copy gate, and
 the honest-missing behavior when a followed fund's data is stale/low-coverage.
 
-## Open questions (owner) — must answer before speccing
+## Owner decisions (2026-07-27)
+
+Answered live by the owner. The spec is written to these; the two still-open questions (Q3, Q5)
+are called out below and must be closed before the spec ships.
+
+- **Q1 Baseline → (a) the fund's own recent history.** v1 is purely factual, zero personalization,
+  sits directly on the shipped change panels. Layer (b) user-tagged role / (c) mandate later.
+- **Q2 Dimensions → ALL FOUR: sector/theme drift + manager change + fee hike + factor/concentration/
+  turnover.** Owner went BROADER than the PRD recommendation (which was to ship the first three and
+  add factor/concentration/turnover only after thresholds are calibrated). **⚠ Tension with Q6:**
+  the owner also chose the *quiet* threshold, so the noisier factor/concentration/turnover
+  dimensions must be threshold-calibrated conservatively at spec time or they will blow the
+  ~1-alert/quarter budget. The spec must set per-dimension thresholds, not one global one, and
+  should treat the factor/concentration/turnover trio as the calibration risk.
+- **Q6 Noise tolerance → quiet (~1 clear alert per quarter per fund).** Optimize for trust / low
+  uninstall; accept missing gradual drift. Not user-configurable in v1.
+- **Q4 + Q7 Scope/follow → fund-by-fund, explicit "Follow this fund".** v1 is per-fund alerts with
+  an explicit opt-in (not auto-follow, not portfolio-level aggregate). Portfolio-level aggregate
+  alerting is a later story.
+
+- **Q3 Delivery channel → in-app feed + email, both from v1.** Not in-app-first / email-later — both
+  ship together. Email brings scope the spec MUST cover: consent + opt-in, unsubscribe, and cadence
+  (immediate vs digest). Because the feature is paid-only (Q5), email only ever goes to a
+  consenting paid subscriber.
+- **Q5 Tier gating → paid-only, whole surface.** Monitoring & Alerts is entirely a paid-tier
+  capability — no free/limited follows, no anonymous access. The follow list, thresholds, in-app
+  feed, and email all sit behind the paid line (a premium capability alongside Lenses / the X-Ray).
+
+## Open questions (owner) — RESOLVED
+
+> **All 7 are DECIDED — see Owner decisions above (2026-07-27). This section is retained for the
+> original framing and recommendations; the answers of record are in Owner decisions.**
 
 1. **What defines "the role you hired it to play"?** Three options, increasingly ambitious:
    (a) drift vs the fund's **own recent history** (purely factual, no user input; easiest, ships on
