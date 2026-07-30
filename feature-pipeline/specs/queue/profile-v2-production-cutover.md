@@ -12,6 +12,44 @@ model: opus
 effort: xhigh
 ---
 
+> **SUPERSESSION — V4 IS NOW THE TARGET (2026-07-30, owner).** This spec's page target is no longer
+> the eight-section v2 preview *or* the Crescent five-block preview. Both are superseded by the **V4
+> design** in `fund_score/docs/product/strategy/mockup_fund_profile_v4_2026-07-28.html`, whose canon,
+> three adversarial panel rounds and correctness fixes are recorded in
+> `fund_score/docs/product/strategy/crescent_v3_iteration_2026-07-27.md`. The web branch
+> `feature/crescent-profile-v2` (21 commits, last 2026-07-28) is therefore **NOT to be merged** — it
+> stays as the running `/preview/funds/[ticker]` implementation and a component donor until this
+> cutover executes against V4, at which point it is archived. Nothing is lost: its crescent mark,
+> block chrome, accent toggle and TwinPanel are reusable.
+>
+> **What V4 changes vs the branch's five blocks** (implement to this, not to the preview):
+> 1. **Section order** — 00 verdict / 01 what is it / 02 performance / 03 the bets / 04 the
+>    neighbourhood / 05 manager & their names (holds the per-stock receipts) / 06 fund family /
+>    07 key stats.
+> 2. **No headline score.** Unanimous across retail, RIA and design panels: a 0-100 hero would
+>    cannibalise the crescent and fuse two orthogonal metrics (fill = how much manager you buy;
+>    score = whether it was worth it). Ship instead: an `<h2>` claim + a two-figure money hero
+>    ($ paid over the twin / $ delivered vs it, one window, per $10,000), with Value Score demoted
+>    to a catalog chip in the ID row for screener continuity. Badge is past-tense
+>    ("Has not cleared its fee"), never forward-looking.
+> 3. **Stock picking has no section of its own** — it merges into 05 with the receipts table
+>    (position / avg weight / twin weight / return / impact). Blocked on the per-stock panel, which
+>    gates foreign-heavy funds today.
+> 4. **The neighbourhood section uses the twin's FULL life, not the graded window.** The old
+>    "since 2017" start began three weeks after the twin's 42-month 2014→2017 drawdown ended —
+>    effectively cherry-picked. Window doctrine to carry into the build: asset-class questions use
+>    all available history; manager questions use the graded window; state the distinction once.
+> 5. **Canon that must not regress:** the after-fee hurdle bar is ZERO (an after-fee gap already
+>    contains the fee — the V3 panels locked this and V4 re-broke and re-fixed it); headlines are
+>    claims a reader could disagree with, never descriptions of the interface; every coined term
+>    ("twin") is defined at first use; gold does one job; no green on a below-breakeven fund.
+>
+> **Dependency added:** the V4 numbers require the attribution panels to be rebuilt against the
+> served twin — see the backlog bug "LIVE mixed-basis: the 2026-07-29 pool refit published a new twin
+> alongside attribution still computed against the OLD twin". Do not cut over onto mixed bases.
+>
+> ---
+>
 > **RE-GROUNDING REQUIRED before implementation (2026-07-22):** this spec describes promoting the
 > *eight-section* v2 preview, but the Crescent five-block redesign (web branch
 > `feature/crescent-profile-v2`, on the preview since 2026-07-21) supersedes that section list, and

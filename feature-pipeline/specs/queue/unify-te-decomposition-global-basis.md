@@ -70,6 +70,14 @@ sector-rotator, FBGRX theme-heavy, an EM fund, a macro-tilted fund). Deliverable
    existing theme panels, visually separate, never summed into the factor sleeve; (b) a
    with-themes display variant of the basis; (c) themes live only in Exposure X-Ray/archetype.
    Recommend one with evidence.
+   **New dependency (owner, 2026-07-28): the V4 profile draft hangs its verdict taxonomy on this
+   call.** `fund_score/docs/product/strategy/mockup_fund_profile_v4_2026-07-28.html` — the
+   executive verdict + "What is it" split the active layer as picks / themes / sectors / macro
+   (TRNEX: 44/24/22/10) and name theme bets (Big Oil, Onshoring) in the verdict itself. Option
+   (c) — no overlay — recuts that taxonomy to picks / sectors / countries / macro and folds the
+   theme stories into sectors, rippling through the exec summary, section 01, and the bets
+   drill-downs. Decide with the V4 page open; the recommendation must state what the verdict's
+   kind-split becomes for a theme-heavy fund (FBGRX) AND a sector fund (TRNEX).
 4. **theme_ride provenance trace:** vo_reframe's `theme_ride` may read `global_decomposition` —
    census ALL consumers of `global_decomposition` before any retirement. Anything found blocks
    step 3 until migrated.
