@@ -381,6 +381,30 @@ across all 1,949 funds · codex cross-vendor gate.
 (→ `vo_reframe_v0.5`), retiring its `global_decomposition` read. Report the old-vs-new idio
 delta distribution (expected small — same basis family — but measured, not assumed).
 
+**Segment-1 handoff (measured 2026-07-30, do not re-derive):**
+- The delta is **already measured** on the built panel — te_decomposition v0.2 idio vs the
+  `global_decomposition` idio the VO badge serves today, on the **1,945 shared funds**:
+  p10 **−0.223** / p50 **−0.013** / p90 **+0.164**, median |delta| **0.099**. The medians
+  agree (−0.013) — the two are the same estimator (1 − adj R²) on the same basis family, so
+  this is a true unification. The SPREAD is the genuine machine difference and is NOT noise:
+  te_decomposition fits the winsorized beta-adjusted L2-active return over the recent ~150-week
+  window, `global_decomposition` fits the raw active return over full history at MIN_OBS=200.
+  Segment 2 must decide whether that window difference is acceptable for the badge, and report
+  the badge-flip count across `REPLICABLE_DOMINATED = 0.40` — not just the delta quantiles.
+- **Coverage shrinks and that is the blocking design question.** `global_decomposition` covers
+  more funds than the alignment-gated te_decomposition (1,949). Funds that te_decomposition
+  suppresses would lose their VO badge input entirely unless segment 2 chooses a fallback.
+  Options: serve `idio_risk_share` null + an honest missing-reason, or keep
+  `global_decomposition` as a documented fallback for the gap (which weakens the "exactly ONE
+  served idio source" invariant in segment 4). **Measure the gap first, then decide.**
+- te_decomposition already emits everything the consumer reads: `idio_risk_share`,
+  `replicable_risk_share`, `idio_risk_share_cv`. The one field it does NOT carry is
+  `idio_alpha_bps` (`build_value_offering_reframed.py:170` selects it). It is NOT served
+  (`fact_assembler.py:1988-1993` confirms) — check whether the VO build actually uses it before
+  either porting it or dropping it.
+- The ridge nested-CV estimator now lives in `risk_model/ridge_cv.py` (shared, bit-identical),
+  so segment 3 can archive `global_decomposition` without orphaning it.
+
 ### 3 — Retire global_decomposition (gated on step 0.4 census clean)
 Remove from the default build path; archive module + last parquet (never delete). Migrate or
 retire its checks in `scripts/checks/run_checks.py`.
@@ -403,7 +427,49 @@ funds (4.6%) currently served at 13–53 weeks. **A panel-level invariant on the
 belongs in `ted.validate` so `make check` fails, not just the builder log.** Expect a coverage
 drop from (ii) — report it as honest suppression, with the before/after fund count.
 
-## Web follow-up (small, after backend ships)
+## Web follow-up
+
+### ✅ DIRECTION-BADGE CONTRACT (a) SHIPPED 2026-07-30 (web `feature/crescent-profile-v2`)
+Part (a) of the display contract is live in the components. **Not polish — a
+correctness fix**: 51.7% of named bets are underweights whose displayed figure is
+POSITIVE, so the previous rendering showed half the table backwards.
+
+- `format.ts` owns ONE vocabulary (`directionWords`): weight-like kinds
+  (geography / sector / stock / theme) read **OVER/UNDER**, pure return exposures
+  (macro / commodity) read **LONG/AGAINST** — the owner's 2026-07-27 split, mapped
+  onto the v0.2 kinds. Hover carries the plain-English meaning; no jargon inline.
+- `gating.ts` gains `betDirection()` — served `bet_direction` (v0.2) else the FWL
+  beta sign (v0.1), so ONE derivation serves both payload versions and the badge
+  is never inferred from `te_alloc_bps` (those signs disagree for most bets).
+- The free proof point was the worst offender and is fixed end-to-end:
+  RYLSX `"Japan +98 bps"` → `"Japan · UNDERWEIGHT · 98 bps"`;
+  FCNTX `"Technology +55 bps"` → `"Technology · UNDERWEIGHT · 55 bps"`.
+  `fmtBpsMagnitude` drops the sign from the headline figure precisely so it cannot
+  be read as direction; `diversifying` still carries the rarer reduces-TE case.
+- The projector now picks the top bet by **|te_alloc_bps|** (a signed max ranked a
+  small additive bet above a larger diversifying one), and honours
+  `top_bet_confident`: on a near-tie the label degrades from "Top active bet" to
+  "A leading active bet" rather than asserting a coin flip (TRNEX: Canada 58 vs
+  Gold 57 → superlative dropped).
+- Also landed here because v0.2 data would otherwise break or mislead: the
+  `bet_type` union + table filters widened to geography/sector/macro/commodity,
+  and the `other_bets` rollup row now renders (it carries more tracking error than
+  any named bet on many funds — DGIGX: 165 bps vs a 24-bps leader).
+
+Verified by running the SHIPPED helpers through `applyGates` against real v0.2
+payloads (RYLSX, FCNTX, TRNEX, a near-tie fund, a zero-named-bet fund) **and**
+against genuine v0.1 payloads rebuilt from the preserved pre-unify panel — the
+pre-reload page keeps working and gains direction badges. `npm run build` +
+`eslint` clean.
+
+**Still open — part (b) of the same contract:** the one-line "where it comes from"
+with real held names (holdings ∩ basket membership). That needs a new backend
+join (fund holdings × basis-factor constituents) — feasible for the 23
+geography/sector factors off the existing country/sector holdings attributes, and
+correctly "exposure from returns — no single holding" for the 6 macro/commodity
+ones. Not started; sizing it is a separate call.
+
+### Remaining (after the serving reload)
 Bets table renders the rollup row; anatomy hatch + VO badge need no change (served fields).
 Verify FCNTX/FBGRX anatomy + bets coherence end-to-end on the preview page.
 **Plus the window disclosure the chosen policy requires:** the bets table scales to the fresh

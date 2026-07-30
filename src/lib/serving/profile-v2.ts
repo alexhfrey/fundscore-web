@@ -152,32 +152,66 @@ export interface PositioningContext {
 // betas are single-factor (FWL) reads that double-count on collinear factor sets.
 // TeRollupRow lives in gating.ts (re-exported via ./profile) so the free
 // proof-point projector and this served type share one shape.
+/** Which side of the passive twin the fund sits on for this factor — a SEPARATE
+ *  fact from te_alloc_bps. Backend measures y = fund − twin, so beta > 0 is "over".
+ *  51.7% of named bets are "under" WITH a positive te_alloc_bps: the fund is
+ *  positioned AWAY from the factor and that gap is what generates the tracking
+ *  error. Rendering the bps without this reads as the opposite bet. */
+export type BetDirection = "over" | "under";
+
 export interface TeBet {
   label: string;
-  bet_type: "sector" | "theme" | "macro"; // v1 fakes no per-stock TE (stocks come from the X-ray)
+  // v0.2 (global basis) kinds; "theme" is v0.1 and survives until the reload.
+  // v1 fakes no per-stock TE (stocks come from the X-ray).
+  bet_type: "geography" | "sector" | "macro" | "commodity" | "theme";
   factor_id: string;
-  beta: number | null; // single-factor (FWL) read on the standardized basis
+  beta: number | null; // single-factor (FWL) read on the global basis
   beta_tstat: number | null;
+  bet_direction?: BetDirection | null; // v0.2; derive from beta sign when absent
+  rank?: number | null; // v0.2: 1-based, by |te_alloc_bps|
+  is_displayed?: boolean; // v0.2: true on every SERVED bet (sub-floor rows stay in gold)
   var_share: number | null; // share of factor-explained variance (can be < 0)
   te_alloc_bps: number | null; // var_share × factor sleeve (negative = diversifying)
   diversifying: boolean;
   confidence_state: string | null;
 }
+
+/** The display-rule remainder: every bet below the materiality floor, aggregated
+ *  and labeled. NOT a tidy-up line — it carries ~55% of the |var| mass at median,
+ *  often more than any named row, so the table must render it. */
+export interface TeOtherBets {
+  label: string; // e.g. "25 smaller bets"
+  n_rolled: number;
+  var_share: number | null;
+  te_alloc_bps: number | null;
+  share_of_te_var: number | null;
+}
 export interface TeDecomposition {
   as_of: string | null;
   n_obs: number | null;
   n_bets: number | null;
-  bets: TeBet[];
-  rollup: TeRollupRow[]; // grouped sleeve split: sector / theme / macro / selection
+  bets: TeBet[]; // the NAMED bets only (v0.2); sub-floor rows are not served
+  rollup: TeRollupRow[]; // grouped sleeve split by KIND + selection
+  other_bets?: TeOtherBets | null; // v0.2 display-rule remainder — must be rendered
   basis_note: string | null; // the basis disclosure (shares-not-levels honesty note)
   basis_source: string | null;
   te_total_bps: number | null; // anchors to the served te_current — one TE per page
   factor_sleeve_te_bps: number | null;
   selection_te_bps: number | null; // the idio (stock-selection) sleeve
   idio_risk_share: number | null; // fraction of active variance
+  replicable_risk_share?: number | null; // v0.2: 1 − idio_risk_share (adjusted-R² basis)
+  idio_risk_share_cv?: number | null; // v0.2: ridge nested-CV read (diagnostic)
+  n_displayed_bets?: number | null; // v0.2: how many bets cleared the materiality floor
+  top_bet_gap?: number | null; // v0.2: relative |alloc| gap between #1 and #2
+  /** v0.2: FALSE on a near-tie, where measured rank-1 stability across a 6-week
+   *  window shift is 53% — a coin flip. No surface may assert a "biggest bet"
+   *  when this is false. Absent on v0.1 payloads. */
+  top_bet_confident?: boolean | null;
   passive_alt_label: string | null;
   window_start: string | null;
-  window_end: string | null;
+  window_end: string | null; // the fit window — the bet MIX is measured through here
+  anchor_as_of?: string | null; // v0.2: the TE anchor date (bets scale to THIS)
+  anchor_lag_weeks?: number | null; // v0.2: weeks between the two, bounded by the build gate
   no_named_bets?: boolean;
   method_version: string | null;
 }

@@ -20,8 +20,11 @@ import type {
   HoldingRow,
 } from "@/lib/serving/profile-v2";
 import type { TeProofPreview, TeRollupRow } from "@/lib/serving/profile";
+// ONE direction derivation, shared with the free proof-point projector: served
+// `bet_direction` (v0.2) else the FWL beta sign (v0.1, pre-reload).
+import { betDirection } from "@/lib/serving/profile";
 import { fmtPct, fmtSignedBps, fmtNum, fmtDate, EM_DASH } from "@/lib/serving/format";
-import { cohortIsBlend, cohortPhrase, ordinal, countryName, ppSigned } from "./format";
+import { cohortIsBlend, cohortPhrase, ordinal, countryName, ppSigned, directionWords, fmtBpsMagnitude } from "./format";
 import {
   ChapterHeader,
   Panel,
@@ -53,18 +56,48 @@ function xrayByFactor(exposureXray: { rows?: unknown[] } | null): Map<string, Xr
 
 /** Plain-language readout for the free top-bet proof point. Appends the bet's
  *  t-stat / confidence (when served) as a single parenthetical — em-dash never
- *  fabricated, so a missing stat simply drops from the sentence. */
-function topBetReadout(bet: {
-  label: string;
-  beta_tstat: number | null;
-  confidence_state: string | null;
-}): string {
+ *  fabricated, so a missing stat simply drops from the sentence.
+ *
+ *  `confident` is the served rank-1 stability flag: on a near-tie between #1 and
+ *  #2, measured rank-1 stability across a 6-week window shift is 53%, so the
+ *  superlative is dropped rather than asserted on a coin flip. */
+function topBetReadout(
+  bet: {
+    label: string;
+    bet_type: string;
+    bet_direction: "over" | "under" | null;
+    beta_tstat: number | null;
+    confidence_state: string | null;
+    diversifying: boolean;
+  },
+  confident: boolean,
+): string {
   const stats = [
     bet.beta_tstat != null ? `t ${fmtNum(bet.beta_tstat, 1)}` : null,
     bet.confidence_state ? `${bet.confidence_state} confidence` : null,
   ].filter(Boolean);
   const paren = stats.length > 0 ? ` (${stats.join(", ")})` : "";
-  return `${bet.label} is the single largest contributor to the fund's benchmark-relative risk${paren}. The full bets table — every sector, theme and macro bet, held vs active, with each bet's tracking-error contribution — is a paid detail.`;
+  // Direction in words. The bps figure says how much benchmark-relative risk the
+  // bet creates; it does NOT say which way the bet points, and for most bets the
+  // two disagree — so the sentence has to carry the side explicitly.
+  const side =
+    bet.bet_direction == null
+      ? `${bet.label} is`
+      : bet.bet_direction === "over"
+        ? `The fund leans INTO ${bet.label} relative to its passive twin, and that gap is`
+        : `The fund leans AWAY FROM ${bet.label} relative to its passive twin, and that gap is`;
+  // A diversifying bet has a NEGATIVE contribution — it offsets the fund's other
+  // bets rather than adding risk. Selecting the top bet by magnitude (so the free
+  // and paid views agree on which bet leads) means one can land here, and calling
+  // it a "contributor to risk" would invert what it does.
+  const claim = bet.diversifying
+    ? confident
+      ? "the single largest OFFSET to its benchmark-relative risk — it pulls the other bets back toward the twin"
+      : "among the largest offsets to its benchmark-relative risk — it pulls the other bets back toward the twin"
+    : confident
+      ? "the single largest contributor to its benchmark-relative risk"
+      : "among the largest contributors to its benchmark-relative risk";
+  return `${side} ${claim}${paren}. The full bets table — every geography, sector and macro bet, held vs active, with each bet's tracking-error contribution — is a paid detail.`;
 }
 
 function buildBetRows(
@@ -110,6 +143,9 @@ function buildBetRows(
     rows.push({
       name: b.label,
       type: b.bet_type,
+      // Side of the twin, from the served field (v0.2) or the beta sign (v0.1) —
+      // NEVER from the sign of te_alloc_bps, which disagrees for most bets.
+      direction: betDirection(b),
       heldPct: held,
       iwfPct: passive,
       activePp: active,
@@ -119,11 +155,43 @@ function buildBetRows(
       sub: sub || null,
     });
   }
+  // The display-rule remainder (v0.2). Every bet below the materiality floor,
+  // aggregated — it carries ~55% of the factor variance at median, so dropping it
+  // would overstate how concentrated the fund's factor risk is. No direction
+  // badge: it is a mixed group with no single side.
+  if (te?.other_bets && te.other_bets.te_alloc_bps != null) {
+    const o = te.other_bets;
+    rows.push({
+      name: o.label,
+      type: null,
+      direction: null,
+      heldPct: null,
+      iwfPct: null,
+      activePp: null,
+      teBps: o.te_alloc_bps,
+      diversifying: false,
+      bridge: null,
+      pinned: true, // never truncated away — it is often the largest single row
+      sub:
+        o.var_share != null
+          ? `${Math.round(o.var_share * 100)}% of factor variance · individually too small to name`
+          : "individually too small to name",
+    });
+  }
   // Stock bets (carry held / active from the same-date snapshot; not TE-attributed).
   for (const r of top10?.rows ?? []) {
     rows.push({
       name: r.ticker,
       type: "stock",
+      // A stock row's direction comes from its ACTIVE WEIGHT vs the baseline —
+      // a genuine over/under, unlike the factor rows where the displayed figure
+      // is a tracking-error contribution and carries no direction.
+      direction:
+        typeof r.diff_pp === "number" && r.diff_pp !== 0
+          ? r.diff_pp > 0
+            ? "over"
+            : "under"
+          : null,
       heldPct: r.fund_pct,
       iwfPct: r.iwf_pct,
       activePp: r.diff_pp,
@@ -138,6 +206,7 @@ function buildBetRows(
     rows.push({
       name: b.bet,
       type: null,
+      direction: null, // a bridge row is a pointer, not a measured position
       heldPct: null,
       iwfPct: null,
       activePp: null,
@@ -313,6 +382,12 @@ export function CurrentPositioning({
   );
   const teRollup: TeRollupRow[] = teDecomposition?.rollup ?? teProof?.rollup ?? [];
   const topBet = teProof?.top_bet ?? null; // free-tier proof point only
+  // Only v0.2 payloads carry the rank-1 stability flag. Absent (v0.1) → keep the
+  // prior wording rather than silently downgrading the live page; explicitly
+  // FALSE → drop the superlative, because rank-1 is a coin flip on a near-tie.
+  const topBetConfident = teProof?.top_bet_confident !== false;
+  const topBetDirWord =
+    directionWords(topBet?.bet_type ?? null, betDirection(topBet))?.long ?? null;
   const teTotalBps = teDecomposition?.te_total_bps ?? teProof?.te_total_bps ?? null;
   const teIdioShare = teDecomposition?.idio_risk_share ?? teProof?.idio_risk_share ?? null;
   const teBasisNote = teDecomposition?.basis_note ?? teProof?.basis_note ?? null;
@@ -465,9 +540,24 @@ export function CurrentPositioning({
             <div className="border-t border-gray-100 px-5 py-4">
               {topBet && (
                 <ProofPoint
-                  label="Top active bet by tracking-error contribution"
-                  value={`${topBet.label} ${fmtSignedBps(topBet.te_alloc_bps)}`}
-                  readout={topBetReadout(topBet)}
+                  // No superlative on a near-tie: the served flag says whether #1
+                  // is far enough ahead of #2 to be called the largest at all.
+                  label={
+                    topBet.diversifying
+                      ? topBetConfident
+                        ? "Largest active bet — it REDUCES tracking error"
+                        : "A leading active bet — it REDUCES tracking error"
+                      : topBetConfident
+                        ? "Top active bet by tracking-error contribution"
+                        : "A leading active bet by tracking-error contribution"
+                  }
+                  // The direction word is part of the VALUE, not a footnote —
+                  // "Japan 98 bps" alone reads as a bet ON Japan when the fund is
+                  // most often positioned away from it.
+                  value={`${topBet.label}${
+                    topBetDirWord ? ` · ${topBetDirWord}` : ""
+                  } · ${fmtBpsMagnitude(topBet.te_alloc_bps)}`}
+                  readout={topBetReadout(topBet, topBetConfident)}
                 />
               )}
               <UnlockLine tier="paid">

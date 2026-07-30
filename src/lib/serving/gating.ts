@@ -462,6 +462,10 @@ export interface TeTopBet {
   factor_id: string | null;
   beta: number | null;
   beta_tstat: number | null;
+  /** Which side of the twin — a separate fact from te_alloc_bps, and the majority
+   *  of bets are "under" WITH a positive allocation. Never render one without the
+   *  other. Absent on v0.1 payloads; derive from the beta sign. */
+  bet_direction: "over" | "under" | null;
   var_share: number | null;
   te_alloc_bps: number | null;
   diversifying: boolean;
@@ -476,6 +480,10 @@ export interface TeProofPreview {
   kind: "te";
   rollup: TeRollupRow[];
   top_bet: TeTopBet | null;
+  /** FALSE when the #1-vs-#2 gap is under the threshold — measured rank-1 stability
+   *  there is 53%, so `top_bet` must NOT be headlined as "the largest". Absent on
+   *  v0.1 payloads, where the previous behaviour is preserved. */
+  top_bet_confident: boolean | null;
   te_total_bps: number | null;
   factor_sleeve_te_bps: number | null;
   selection_te_bps: number | null;
@@ -742,6 +750,23 @@ function pickCheapestSubstitute(s: AnyObj): AlternativePreview | null {
   return null;
 }
 
+/** Which side of the passive twin a bet sits on.
+ *
+ *  Prefers the served `bet_direction` (te_decomp_v0.2). Falls back to the sign of
+ *  the FWL beta, which is the exact rule the backend uses — so v0.1 payloads still
+ *  in Postgres before the reload get the same answer rather than no badge at all.
+ *  `y` is the fund MINUS its twin, so beta > 0 means more exposure than the twin.
+ *  Deliberately NOT derived from te_alloc_bps: those signs disagree for the
+ *  majority of bets (an underweight normally ADDS tracking error). */
+export function betDirection(b: AnyObj | null | undefined): "over" | "under" | null {
+  if (b == null) return null;
+  const served = b.bet_direction;
+  if (served === "over" || served === "under") return served;
+  const beta = num(b.beta);
+  if (beta == null || beta === 0) return null;
+  return beta > 0 ? "over" : "under";
+}
+
 /** Grouped sleeve rollup + the single top bet — the free TE proof point. Copies
  *  ONLY named fields (rollup rows + one bet + anchor scalars); the full per-bet
  *  array never leaves the server below the paid gate. Negatives are preserved
@@ -751,13 +776,15 @@ function pickTeProofPoint(s: AnyObj): TeProofPreview | null {
   const bets: AnyObj[] = Array.isArray(s?.bets) ? s.bets : [];
   const rollup: AnyObj[] = Array.isArray(s?.rollup) ? s.rollup : [];
   if (bets.length === 0 && rollup.length === 0) return null;
-  // Top bet = the single largest tracking-error contributor (already ranked in
-  // the served payload; re-max here so ordering is never assumed).
+  // Top bet = the largest tracking-error contributor by MAGNITUDE. A signed max
+  // would rank a small additive bet above a larger diversifying one, which is not
+  // "the biggest bet" by any reading — and on the global basis real negatives are
+  // routine. Re-max here so served ordering is never assumed.
   const withTe = bets.filter((b) => num(b?.te_alloc_bps) != null);
   const top =
     withTe.length > 0
       ? withTe.reduce((a, b) =>
-          (num(b.te_alloc_bps) ?? 0) > (num(a.te_alloc_bps) ?? 0) ? b : a,
+          Math.abs(num(b.te_alloc_bps) ?? 0) > Math.abs(num(a.te_alloc_bps) ?? 0) ? b : a,
         )
       : null;
   const top_bet: TeTopBet | null = top
@@ -767,6 +794,7 @@ function pickTeProofPoint(s: AnyObj): TeProofPreview | null {
         factor_id: (top.factor_id as string | null) ?? null,
         beta: num(top.beta),
         beta_tstat: num(top.beta_tstat),
+        bet_direction: betDirection(top),
         var_share: num(top.var_share),
         te_alloc_bps: num(top.te_alloc_bps),
         diversifying: top.diversifying === true,
@@ -784,6 +812,8 @@ function pickTeProofPoint(s: AnyObj): TeProofPreview | null {
       confidence_state: (r.confidence_state as string | null) ?? null,
     })),
     top_bet,
+    top_bet_confident:
+      typeof s.top_bet_confident === "boolean" ? s.top_bet_confident : null,
     te_total_bps: num(s.te_total_bps),
     factor_sleeve_te_bps: num(s.factor_sleeve_te_bps),
     selection_te_bps: num(s.selection_te_bps),
