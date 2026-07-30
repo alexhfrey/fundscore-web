@@ -306,6 +306,76 @@ matching `global_decomposition`'s estimator (adj-R² + CV-R²/ridge) so segment 
 unification rather than a silent re-levelling.** Report the badge-flip count before/after as a
 gate output, not a footnote.
 
+---
+
+### ✅ SEGMENT 1 SHIPPED 2026-07-30 (fund_score `feature/unify-te-decomposition-global-basis`)
+
+`te_decomp_v0.2_global` built and gated. Gold `data/gold/te_decomposition.parquet`
+(60,419 rows / 1,949 funds, as-of 2026-07-11); v0.1 preserved at
+`te_decomposition.parquet.v0_1-pre-unify-bak`. Serving reload NOT run (owner-gated).
+
+**Coverage 1,949/2,071 scored (94.1%); all 122 misses PROVEN honest** — every suppressed
+fund's OWN NAV ends ≥15 weeks (median 43w) before the anchor, spot-checked against the raw
+weekly panel. Recoverable-missing = **0**. The drop from v0.1's 2,054 is the alignment gate
+correctly refusing funds v0.1 served on 13–53-week-stale windows, plus two further months of
+NAV staleness at the newer anchor.
+
+Measured against the three non-negotiables:
+1. **adj-R² in.** Median idio raw 0.512 → **adj 0.669** (15.7 pts). Badge cut at 0.40: raw
+   441/1,949 (22.6%) vs adj **153/1,949 (7.9%)** — **288 funds spared a mechanical relabel**
+   (spec predicted ~290). `replicable_risk_share` + `idio_risk_share_cv` (ridge nested CV)
+   ship alongside so segment 2 can move the VO consumer wholesale. The ridge estimator was
+   extracted verbatim to `risk_model/ridge_cv.py` (proven bit-identical over 30 trials) so
+   segment 3 can retire `global_decomposition` without orphaning it.
+2. **Window provenance + fail-closed gate in.** `anchor_as_of` / `anchor_lag_weeks` emitted
+   (`window_end` already WAS `fit_window_end`, so no duplicate column). `MAX_ANCHOR_LAG_WEEKS
+   = 13.0` — per-fund skip-and-count, panel invariant #12 in `ted.validate`, plus a build
+   abort with a "refresh the factor chain" diagnostic above 25% suppression. Measured lag
+   p10/p50/p90 all **7.14w**, max 11.14w — the structural FF6 floor, nothing near the ceiling.
+3. **Display-ready labels in.** New `risk_model/basis_labels.py` is the single label/kind
+   source: "China & Emerging Markets", "Germany & Developed Markets ex-US" — merged clusters
+   spelled out, never `+N`; unknown ids raise rather than leak a raw id. Invariant #17 fails
+   the panel on any `::` or `+N` label.
+
+Premise confirmed at panel scale — FCNTX led with `Financial Services +94` and now leads with
+`Technology +55`; FBGRX's financial-services/real-estate leaders → the Korea/Taiwan/Japan
+semiconductor complex; TRNEX's spurious `theme::mag_7` gone (Canada/Gold/Basic Materials);
+RYLSX's `Financial Services +318.7 rank-1 high` → rank 6 at +47.
+
+**Also closed: the folded-in mixed-basis defect (a) — and it was far larger than the backlog
+item estimated.** The v0.1 panel disagreed with the currently-served `te_current` on
+**1,972/2,043 funds** and carried a stale `passive_alt_label` on **509**. v0.2: **0 mismatches**
+on `as_of`, `te_total_bps` (≤1e-9) and `passive_alt_label`.
+
+**Gates:** 18/18 build invariants · `make check FEATURE=te_decomposition` PASS ·
+`/check-data` PASS · 75/75 tests in the affected suites · independent from-raw-inputs
+recompute of FCNTX matches the panel at machine precision on TE anchor, n_obs, raw R², adj R²,
+idio and the FWL beta · 4 serving-payload additivity contracts verified with 0 violations
+across all 1,949 funds · codex cross-vendor gate.
+
+**Three things the owner should know (details in the segment-1 report):**
+- **51.7% of named bets are UNDERWEIGHTS** (negative beta, positive `te_alloc_bps`), and
+  50.9% of funds' rank-1 bet is one. A bare "Japan +98 bps" reads as a bet ON Japan when the
+  fund is positioned away from it. This makes the spec's direction-badge contract a
+  CORRECTNESS requirement, not polish. Mitigated in-panel by a new `bet_direction`
+  ("over"/"under") field; the web must never render the allocation without it.
+- **376 funds (19.3%) have ZERO named bets** at the 22-bps floor — more than segment 0's
+  251-fund sample implied (it predicted p10 = 2). They are low-TE/high-idio funds (median TE
+  316 bps, idio 0.81) whose sleeve genuinely holds nothing above window noise. Honest, and
+  the KIND split + selection sleeve still tell their story — but it is 1-in-5 funds with an
+  empty named-bet table. Recommend keeping the floor; flagging because the rate is the
+  owner's call.
+- **`fact_assembler` was updated in lockstep** (out of segment-1's literal scope) because the
+  v0.2 rollup row would otherwise have been double-counted against the per-bet rows and
+  `no_named_bets` would have been permanently false (`n_bets` is now 29 for every fund).
+  The codex gate then caught a second instance of the same class — `bets` still shipped all
+  29 rows, so a consumer rendering `bets` would show exactly the sub-floor bets the display
+  rule forbids AND double-count them against `other_bets`. **Now only NAMED bets are served**;
+  sub-floor rows stay gold-only as reviewer provenance (the treatment `raw_factor_te_bps` and
+  `fe_*` already get), and the kind rollup is still computed over the whole basis so it keeps
+  summing to the sleeve. The web `bet_type` union (`"sector"|"theme"|"macro"`) still needs the
+  v0.2 kinds — unchanged web follow-up.
+
 ### 2 — Unify the idio consumer
 `value_offering_reframed` reads `idio_risk_share` from the repointed te_decomposition
 (→ `vo_reframe_v0.5`), retiring its `global_decomposition` read. Report the old-vs-new idio
