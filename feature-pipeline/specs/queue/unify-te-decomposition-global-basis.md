@@ -479,6 +479,58 @@ across the 6 affected suites · `tsc --noEmit` clean · codex cross-vendor gate.
 Remove from the default build path; archive module + last parquet (never delete). Migrate or
 retire its checks in `scripts/checks/run_checks.py`.
 
+---
+
+### ✅ SEGMENT 3 SHIPPED 2026-07-31 (fund_score `feature/unify-te-decomp-seg3`)
+
+`global_decomposition` is retired. **The product now has exactly ONE served idio source** —
+segment 4's central invariant is satisfied structurally, not by assertion.
+
+**Census — and the spec's own census was incomplete in two ways, both caught:**
+1. **`build_global_decomposition` emits TWO panels, not one.** `fund_factor_loading.parquet`
+   (4.1 MB) is a second output the step-0.4 census never mentions. Censused separately:
+   consumers are reports/experiments/docs only — **zero production readers**.
+2. **A live read survived my own first pass** because I truncated the grep at `head -30`:
+   `scripts/feature_experiments/global_decomp_cv_stress.py:58` reads the panel. Re-run
+   untruncated and archived. Final state: **0 live reads, 0 live imports** of either panel or
+   the module across `src/ scripts/ tests/`.
+
+`run_checks.py` had **no** global_decomposition entry, so there was nothing to migrate —
+the spec's "migrate or retire its checks" is a no-op, recorded so it isn't re-litigated.
+
+**What moved** — archived, never deleted. Code → `archive/retired/global_decomposition/`
+(module, builder, 3 report/experiment scripts, the cv-stress script, the two `decompose_one`
+tests, plus a README with the resurrection procedure). Panels → `data/gold/_retired/`. The
+Makefile target and its `.PHONY` entry are gone, replaced by a retirement note.
+
+**The one judgement call worth recording — what did NOT get archived.** `ridge_nested_cv_r2`
+is still production (te_decomposition's `idio_risk_share_cv`), and its guarantee — "never
+generalises worse than OLS" — is only testable against the OLS baseline that lived in the
+retiring module. Archiving that baseline would have **silently dropped coverage of a live
+estimator**. So `_wls_full` / `_cv_r2` / `_r2` moved into `risk_model/ridge_cv.py` (verbatim;
+**proven bit-identical vs git HEAD over 40 randomised trials × 3 estimators, 0 mismatches**),
+their tests stayed live as the new `tests/test_ridge_cv.py` (6 tests), and only the two
+`decompose_one` tests — whose subject really is retired — went to the archive. The archived
+module still imports those names, so it is resurrectable unchanged.
+
+**Also removed:** the obsolete segment-2 preview in `build_te_decomposition.py` that compared
+the unified idio against `global_decomposition`. It was guarded by `.exists()`, so retiring the
+panel would have made it **silently no-op** rather than fail — the fail-open shape this project
+keeps getting bitten by.
+
+**Gates.** The decisive one: rebuilding the VO panel with both retired panels *gone* reproduces
+the served panel **bit-identically on every column except `l2_blend_etfs`** (the pre-existing
+non-determinism already filed) — the retirement provably changed nothing downstream.
+Plus `run_checks`: te_decomposition **PASS**, value_offering_reframed **0 FAIL / 1 WARN**
+(the same owner-approved coverage WARN as segment 2, unchanged). Full suite **1,229 passed /
+4 failed** — all 4 proven **pre-existing** by stashing the entire segment-3 diff and
+reproducing them identically on segment 2's tree (`test_manager_people` stale
+source_inventory, `test_openfigi` batch splitting, `test_the_take` ×2 panel invariants; none
+reference any module in the diff). Codex cross-vendor gate.
+
+**Docs de-staled:** `pipeline_status.md` Axis-B block and `07_value_offering.md` now lead with
+v0.5 + the retirement, with the v0.3/v0.4 text kept and marked superseded rather than rewritten.
+
 ### 4 — Gates (fail closed)
 `make check FEATURE=te_decomposition` (existing invariants + new: display-rule coverage — the
 rollup row must reconcile the dropped mass); NEW sibling-coherence check: post-unify there is
