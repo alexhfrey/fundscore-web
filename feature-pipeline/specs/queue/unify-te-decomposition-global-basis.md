@@ -405,6 +405,76 @@ delta distribution (expected small — same basis family — but measured, not a
 - The ridge nested-CV estimator now lives in `risk_model/ridge_cv.py` (shared, bit-identical),
   so segment 3 can archive `global_decomposition` without orphaning it.
 
+---
+
+### ✅ SEGMENT 2 SHIPPED 2026-07-30 (fund_score `feature/unify-te-decomp-seg2`)
+
+`vo_reframe_v0.5`. The VO badge's replicability axis now reads `te_decomposition` — the last
+production read of `global_decomposition` is retired, so **step 3 is unblocked at code level**.
+Gold `value_offering_reframed_panel.parquet` rebuilt (5,937 rows); v0.4 preserved at
+`.v0_4-pre-unify-bak`. Serving reload NOT run (owner-gated).
+
+**The defect this actually closes — measured, not asserted.** On the 1,930 funds that show
+BOTH numbers today, the badge idio and the anatomy-hatch idio disagreed on **1,930 of 1,930**
+(max gap **0.808**). Under v0.5: **0 disagreements, max gap 0.00e+00** across 1,944 funds.
+The two-machines-one-page risk is gone by construction, not by luck. It was live on the
+page: `AnatomySection` read te_decomposition while `InvestorFit` (0.35 cut) and the badge
+(0.40 cut) read global_decomposition.
+
+**Impact vs the live v0.4 panel** (both arms run through the real `vo.assemble` on
+byte-identical prepared inputs): **217/4,202 scored badges change (5.2%)** — "Mostly a
+sector/theme bet" 250 → 163, i.e. the mechanical over-labelling drops by a third.
+`value_index` median |Δ| 1.0 (p10 −5 / p90 +4, max 26); **0 funds lose a `value_index`**.
+Idio delta on the shared set: p10 −0.223 / p50 **−0.013** / p90 +0.164 — medians agree
+because it is the same estimator on the same basis family; the spread is the window
+difference (recent winsorized ~150wk vs full history at MIN_OBS=200).
+
+**OWNER DECISION 2026-07-30 — the coverage gap: honest null + missing reason, no fallback.**
+The gap is **545 funds (13.0% of scored)**, and it is two cohorts, not one:
+
+| cohort | n | replica_r2 p50 | `low_replica_flag` |
+|---|---|---|---|
+| (A) no TE anchor exists | **429 (79%)** | **0.676** | **375 (87%)** |
+| (B) anchor exists, decomposition gate suppressed it | 116 (21%) | 0.920 | 0 |
+| covered by te_decomposition | 1,930 | 0.908 | 0 |
+
+Bucket (A) is not a gap we created — it is the cohort whose passive twin
+`l2_passive_candidate_fit_v1.0` already refuses to name (372 are `not_comparable`). A
+global_decomposition fallback would have served "active risk vs a blend we won't show you."
+Rejected. New field `idio_risk_share_missing_reason` ∈ {`no_passive_anchor` (2,138 scored),
+`decomposition_unavailable` (120)} — both **proven against the sources**, 0 violations on all
+three directional checks. Served in the `replicability` block; web type added.
+
+**Also fixed — a latent defect the swap would have amplified.** `theme_ride_bps` was joined
+*through* the risk frame, so it silently vanished for every fund the risk panel missed: 140
+funds today, and **366 more** under the narrower v0.5 source. That would have disabled
+`is_bet_dominated`'s RETURN route without a trace. It now joins to `funds` independently;
+the entire staged-vs-measured delta (3 funds: FEDMX, FTZCX, ARKX) is explained by newly-present
+theme rides of 221 / 319 / 736 bps.
+
+**Dropped:** `idio_alpha_bps` — a pure pass-through never read by the verdict math, removed
+from serving 2026-06-25 for sign-disagreement with the holdings-path idio. Its only reader
+(the v0.3 explorer report) reads `risk_decomposition.parquet`, not this panel. Verified.
+
+**Gates:** all invariants PASS incl. **new #10** (`idio_risk_share` null ⇔ missing_reason set,
+fails closed on unexplained nulls / off-enum reasons — the shape a silent fallback would
+take) · `run_checks --feature value_offering_reframed` **0 FAIL, 1 WARN** · **115/115** tests
+across the 6 affected suites · `tsc --noEmit` clean · codex cross-vendor gate.
+
+**Two things the owner should know:**
+- **The WARN is the owner's own decision surfacing.** Axis-B coverage 1,944/4,202 = **46%**,
+  below the check's 50% PASS bar (v0.4 sat at 58.9%). It is honest suppression, not a
+  regression — but it will WARN on every run until the threshold is re-based or coverage
+  grows. Re-basing is an owner call, not something to quietly edit.
+- **PRE-EXISTING, NOT MINE — `l2_blend_etfs` is non-deterministic across rebuilds.** Two
+  identical runs differed on **117 funds** (PABBX served `USMV` on one run, `SPY` on the
+  next) — and the ETF *sets* differ, not just their order. Cause: `blend.join(tmap).unique(
+  subset="series_id")` where **6,654 series_ids map to >1 ticker** (share classes), so an
+  arbitrary share class's L2 blend wins. My diff does not touch that code. Per
+  `deterministic-wrong-worse-than-nondeterministic`, the fix is to **adjudicate** which class
+  is authoritative — not to sort-then-unique, which would just freeze one arbitrary winner.
+  Filed as its own item; NOT fixed here.
+
 ### 3 — Retire global_decomposition (gated on step 0.4 census clean)
 Remove from the default build path; archive module + last parquet (never delete). Migrate or
 retire its checks in `scripts/checks/run_checks.py`.

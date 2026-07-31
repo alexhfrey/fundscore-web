@@ -153,6 +153,20 @@ export interface ValueOfferingReframed {
     active_share: number | null;
     te_total_bps: number | null;
     idio_risk_share: number | null;
+    /**
+     * vo_reframe_v0.5: why idio_risk_share is null, when it is. The badge's
+     * replicability axis reads the unified te_decomposition panel — the same one the
+     * anatomy hatch reads — so a null is honest-missing, never a defaulted value.
+     *   no_passive_anchor         — no comparable passive twin, so there is no
+     *                               fund-vs-passive active return to decompose.
+     *   decomposition_unavailable — the twin exists but the decomposition gate produced
+     *                               no fit (stale NAV vs the anchor, too few aligned
+     *                               observations, anchor mismatch, degenerate fit).
+     */
+    idio_risk_share_missing_reason?:
+      | "no_passive_anchor"
+      | "decomposition_unavailable"
+      | null;
     low_replica_flag: boolean | null;
     theme_contrib_bps: number | null;
     theme_ride_delta_bps: number | null;
