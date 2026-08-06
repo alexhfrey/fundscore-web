@@ -368,7 +368,20 @@ A movement renders served data ONLY when ALL of:
   composition by payoff; displayed chains state their own rounding/tie-out conventions;
   `timing`/`SHIFT` figures are never labeled timing *skill*.
 
-## OWNER DECISIONS required at batch 3 (decide before movement build starts — not decided here)
+## OWNER DECISIONS — batch 3 ANSWERED 2026-08-06 (all five; details on each item below)
+**(a) BUILD the receipts backend before cutover** — the complete persuasion story ships at beta;
+sequence the build AFTER the foreign-holdings enrichment lands (else it gates weak for exactly the
+foreign-heavy funds where it matters; building first = building twice). Spec-writer dispatched
+2026-08-06. **(b) ALL THREE extras are IN**: the neighbourhood movement gets its small backend
+panel (spec-writer dispatched 2026-08-06), the P(skill) population strip and the effective-positions
+stat ship as serving riders (lean backlog item filed). Beta = the full SEVEN movements. **(c)
+CURRENT-TWIN FIT** headlines the crescent + the "X% a two-ETF mix" claim (present-tense identity on
+the current twin — basis-coherent with the twin named beside it); the record movement stays on the
+graded-history basis. **(d) settled inline at build review** with the critic panel (owner default
+accepted). **(e) KEEP `force-dynamic`** per-request tier-gated rendering; PPR/ISR revisited only
+with real beta latency data.
+
+### Original decision framing (kept for context)
 - **(a) Per-stock receipts: in or out for beta.** Build the "Per-stock receipts backend for V4
   movement 05" (per-stock holding-period receipts + twin look-through, honest foreign-coverage
   gating) BEFORE cutover — it also unlocks movement 01's holds-differently twin column and the
