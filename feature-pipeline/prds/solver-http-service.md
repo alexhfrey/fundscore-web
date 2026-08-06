@@ -1,6 +1,18 @@
 # PRD — Run the passive solver as an HTTP service so the app can deploy
 
-**Status:** red-teamed (1 round, revised) → **AWAITING OWNER** · **Slug:** `solver-http-service` · **Created:** 2026-07-16 (night run)
+**Status:** RESOLVED — owner answered all 4 questions 2026-08-06 → **ready to spec** · **Slug:** `solver-http-service` · **Created:** 2026-07-16 (night run)
+
+## Owner answers (2026-08-06)
+
+1. **Hosting:** cheapest of Fly.io/Railway that fits a ~1 GB-disk always-on container — engineering
+   picks and reports the actual monthly cost.
+2. **Licensing:** owner will verify the Sharadar/Tiingo license terms permit baking the snapshot
+   into a registry-pushed image BEFORE any image is pushed; build work proceeds up to that point.
+3. **Compaction-first dependency:** de-scope CONFIRMED (stays a standalone hygiene item).
+4. **Freshness:** match the fund-page cadence — fee/holdings inputs refresh between quarterly
+   refits, and the as-of coherence check is an AUTOMATED deploy gate (not a manual runbook step).
+   The refit-pinned L2 as-of and the fresher panel inputs are two cadences in one snapshot; the
+   spec must keep them distinctly labeled and never let a fresher panel silently relabel the solve as-of.
 
 ## Problem
 
