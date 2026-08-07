@@ -1,7 +1,7 @@
 ---
 id: fee-peer-band-web
 title: Render the fee-over-passive peer percentile in the fee ruler (sentence + marker)
-status: queued
+status: done
 track: frontend
 repo: fundscore-web
 lane: lean

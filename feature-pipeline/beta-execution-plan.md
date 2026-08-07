@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-07T03:40-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-07T03:46-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -78,7 +78,7 @@ Worker loops: `IN` = /implement-next (routes by track/lane, reads spec model/eff
 | W3 | Screener beta port (default: Postgres-served; see register) — backlog Beta-launch group | SS→IN (standard) | opus/high | **done** (web `feature/crescent-profile-v2`; fund_score `89044fb` on `w3/query-serving-tables` in worktree `fund_score-wt-w3` — **owner merges both**). Uncovered **P2**. |
 | W4 | Solver HTTP service — `specs/done/solver-http-service.md` (code/container/web-swap/deploy-gate BUILT; snapshot bake + AC3 → D2) | IN (reviewed) | opus/high impl; gates session-model + codex --high | **done** (web `feature/crescent-profile-v2`; fund_score `6dc6dc7` on `w4/solver-http-service`, worktree `fund_score-wt-w4` — **owner merges both**) |
 | W5 | V4 serving riders spec (skill strip + effective-positions) — backlog Beta-launch group; spec now, build in L after F1 | SS | opus/med | **done** → `specs/queue/v4-serving-riders-skill-strip-effective-positions.md` |
-| W6 | Pipeline-state hygiene chore (3 rot spots) — backlog Hardening sweep | FB | sonnet/low | ready |
+| W6 | Pipeline-state hygiene chore (3 rot spots) — backlog Working set (NOT "Hardening sweep"; corrected 2026-08-07) | FB | sonnet/low | **done** |
 
 ### Track C — campaign session (NOT this line's work; listed for sequencing only)
 | C1 | Flat-tail detector fix → cascade resume → deltas → **S1** → local reload → finalize/merge | campaign session | — | in-progress (other session) |
@@ -285,3 +285,18 @@ legacy `funds` table go — `/screener` is its only consumer.
   spec names the understated one), and `fact_assembler.py:2574` folds `is_etf` into `is_passive` so
   **461 served ACTIVE funds lose their manager-skill read** — the section that most applies to them.
   **Queue depth is now 12 specs — past the drain threshold; do not spec more before F1 lifts.** Next: W6.
+- 2026-08-07 03:46 — **W6 DONE. TRACK W IS FULLY DRAINED (W1–W6).** Docs-only, codex skipped per
+  implement-next §6 (`git diff --check` clean). The worker **refuted the backlog's own guess** rather
+  than following it: the broken `source_proposal: proposals/approved/homepage-promise.md` never
+  existed — and neither does the suggested replacement `docs/product/page_specs/home.md` (no such
+  directory, no git history). Retargeting would have manufactured a confident false provenance. It
+  established the real one from evidence instead (all three specs authored in ONE commit `ea98533`
+  alongside the homepage rewrite; one quotes live copy at `src/app/page.tsx:343`) and recorded that.
+  PRD marked RESOLVED only after verifying both derived specs really shipped. A 4th rot spot it found
+  in passing (`specs/done/fee-peer-band-web.md` still `status: queued`) fixed inline by the dispatcher.
+  **THE LINE NOW STOPS — everything remaining is gated on the owner or the campaign session:**
+  Track L on F1 (campaign holds the lakehouse), Track F on S1, D1 on S1+**P1**, D2 on **S4**, D3 on S5.
+  **Owner queue: P1 (Supabase paid tier — blocks D1) and P2 (`/screener` demo data in the beta nav).**
+  Four branches await owner merge: web `feature/crescent-profile-v2` (dfcb513, 49a3e21, 8aa108b,
+  c57ed1c, b8006ea + this) · fund_score `w3/query-serving-tables` (89044fb) · `w4/solver-http-service`
+  (6dc6dc7, 93a3681). Spec queue is 12 deep — drain, don't add.
