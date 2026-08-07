@@ -802,6 +802,18 @@ Variable names, and where they live:
 | `LAUNCHED` | Vercel env, per environment | the gate. **Must stay unset/`false` on production for the whole beta.** Only `"true"` (exact string) opens the site. |
 | `OPS_ALERT_WEBHOOK_URL`, `NEXT_PUBLIC_SUPPORT_EMAIL` | Vercel env, optional | beta ops extras (§9 of `DEPLOYMENT.md`) |
 | `SOLVER_URL`, `PORTFOLIO_SOLVER_AS_OF` | Vercel env | solver; owned by the solver spec, not this runbook. (`QUERY_PARQUET_DIR` was retired 2026-08-07 by screener-beta-port — the query surface serves from Postgres; delete the var wherever it is set.) |
+| `REQUIRE_Q_PRERENDER` | Vercel env, optional, unset today | `1` makes a **deployed** build FAIL when it cannot read `query_canonical_catalog`, instead of shipping 0 prerendered `/q/` slugs with a loud warning. Set it once prod actually carries the query tables (i.e. after this runbook has been executed against prod); until then a hard failure would break every deploy. |
+
+**Which database `npm run build` / `npm start` use.** Next's own file precedence is
+`.env.production.local` > `.env.local` > `.env.production` > `.env`, and both `next build` and
+`next start` run with `NODE_ENV=production` — so until 2026-08-07 every *local* build silently
+opened read queries against the **production** pooler (and a local `npm start` would have *served*
+prod rows). Both now go through `scripts/next-env-guard.mjs`, which:
+on a deployed host (`VERCEL` set) changes nothing, and on any other host promotes `.env.local`'s
+keys into the build's environment so they outrank `.env.production.local`. An explicit shell export
+still wins over both (`DATABASE_URL='postgres://…' npm run build`), and every build prints the
+`host:port/dbname` it resolved before it starts. A local build with no `.env.local` and no explicit
+`DATABASE_URL` is **refused**, not guessed.
 
 Handling rules:
 

@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-07T10:00-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-07T10:59-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -85,9 +85,9 @@ Owner chose this over idle-watching when Track W drained. Every item is a real d
 none needs an owner input, and each de-risks D1 or the fences this plan depends on. Ordered by that.
 | # | Item | Worker | Model/effort | STATUS |
 |---|------|--------|--------------|--------|
-| H1 | [in-progress] **Serving-table DDL has 3 disagreeing definitions** — loader COPYs `position_direction`, absent from Drizzle + `schema.sql` + `drizzle/serving_layer_additive.sql`; facts 13 cols short, 4 retired cols present. A fresh prod DB created the obvious way = failed or silently-truncated load. **Directly a D1 trap.** | FB (cross-repo) | opus/high | ready |
-| H2 | [in-progress] **`branch-guard.sh` fail-open** — resolves the target repo from the FIRST `git -C` anywhere in a compound command; mirror case silently APPROVES a `main` commit. **This is F3's own enforcement.** Audit `codex-commit-gate.sh` for the same shape. | FB | opus/high | ready |
-| H3 | **`npm run build` connects to PROD** — `.env.production.local` outranks `.env.local`, so the mandatory build gate opens prod queries on every machine and its prerender output is misleading everywhere. Careful: Vercel runs the same script, so do not "fix" it by forcing local. | FB | opus/high | ready |
+| H1 | **done** (fund_score `1f3d91f` on `feat/h1-serving-ddl-authority`; web `00db419`) **Serving-table DDL has 3 disagreeing definitions** — loader COPYs `position_direction`, absent from Drizzle + `schema.sql` + `drizzle/serving_layer_additive.sql`; facts 13 cols short, 4 retired cols present. A fresh prod DB created the obvious way = failed or silently-truncated load. **Directly a D1 trap.** | FB (cross-repo) | opus/high | ready |
+| H2 | **done** (harness `c386595` on `fix/commit-hook-target-resolution`; committed over a blocked gate by owner decision — 4 shapes filed) **`branch-guard.sh` fail-open** — resolves the target repo from the FIRST `git -C` anywhere in a compound command; mirror case silently APPROVES a `main` commit. **This is F3's own enforcement.** Audit `codex-commit-gate.sh` for the same shape. | FB | opus/high | ready |
+| H3 | [in-progress] **`npm run build` connects to PROD** — `.env.production.local` outranks `.env.local`, so the mandatory build gate opens prod queries on every machine and its prerender output is misleading everywhere. Careful: Vercel runs the same script, so do not "fix" it by forcing local. | FB | opus/high | ready |
 | H4 | **`/api/ops` has no rate limit** — unauthenticated INSERT path on a public site (the one gate exception). Abuse grows a table; no leak, no compute. Needs a throttle before any ungated launch. | FB | sonnet/med | ready |
 
 ### Track C — campaign session (NOT this line's work; listed for sequencing only)

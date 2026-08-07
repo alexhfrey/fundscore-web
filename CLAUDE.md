@@ -70,4 +70,7 @@ implementer via `model:`/`effort:` frontmatter; gates always stay on the session
   `DATABASE_URL`. `db:studio` — Drizzle Studio. `db:push` refuses (use the per-table apply scripts
   in `scripts/apply-*.mjs` and fund_score's `scripts/pipeline/apply_*_schema.py`).
 - Local dev needs Docker: `npx supabase start` (Postgres on 54322); `DATABASE_URL` in `.env.local`.
-- Build gate before done: `npm run build && npm run lint`.
+- Build gate before done: `npm run build && npm run lint`. The build prints the `host:port/db` it
+  resolved and uses `.env.local` (NOT `.env.production.local`, which Next would otherwise rank
+  higher) on any non-Vercel host; it fails if that database is unreachable. `npm start` gets the
+  same treatment. See `scripts/next-env-guard.mjs`.

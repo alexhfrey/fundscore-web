@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "build": "node scripts/next-env-guard.mjs build",
+    "start": "node scripts/next-env-guard.mjs start",
     "lint": "eslint",
     "db:push": "node scripts/db-push-refuse.mjs",
     "db:studio": "drizzle-kit studio",
