@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-07T00:10-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-07T00:36-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -53,6 +53,16 @@ both vendors, pick cheaper, report actual.
   = prod). Owner merges.
 - **F4 — serving loads**: local reload = S1-gated; preview/prod loads only from the verified
   staging the local reload used ([[serving-db-ahead-of-branches]]).
+  **AMENDED 2026-08-07 (W2 finding, dispatcher-verified — the fence's literal form is not
+  implementable today):** `build_serving_facts.py` never reads `serving_facts_staging.parquet` back;
+  it re-assembles `fund_profile_facts` in-process from CURRENT gold and COPYs from memory (only
+  holdings + attribution are true parquet replays). So a prod load is a REBUILD, not a replay, and
+  gold moving between S1 and D1 would silently change what prod serves. Until `--from-staging`
+  exists (filed as an Open chore), **F4 is satisfied by the runbook's freeze-and-prove protocol**:
+  `shasum` the staging artifact before the load, then diff the re-written staging byte-for-byte
+  against the frozen copy — divergence = abort ([[rebuild-twice-proves-determinism]]). This DETECTS
+  drift rather than preventing it; that is the honest strength of the guard, and D1 must not
+  describe it as a replay.
 
 ## The queue (rank order; work top-down; skip BLOCKED, take the next READY)
 
@@ -64,7 +74,7 @@ Worker loops: `IN` = /implement-next (routes by track/lane, reads spec model/eff
 | # | Item | Worker | Model/effort | STATUS |
 |---|------|--------|--------------|--------|
 | W1 | Beta ops minimum (error tracking + feedback + analytics) — backlog Beta-launch group | SS→IN (lean→**standard**) | opus/med impl, session-model gate | **done** |
-| W2 | Preview+prod load RUNBOOK (write only; execution is D1) — backlog Beta-launch group | SS→IN (lean) | opus/med | ready |
+| W2 | Preview+prod load RUNBOOK (write only; execution is D1) — backlog Beta-launch group | SS→IN (lean) | opus/med | **done** |
 | W3 | Screener beta port (default: Postgres-served; see register) — backlog Beta-launch group | SS→IN (standard) | opus/high | ready |
 | W4 | Solver HTTP service — `specs/queue/solver-http-service.md` (build code/container/web-swap/deploy-gate NOW; snapshot bake + AC3 deferred to D2) | IN (reviewed) | opus/high impl; gates session-model + codex --high | ready |
 | W5 | V4 serving riders spec (skill strip + effective-positions) — backlog Beta-launch group; spec now, build in L after F1 | SS | opus/med | ready |
@@ -101,7 +111,7 @@ Worker loops: `IN` = /implement-next (routes by track/lane, reads spec model/eff
 ### Track D — deploy + beta
 | # | Item | Worker | Model/effort | STATUS |
 |---|------|--------|--------------|--------|
-| D1 | Execute preview+prod serving loads (runbook from W2; prod stays owner-gated). **Also carries W1's ops-schema step: `node scripts/apply-ops-schema.mjs` against prod `henxcsknsjfadetomjeu` AND preview `yqyyvhcrmcwarxweusbw` — until it runs, ops writes fail soft and the beta records NOTHING.** W2's runbook must include it. | FD-style gated run | opus/high | blocked(S1,W2) |
+| D1 | Execute preview+prod serving loads — **follow `docs/RUNBOOK-serving-load.md` (W2, 2026-08-07)**; prod stays owner-gated. **SCOPE IS WIDER THAN THE ORIGINAL FOUR TABLES** (W2 finding): `apply_auth_schema.py` is MANDATORY — `resolveSession()` SELECTs `entitlements` on every signed-in render, so a missing table 500s every page for a beta user — and `apply-lens-schema.mjs` is mandatory for the live `/api/lens/quota` route. Plus W1's ops step: `node scripts/apply-ops-schema.mjs` on prod `henxcsknsjfadetomjeu` AND preview `yqyyvhcrmcwarxweusbw`, else the beta records nothing. F4 is met via the freeze-and-prove protocol, NOT a replay (see amended F4). Blocked additionally on **P1** (Supabase paid tier). | FD-style gated run | opus/high | blocked(S1,W2✓,P1) |
 | D2 | Solver snapshot bake + AC1-5 acceptance on preview; **S4** before image push | IN (continuation of W4) | opus/high | blocked(W4,D1) |
 | D3 | **S5** go/no-go + invites (grant via scripts/grant-early-access.mjs) | owner | — | blocked(all blockers, F6, D1, D2) |
 
@@ -136,7 +146,24 @@ Worker loops: `IN` = /implement-next (routes by track/lane, reads spec model/eff
   sweep for the ~8 reload-resolved items.
 
 ## Parked decisions (owner drains in batches)
-(none yet)
+
+### P1 — Supabase paid tier for prod + preview (a spend commitment; blocks D1)
+**Parked 2026-08-07 by the W2 runbook worker; dispatcher concurs it is yours, not the line's.**
+The beta's serving data does not fit the Supabase free tier: `fund_holdings_full` alone is ~1.4M
+rows, and it has to land in BOTH prod (`henxcsknsjfadetomjeu`) and preview
+(`yqyyvhcrmcwarxweusbw`) — preview because the solver service's end-to-end acceptance (AC3, item
+D2) runs there. The same decision covers rollback: the runbook's only real restore path for a
+FAILED reload is Supabase point-in-time recovery, also paid. First prod load is safe without it
+(the target is empty and the load is one atomic transaction, so a failure rolls back to nothing);
+the exposure starts at the SECOND load, when a bad load could leave prod worse than before.
+**Options:** (a) upgrade both projects to Pro before D1 — simplest, unblocks D1 and D2 together,
+recurring cost per project; (b) upgrade prod only and shrink preview to a sampled subset — cheaper,
+but then AC3 passes against data that isn't production-shaped, which is most of what AC3 is for;
+(c) stay free and cut the beta's holdings depth to fit — a product downgrade, and it contradicts
+the FULL-experience beta decision. **Recommendation: (a).** It is the only option that doesn't
+either weaken the solver's acceptance evidence or shrink the beta experience you already chose,
+and the cost is small next to the campaign work it gates. This is a money question, so the line
+will not decide it. Everything else in D1 is ready to run the moment S1 lands and this is answered.
 
 ## Run log
 - 2026-08-06 20:30 — plan created; W1–W6 READY; C1 with campaign session; all L blocked on F1.
@@ -154,3 +181,14 @@ Worker loops: `IN` = /implement-next (routes by track/lane, reads spec model/eff
   Open chore — NOT a beta blocker (abuse grows a table; no leak, no compute). **Owner action lands in
   D1: `apply-ops-schema.mjs` on prod+preview.** Backlog reconciled, Done trimmed to 3, overflow
   archived. Next: W2.
+- 2026-08-07 00:36 — **W2 DONE.** `docs/RUNBOOK-serving-load.md` (695 lines, 11 sections) + DEPLOYMENT
+  §4.4 pointer. Docs-only → codex skipped per implement-next §6 (`git diff --check` clean); dispatcher
+  spot-verified the three highest-risk claims against real source rather than trusting the inventory,
+  since D1 runs this against PROD: `build_serving_facts.py` flags exact (no `--as-of`),
+  `position_direction` COPYed but absent from Drizzle, `STAGING` never read back. All three hold.
+  Backlog story stays OPEN (only the runbook half shipped; loads are D1). Filed 3 new items: serving
+  DDL 3-way drift (bug), `--from-staging` gap (chore), ops-gaps batch G2/G3/G5/G6/G7/G8 (chore).
+  **F4 AMENDED** — its literal form is unimplementable; D1 satisfies it by freeze-and-prove, not
+  replay. **D1 scope widened**: `apply_auth_schema.py` + `apply-lens-schema.mjs` are mandatory (a
+  missing `entitlements` table 500s every signed-in page) — they were absent from the story's
+  four-table framing. **P1 PARKED for owner** (Supabase paid tier — a spend call, blocks D1). Next: W3.

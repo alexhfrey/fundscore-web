@@ -247,12 +247,26 @@ Add `SOLVER_URL` to Vercel's env.
 
 ### 4.4 Load the serving tables
 
-The app's pages read Postgres, not parquet. Load `fund_profile_facts`, `fund_holdings_full` etc. into
-the hosted Supabase using the existing TRUNCATE+COPY-in-one-transaction path. Watch the free-tier
-size limit — 1.4M holdings rows will push you to Supabase Pro ($25/mo).
+**→ Full procedure: [`RUNBOOK-serving-load.md`](./RUNBOOK-serving-load.md)** (written 2026-08-07).
+It covers both environments end to end — the provenance gate, the DDL order, the load, verification,
+rollback, secrets, and an explicit list of the steps that have no script behind them yet. Read it
+rather than improvising from this section.
+
+The app's pages read Postgres, not parquet. Load `fund_profile_facts`, `fund_holdings_full`,
+`fund_attribution_blocks` and `serving_manifest` into the hosted Supabase using the existing
+TRUNCATE+COPY-in-one-transaction path (fund_score's `scripts/pipeline/build_serving_facts.py`).
+Watch the free-tier size limit — 1.4M holdings rows will push you to Supabase Pro ($25/mo).
 
 **Never load from a branch missing another feature's emitters** — that NULLs newer sections. This has
-bitten before.
+bitten before, and it fails *silently*: the loader COPYs the contract∩table intersection and only
+errors on five required columns, so a missing column is a blank section, not a crash. The runbook's
+pre-flight column diff is the check that catches it.
+
+Two things the schema step needs to get right, both detailed in the runbook: the serving DDL comes
+from fund_score's `apply_serving_schema.py` (**not** `npm run db:push` — `drizzle.config.ts`
+hardcodes `.env.local`, and the TS schema is missing `fund_holdings_full.position_direction`), and
+`apply_auth_schema.py` must run too, because `resolveSession()` reads `entitlements` on every
+signed-in page render.
 
 ### 4.5 Flip the switch
 
