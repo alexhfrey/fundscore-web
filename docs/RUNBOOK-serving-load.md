@@ -386,11 +386,15 @@ script prints its own columns / policies / row counts.
 ## 4. The W1 ops-schema step — both environments, non-negotiable
 
 Shipped 2026-08-07 in commit `dfcb513` (`WEB`, branch `feature/crescent-profile-v2`). It creates
-`ops_error_events`, `ops_feedback`, `ops_pageviews` with RLS on and no policies.
+`ops_error_events`, `ops_feedback`, `ops_pageviews` with RLS on and no policies. **Extended
+2026-08-07 (H4)** to also create `ops_rate_limits` — throttle state for `POST /api/ops` itself (the
+one unauthenticated INSERT path on the public site); see `src/lib/ops/rate-limit.ts`. No new secret
+to provision — the throttle's HMAC key is `DATABASE_URL`, already present in every environment.
 
 **Until it runs against a database, the beta on that database records nothing** — no errors, no
-feedback, no pageviews. The writes fail soft: no crash, no user-visible symptom, no data. A beta you
-cannot observe is the failure mode this step exists to prevent.
+feedback, no pageviews, and no throttle (an unthrottled `/api/ops` is exactly today's behavior, so
+this is a safe default, not a regression). The writes fail soft: no crash, no user-visible symptom,
+no data. A beta you cannot observe is the failure mode this step exists to prevent.
 
 ```bash
 cd /Users/alexfrey/Projects/fundscore-web
@@ -398,7 +402,7 @@ node scripts/apply-ops-schema.mjs        # in the PREVIEW shell   (yqyyvhcrmcwar
 node scripts/apply-ops-schema.mjs        # in the PRODUCTION shell (henxcsknsjfadetomjeu)
 ```
 
-Expected output per run: three `<table>: <columns> (0 rows)` lines, then
+Expected output per run: four `<table>: <columns> (0 rows)` lines, then
 `policies: none (intended — direct-connection writes only)`, then `ops schema applied.`
 
 Verify it took, per environment:

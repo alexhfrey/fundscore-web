@@ -1,13 +1,18 @@
-// Apply the beta-ops tables (errors / feedback / pageviews) to local, preview
-// or production Supabase. Idempotent + non-interactive — drizzle push hangs
-// against Supabase's pooler and would try to reconcile every serving table
-// (same rationale as apply-early-access-schema.mjs / apply-waitlist-schema.mjs).
-// Mirrors src/lib/db/schema/ops.ts.
+// Apply the beta-ops tables (errors / feedback / pageviews / rate-limit
+// throttle) to local, preview or production Supabase. Idempotent +
+// non-interactive — drizzle push hangs against Supabase's pooler and would
+// try to reconcile every serving table (same rationale as
+// apply-early-access-schema.mjs / apply-waitlist-schema.mjs). Mirrors
+// src/lib/db/schema/ops.ts.
 //
 // WHY THIS EXISTS: before beta invites go out we need to see what beta users
-// see. These three tables are the whole of it — one error sink, one feedback
-// channel, one pageview counter — all first-party, so the beta is observable
-// without provisioning a third-party DSN or API key.
+// see. The first three tables are the whole of that — one error sink, one
+// feedback channel, one pageview counter — all first-party, so the beta is
+// observable without provisioning a third-party DSN or API key.
+//
+// `ops_rate_limits` (added 2026-08-07, H4) is not analytics — it is the
+// throttle state for POST /api/ops itself, the one unauthenticated INSERT
+// path on the public site. See src/lib/ops/rate-limit.ts for the design.
 //
 // RLS: enabled with NO policy on any of the three. Writes go through the app's
 // direct postgres.js connection (DATABASE_URL), which is not subject to RLS;
@@ -24,7 +29,12 @@ const url =
 
 const sql = postgres(url);
 
-const TABLES = ["ops_error_events", "ops_feedback", "ops_pageviews"];
+const TABLES = [
+  "ops_error_events",
+  "ops_feedback",
+  "ops_pageviews",
+  "ops_rate_limits",
+];
 
 const STATEMENTS = [
   `CREATE TABLE IF NOT EXISTS public.ops_error_events (
@@ -64,6 +74,12 @@ const STATEMENTS = [
      ON public.ops_pageviews (viewed_at)`,
   `CREATE INDEX IF NOT EXISTS ops_pageviews_path_idx
      ON public.ops_pageviews (path)`,
+
+  `CREATE TABLE IF NOT EXISTS public.ops_rate_limits (
+     key_hash      varchar(64) PRIMARY KEY,
+     window_start  timestamptz NOT NULL,
+     count         integer NOT NULL DEFAULT 1
+   )`,
 
   // Locked down: RLS on, no policies, no grants. Only the app's direct
   // connection (and the service role) can touch these.

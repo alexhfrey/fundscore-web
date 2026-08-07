@@ -4,6 +4,7 @@ import {
   varchar,
   text,
   timestamp,
+  integer,
   index,
 } from "drizzle-orm/pg-core";
 
@@ -95,3 +96,21 @@ export const opsPageviews = pgTable(
     index("ops_pageviews_path_idx").on(table.path),
   ],
 );
+
+/**
+ * Throttle state for `POST /api/ops` — the ONE unauthenticated INSERT path on
+ * the public site (see route.ts's own header comment). One row per HASHED
+ * client key: HMAC-SHA256 of the request's forwarded IP, never the raw
+ * address itself — the same no-raw-IP contract `ops_pageviews` already keeps.
+ * `window_start`/`count` implement a fixed 60-second window; the route resets
+ * both when a key's window has expired rather than inserting a new row per
+ * window, so this table grows with the number of DISTINCT clients ever seen,
+ * not with request volume — small next to the tables it protects, and
+ * additionally pruned opportunistically by the route itself (see
+ * `checkOpsRateLimit` in `src/lib/ops/rate-limit.ts`).
+ */
+export const opsRateLimits = pgTable("ops_rate_limits", {
+  keyHash: varchar("key_hash", { length: 64 }).primaryKey(),
+  windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+  count: integer("count").notNull().default(1),
+});

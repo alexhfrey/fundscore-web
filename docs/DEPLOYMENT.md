@@ -496,6 +496,12 @@ user's crash.
 | **Feedback** | `FeedbackWidget` in the `(site)` chrome — a corner button that captures the current path automatically | `ops_feedback` |
 | **Pageviews** | `OpsBeacon` in the ROOT layout (so it covers the landing page too) → `POST /api/ops` | `ops_pageviews` |
 
+**Throttle (added 2026-08-07, H4):** `POST /api/ops` is the ONE `/api/` route exempt from the
+`early_access` gate, which makes it an unauthenticated INSERT path on a public site. A per-client
+rate limit (`src/lib/ops/rate-limit.ts`) now caps it at 120 requests / 60s per hashed client key —
+still no new secret to provision: the HMAC key is `DATABASE_URL`, already server-only and present
+in every environment. State lives in `ops_rate_limits`, created by the same apply script below.
+
 ### Required step per environment
 
 The tables are **not** created by a deploy. Run once against each database:

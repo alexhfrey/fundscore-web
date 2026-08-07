@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { opsPageviews } from "@/lib/db/schema";
 import { recordServerError } from "@/lib/observability/record-error";
+import { checkOpsRateLimit } from "@/lib/ops/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -18,7 +19,8 @@ import { createClient } from "@/lib/supabase/server";
  * endpoint does no expensive compute, writes one small row, and reflects
  * nothing back to the caller.
  *
- * Guards: same-origin only, 4 KB body cap, everything truncated, no IP stored.
+ * Guards: same-origin only, a per-client rate limit (src/lib/ops/rate-limit.ts),
+ * 16 KB body cap, everything truncated, no IP stored.
  */
 
 // Postgres.js needs a TCP socket, so this must not be edged.
@@ -78,6 +80,12 @@ async function sessionEmail(): Promise<string | null> {
 export async function POST(request: NextRequest) {
   if (!isSameOrigin(request)) {
     return new NextResponse(null, { status: 403 });
+  }
+
+  // Rate limit BEFORE reading the body or looking up a session (both cost
+  // more than this check) — see src/lib/ops/rate-limit.ts for the design.
+  if (!(await checkOpsRateLimit(request))) {
+    return new NextResponse(null, { status: 429 });
   }
 
   const raw = await request.text();
