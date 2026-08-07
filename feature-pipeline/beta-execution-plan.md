@@ -8,10 +8,35 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-07T12:02-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-07T13:29-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
+
+## ⇢ RE-SCOPED 2026-08-07 (owner decision): the target is a CORRECT LOCAL MVP, not invites
+
+**New objective: the product runs on this laptop with data we believe, and `/funds/[ticker]` shows
+the V4 page rather than a preview route.** Deployment is explicitly OFF the near path.
+
+This is a re-scope, not a new plan — it is the same critical path with the deploy tail removed, so
+Tracks L and F are unchanged in content and Track D goes on ice. Nothing built in the W/H run is
+wasted; it stops being urgent.
+
+**What it changes:**
+- **Track D → ICED.** Prod load, solver deploy, invites. With it go owner stops **S4** (Sharadar/
+  Tiingo licence) and **S5** (go/no-go), plus the open preview-tier spend (+$10/mo, measured). None
+  are needed to look at a correct product locally.
+- **Track F ends at F6** (route cutover). That is now the finish line.
+- **P2 (`/screener`) gets MORE urgent, not less.** The point of a local MVP is that the owner can
+  judge the product. A page in the nav rendering invented analyst prose about 25 made-up funds
+  actively corrupts that judgement. Decide it before the F-track critic pass (F5), not after.
+- Six BETA BLOCKERs are all "user-visible wrongness" and matter identically for a product being
+  assessed as for one strangers see. Unchanged in priority.
+
+**Definition of done for this scope:** L1–L11 closed · F1–F6 closed (V4 live at `/funds/[ticker]`
+locally) · the three correctness defects this run found are fixed (effective-positions basis, the
+27.2/31.0 top-10 split, active-ETF skill suppression) · `/check-data` green · the F5 critic panel
+run and its findings triaged.
 
 ## The owner contract (the ONLY interrupts)
 
@@ -20,11 +45,11 @@ The line stops for the owner at exactly these points — everything else is the 
 
 | # | Stop | When |
 |---|------|------|
-| S1 | Per-panel delta review → local serving reload GO | campaign cascade completes (other session presents) |
+| ~~S1~~ | ~~Per-panel delta review → local serving reload GO~~ — **SATISFIED 2026-08-07**: reload done 05:44 (5,819 rows, `src_inv_v0_20260731`), campaign merged into fund_score main. Verified on disk, not reported. | — |
 | S2 | Receipts display-floor sign-off (0.50 priced-NAV floor + 0.50–0.80 sleeve disclosure) | after receipts Segment-0 EDA confirms the numbers |
 | S3 | Product review of the built V4 page (critic-panel results in hand) | before route cutover |
-| S4 | Sharadar/Tiingo license confirmation | before ANY solver image push to a registry |
-| S5 | Batch 4: beta go/no-go + invite list | blocker bar clear + cutover done + prod loaded |
+| S4 | Sharadar/Tiingo license confirmation — **DEFERRED with Track D** (no image push on the local-MVP path) | before ANY solver image push to a registry |
+| S5 | Batch 4: beta go/no-go + invite list — **DEFERRED with Track D** | blocker bar clear + cutover done + prod loaded |
 
 A worker that hits a **genuine product uncertainty** not covered by the decision register does NOT
 stall the loop: it parks the item (STATUS → `parked:owner`, one-paragraph CPO-style brief appended
@@ -44,9 +69,15 @@ both vendors, pick cheaper, report actual.
 
 ## Fences (hard)
 
-- **F1 — lakehouse writes**: until the campaign session closes (S1 + finalize/merge), NO other
-  session writes fund_score data or panels. Track L is BLOCKED on F1. Web work and fund_score
-  *service code on a feature branch* (no data writes) are exempt.
+- **F1 — lakehouse writes** — **LIFTED 2026-08-07, verified not assumed.** Its condition was "until
+  the campaign session closes (S1 + finalize/merge)". Both are facts on disk now: `campaign/
+  refresh-2026-07` **is an ancestor of `fund_score` main**, and the local serving DB was **reloaded
+  2026-08-07 05:44 → 5,819 fact rows on `src_inv_v0_20260731`** (up from 5,675 on the 2026-07-31
+  manifest). The campaign worktree has had no writes for hours, no lakehouse builds are running, no
+  fund_score processes are live. **Track L is ARMED.** F2 still binds — one lakehouse-writing session
+  at a time, in a dedicated worktree. Original text: until the campaign session closes, NO other
+  session writes fund_score data or panels; web work and fund_score *service code on a feature
+  branch* (no data writes) are exempt.
 - **F2 — one lakehouse-writing session at a time**, in a dedicated worktree, per-item commits,
   owner merges ([[shared-worktree-contamination]] / [[fund-score-worktree-shared-lakehouse]]).
 - **F3 — branch-guard**: all commits on run/feature branches; NEVER push web `main` (auto-deploy
@@ -93,37 +124,63 @@ none needs an owner input, and each de-risks D1 or the fences this plan depends 
 ### Track C — campaign session (NOT this line's work; listed for sequencing only)
 | C1 | Flat-tail detector fix → cascade resume → deltas → **S1** → local reload → finalize/merge | campaign session | — | in-progress (other session) |
 
-### Track L — lakehouse (BLOCKED on F1; drain order below once armed)
+### Track L — lakehouse (**ARMED 2026-08-07 — F1 lifted.** Drain in this order; F2 binds: ONE lakehouse session at a time, dedicated worktree)
 | # | Item | Worker | Model/effort | STATUS |
 |---|------|--------|--------------|--------|
-| L1 | Foreign-holdings enrichment CORE (BETA BLOCKER; unlocks L8) — backlog Working set item 1 | FD (reviewed, multi-segment) | opus/high impl; Fable-session gates | blocked(F1) |
-| L2 | Wrong-price-series collisions sweep (BETA BLOCKER) — Working set | FD | opus/high | blocked(F1) |
-| L3 | l2_blend_etfs share-class adjudication (BETA BLOCKER; merged item — sort-key fix FORBIDDEN) | FD | opus/high | blocked(F1) |
-| L4 | value_score stale ticker fees ~139 funds (BETA BLOCKER) | FD | opus/high | blocked(F1) |
-| L5 | Neighbourhood panel backend — `specs/queue/neighbourhood-panel-backend.md` (unblocks F-movement 03; independent of L1-L4, may run first if a second lakehouse window opens — F2 still binds) | IN (reviewed) | opus/high | blocked(F1) |
-| L6 | recent-changes-te-ranked — `specs/queue/recent-changes-te-ranked.md` (unblocks F-movement on Recent Changes) | IN (reviewed) | opus/xhigh | blocked(F1) |
-| L7 | V-spike price corruption 174 funds (BETA BLOCKER; needs ONE off-cycle L2 re-solve — coordinate with L2/L3 so the re-solve runs ONCE, after all price-touching fixes) | FD | opus/high | blocked(F1) |
-| L8 | Taxonomy misroutes / ALT classification (BETA BLOCKER) | FD | opus/high | blocked(F1) |
-| L9 | Per-stock receipts backend — `specs/queue/per-stock-receipts-backend.md` (**blocked on L1**; contains **S2**; on L1 close, blank its `depends_on:` per the spec's unblock note) | IN (reviewed) | opus/high | blocked(L1) |
-| L10 | Riders build — `specs/queue/v4-serving-riders-skill-strip-effective-positions.md`. **RE-RATED 2026-08-07 (W5 grounding): lean/opus-med → reviewed/opus-high.** It is NOT two small additions: effective-positions is ALREADY served and rendered on the WRONG book (`holdings_snapshots` US-ticker basis, not filed `pctVal`) — PRNEX used 57 positions to describe a 127-holding fund, serving 30.5 where the filed book gives 59.8, biased so every fund reads ~2× more concentrated than it is. So L10 is a **correctness fix on a live serving fact**, not a rider, and it must land before F6 cutover. Fold in the top-10 27.2/31.0 split (same root cause, filed as its own bug). | IN (**reviewed**) | **opus/high** | blocked(F1,W5✓) |
-| L11 | Superlative-guard check (top_bet_confident consumer check) — Working set | FB | sonnet/med | blocked(F1) |
+| L1 | Foreign-holdings enrichment CORE (BETA BLOCKER; unlocks L8) — backlog Working set item 1 | FD (reviewed, multi-segment) | opus/high impl; Fable-session gates | **ready** |
+| L2 | Wrong-price-series collisions sweep (BETA BLOCKER) — Working set | FD | opus/high | **ready** |
+| L3 | l2_blend_etfs share-class adjudication (BETA BLOCKER; merged item — sort-key fix FORBIDDEN) | FD | opus/high | **ready** |
+| L4 | value_score stale ticker fees ~139 funds (BETA BLOCKER) | FD | opus/high | **ready** |
+| L5 | Neighbourhood panel backend — `specs/queue/neighbourhood-panel-backend.md` (unblocks F-movement 03; independent of L1-L4, may run first if a second lakehouse window opens — F2 still binds) | IN (reviewed) | opus/high | **ready** |
+| L6 | recent-changes-te-ranked — `specs/queue/recent-changes-te-ranked.md` (unblocks F-movement on Recent Changes) | IN (reviewed) | opus/xhigh | **ready** |
+| L7 | V-spike price corruption 174 funds (BETA BLOCKER; needs ONE off-cycle L2 re-solve — coordinate with L2/L3 so the re-solve runs ONCE, after all price-touching fixes) | FD | opus/high | **ready** |
+| L8 | Taxonomy misroutes / ALT classification (BETA BLOCKER) | FD | opus/high | **ready** |
+| L9 | Per-stock receipts backend — `specs/queue/per-stock-receipts-backend.md` (**blocked on L1**; contains **S2**; on L1 close, blank its `depends_on:` per the spec's unblock note) | IN (reviewed) | opus/high | blocked(L1) — unblocks when L1 closes |
+| L10 | Riders build — `specs/queue/v4-serving-riders-skill-strip-effective-positions.md`. **RE-RATED 2026-08-07 (W5 grounding): lean/opus-med → reviewed/opus-high.** It is NOT two small additions: effective-positions is ALREADY served and rendered on the WRONG book (`holdings_snapshots` US-ticker basis, not filed `pctVal`) — PRNEX used 57 positions to describe a 127-holding fund, serving 30.5 where the filed book gives 59.8, biased so every fund reads ~2× more concentrated than it is. So L10 is a **correctness fix on a live serving fact**, not a rider, and it must land before F6 cutover. Fold in the top-10 27.2/31.0 split (same root cause, filed as its own bug). | IN (**reviewed**) | **opus/high** | **ready** |
+| L11 | Superlative-guard check (top_bet_confident consumer check) — Working set | FB | sonnet/med | **ready** |
 
-### Track F — V4 frontend (movement-by-movement on /preview; needs S1 reload for real data)
+### Track F — V4 frontend (**the reload S1 gated has HAPPENED — 2026-08-07 05:44.** Movement-by-movement, then cutover = the new finish line)
 | # | Item | Worker | Model/effort | STATUS |
 |---|------|--------|--------------|--------|
-| F1 | Movements 00/01/02/05/06(partial) — served-after-reload fields; flip protocol per movement (5 conditions incl. methodology anchor + critic pass) — `specs/queue/profile-v2-production-cutover.md` | IN (reviewed, frontend) | opus/xhigh impl; sonnet craft critics; session-model data critics | blocked(S1) |
-| F2 | Movement 03 (neighbourhood) | IN | opus/high | blocked(L5,S1) |
+| F1 | Movements 00/01/02/05/06(partial) — served-after-reload fields; flip protocol per movement (5 conditions incl. methodology anchor + critic pass) — `specs/queue/profile-v2-production-cutover.md` | IN (reviewed, frontend) | opus/xhigh impl; sonnet craft critics; session-model data critics | **ready** (reload done) |
+| F2 | Movement 03 (neighbourhood) | IN | opus/high | blocked(L5) |
 | F3 | Recent Changes section flip | IN | opus/high | blocked(L6) |
 | F4 | Movement 04 receipts + 01 twin-diff card | IN | opus/high | blocked(L9) |
 | F5 | Full-page critic panel `/critique-funds` → fix round → **S3** | critique pipeline | per-agent pins | blocked(F1-F4) |
 | F6 | Route cutover (per spec §Final route cutover; force-dynamic stays) | IN | opus/xhigh | blocked(S3) |
 
-### Track D — deploy + beta
+### Track D — deploy + beta — **ICED 2026-08-07 (owner re-scope).** Not on the local-MVP path. Everything here keeps its blockers AND is deliberately not worked; S4/S5 and the preview-tier spend go with it. Un-ice when the target changes back to invites.
 | # | Item | Worker | Model/effort | STATUS |
 |---|------|--------|--------------|--------|
 | D1 | **P1-prod ANSWERED 2026-08-07 (paid tier approved) → now blocked on S1 only.** **⚠ SECURITY PREREQ (H1, 2026-08-07): the serving tables grant `anon` full CRUD+TRUNCATE and two have RLS OFF — D1 MUST apply the fixed `apply_serving_schema.py`, and MUST keep it ordered BEFORE `apply_auth_schema.py` (which used to re-open it). Verify with `npm run db:check-serving` after each target.** Execute preview+prod serving loads — **follow `docs/RUNBOOK-serving-load.md` (W2, 2026-08-07)**; prod stays owner-gated. **SCOPE IS WIDER THAN THE ORIGINAL FOUR TABLES** (W2 finding): `apply_auth_schema.py` is MANDATORY — `resolveSession()` SELECTs `entitlements` on every signed-in render, so a missing table 500s every page for a beta user — and `apply-lens-schema.mjs` is mandatory for the live `/api/lens/quota` route. Plus W1's ops step: `node scripts/apply-ops-schema.mjs` on prod `henxcsknsjfadetomjeu` AND preview `yqyyvhcrmcwarxweusbw`, else the beta records nothing. F4 is met via the freeze-and-prove protocol, NOT a replay (see amended F4). Blocked additionally on **P1** (Supabase paid tier). | FD-style gated run | opus/high | blocked(S1) — P1-prod cleared |
 | D2 | Solver snapshot bake + AC1-5 acceptance on preview; **S4** before image push | IN (continuation of W4) | opus/high | blocked(W4,D1) |
 | D3 | **S5** go/no-go + invites (grant via scripts/grant-early-access.mjs) | owner | — | blocked(all blockers, F6, D1, D2) |
+
+## ⇢ START HERE — fresh dispatcher session (written 2026-08-07 for the local-MVP re-scope)
+
+**Run the dispatcher on FABLE at effort `high`.** Not a preference — the tiering rule is
+*reviewer ≥ implementer*, and the gates (`data-reviewer`, `data-quality-critic`, the final data
+gate) inherit the SESSION model while implementers are pinned to opus in spec frontmatter. Track L
+is nothing but reviewed-lane data work, so a session below Fable inverts the rule on every item.
+The W/H run was dispatched on Opus 5, i.e. reviewer == implementer — it held, but it is the weaker
+margin and Track L is where it would actually cost something. Per-item effort is already set in the
+queue rows and in spec frontmatter (L6 is xhigh, most are high); the session level only needs to
+carry dispatch judgement and the adversarial read of worker reports, for which `high` is right.
+
+**First item is L1** (foreign-holdings enrichment). It is the only blocker that UNLOCKS another —
+L9 (per-stock receipts, V4's most persuasive section) is explicitly sequenced behind it, because
+building receipts first means building them twice for exactly the foreign-heavy funds where the
+proof matters most. It is also the largest, so starting it first surfaces bad news early.
+
+**Two permission rules worth adding before you start** — both were denied mid-run last time and
+each cost real capability: `ScheduleWakeup` (without it the loop cannot self-pace; it survives on
+task notifications only) and `git merge` (granted verbally last run, but a settings rule makes it
+durable). Neither is required; both remove friction.
+
+**Serialize, do not parallelize.** Every item lands uncommitted in a shared working tree and the
+codex gate reviews `--uncommitted`, so two concurrent workers entangle each other's diff at the
+gate. The one exception is items in genuinely separate repos. F2 binds harder for Track L: ONE
+lakehouse-writing session at a time, in a dedicated worktree.
 
 ## Run protocol (dispatcher mechanics)
 
@@ -348,3 +405,14 @@ legacy `funds` table go — `/screener` is its only consumer.
   could `exit 0` before the parser; next build → next.config.ts). **P1-prod ANSWERED** (paid tier) →
   D1 now blocked on S1 alone. Owner queue: preview tier (+$10/mo, measured), P2, web-merge go/no-go,
   and a `git merge` permission rule (merges are classifier-blocked for this session).
+- 2026-08-07 13:29 — **RE-SCOPED to a correct LOCAL MVP (owner decision); no execution this session.**
+  **F1 LIFTED — verified on disk, not reported:** `campaign/refresh-2026-07` is an ancestor of
+  fund_score main, and the local serving DB was reloaded **05:44 → 5,819 rows on
+  `src_inv_v0_20260731`** (from 5,675); campaign worktree idle, no lakehouse builds, no live
+  processes. So **S1 is satisfied in fact** and **all of Track L is ARMED** — 11 items including all
+  six BETA BLOCKERs. Track F's reload dependency is likewise met. **Track D ICED** (prod load, solver
+  deploy, invites) and with it S4, S5 and the preview-tier spend. **New finish line: F6, the route
+  cutover — V4 live at `/funds/[ticker]` locally.** P2 (`/screener` demo data) moves UP: it corrupts
+  the owner's own product judgement, which is the entire point of this scope. All five branches from
+  the W/H run are MERGED (fund_score main `53537b2`, harness master `c386595`, web main `93de547`
+  — web NOT pushed; pushing is what deploys). Next session: see § START HERE — Fable/high, begin L1.
