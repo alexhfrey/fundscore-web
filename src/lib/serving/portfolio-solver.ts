@@ -7,11 +7,17 @@
 // the Portfolio X-Ray to "DuckDB-on-Parquet, optionally + Python sidecar for
 // CVXPY" and Decision 5 renders it as a dynamic route handler. The spec fixes
 // the rendering and the engine family (Python for the CVXPY solve) but is silent
-// on the exact bridge. Per the T7b brief, v0 = a dynamic route handler that
-// shells out to the solver CLI (`uv run … --json`) and returns its JSON. No new
-// long-running service; the CLI is the documented entry point (T7a memory
-// portfolio_passive_solver_v0). Swap for a FastAPI sidecar in v1 if cold-start
-// latency or concurrency demand it — the JSON contract here is unchanged.
+// on the exact bridge. v0 was a dynamic route handler shelling out to the solver
+// CLI (`uv run … --json`). v1 (2026-08-07) adds the FastAPI sidecar v0 explicitly
+// anticipated — not for latency, but because Vercel has no Python runtime, no
+// persistent filesystem and no ~700 MB of parquet, so the deployed site could not
+// run the X-Ray at all.
+//
+// TRANSPORT, not logic: `SOLVER_URL` set ⇒ HTTP POST to the solver service;
+// unset ⇒ the original spawn path, kept for local dev. Both return the same
+// `SolveResult.to_dict()` from the same solver module, and the `SolveResponse`
+// union below is unchanged — nothing downstream of this file (route.ts, the
+// X-Ray UI) knows which transport ran.
 //
 // Nothing is fabricated here: this module ONLY parses and forwards the solver's
 // own output. Missing fee / stale exposure / suppressed coverage are the
@@ -22,11 +28,29 @@ import { spawn } from "node:child_process";
 export const SOLVER_VERSION = "portfolio_passive_solver_v0.1";
 export const PORTFOLIO_PAGE_VERSION = "portfolio_xray_page_v0";
 
+// --- Transport selection ----------------------------------------------------
+// `SOLVER_URL` set  ⇒ HTTP to the deployed solver service (every deployed env).
+// `SOLVER_URL` unset ⇒ spawn the CLI in a local fund_score checkout (dev only).
+//
+// The spawn path is NOT a second implementation of anything: it IS the CLI
+// entry point the service's parity gate pins the service to. Keeping it means
+// local solver iteration doesn't require a snapshot + image rebuild between
+// every change, and the reference implementation the gate needs stays exercised
+// daily. The dead-path risk runs the other way, and the Vercel guard below
+// closes it: a deployed host can never silently fall back to spawn().
+const SOLVER_URL = process.env.SOLVER_URL?.replace(/\/+$/, "") ?? "";
+const SOLVER_SHARED_SECRET = process.env.SOLVER_SHARED_SECRET ?? "";
+
 // The solver lives in the fund_score lake/repo, not this app. Mirror the
 // screener's env-var-with-absolute-fallback convention (screener.ts).
 const FUND_SCORE_REPO =
   process.env.FUND_SCORE_REPO ?? "/Users/alexfrey/Projects/fund_score";
 const SOLVER_CLI = `scripts/pipeline/run_portfolio_passive_solver.py`;
+// Spawn-path (local dev) as-of pin ONLY. The HTTP path deliberately sends no
+// as_of_date: the service's baked snapshot owns the solve basis (a manifest
+// value frozen from the served L2 refit) and returns it in
+// SolveResult.as_of_date. Two independent pins is exactly how the X-Ray and the
+// fund pages drift apart.
 const SOLVER_AS_OF = process.env.PORTFOLIO_SOLVER_AS_OF ?? "2026-06-30";
 const UV_BIN = process.env.UV_BIN ?? "uv";
 // The solver reads the canonical single-vintage price panel scoped to the request's
@@ -196,12 +220,95 @@ export function validatePortfolio(
 
 // --- Solver invocation ------------------------------------------------------
 
-/** Shell out to the Python solver CLI and return its parsed JSON.
- * The CLI is the documented entry point (it constructs PortfolioPassiveSolver,
- * calls .solve(), and prints SolveResult.to_dict()). This bridge adds NO
- * computation — it only forwards the solver's own honest output.
+/** Run the passive-blend solve and return its parsed JSON.
+ *
+ * Two transports, ONE contract: whichever path runs, the value is
+ * `SolveResult.to_dict()` from the same solver module. This bridge adds NO
+ * computation — it only forwards the solver's own honest output. Missing fee,
+ * stale exposure and suppressed coverage are the solver's own states and are
+ * passed through untouched; an unreachable solver is an error state, never a
+ * cached or defaulted result.
  */
 export async function runSolver(
+  portfolio: PortfolioInput[],
+): Promise<SolveResponse> {
+  if (SOLVER_URL) return solveOverHttp(portfolio);
+
+  // Fail closed on any deployed host. Vercel has no Python runtime, no uv and
+  // no fund_score checkout, so spawn() there cannot succeed — it would burn the
+  // 300s route budget before failing. Say so immediately and honestly rather
+  // than pretending a misconfiguration is a solver outage.
+  if (process.env.VERCEL) {
+    return {
+      ok: false,
+      error: {
+        error: "Could not reach the passive-blend solver.",
+        detail:
+          "SOLVER_URL is not configured for this deployment; the local spawn path cannot run here.",
+      },
+    };
+  }
+
+  return solveBySpawn(portfolio);
+}
+
+/** HTTP transport: the deployed path. Talks to the authenticated solver service
+ * built from the fund_score repo, which carries its own versioned data snapshot
+ * and owns the solve as-of. */
+async function solveOverHttp(
+  portfolio: PortfolioInput[],
+): Promise<SolveResponse> {
+  try {
+    const res = await fetch(`${SOLVER_URL}/solve`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SOLVER_SHARED_SECRET}`,
+      },
+      // No as_of_date: the service's snapshot owns the solve basis.
+      body: JSON.stringify({ portfolio }),
+      signal: AbortSignal.timeout(SOLVER_TIMEOUT_MS),
+      cache: "no-store",
+    });
+
+    if (res.ok) {
+      return { ok: true, result: (await res.json()) as SolveResult };
+    }
+
+    // 400 / 401 / 500 / 504 all carry the service's {error, detail} body.
+    let error: SolveError = {
+      error: "The passive-blend solver returned an error.",
+      detail: `HTTP ${res.status}`,
+    };
+    try {
+      const body = (await res.json()) as Partial<SolveError>;
+      if (body && typeof body.error === "string") {
+        error = { error: body.error, detail: body.detail };
+      }
+    } catch {
+      /* non-JSON body — keep the status-based message above */
+    }
+    return { ok: false, error };
+  } catch (e) {
+    // Network failure, DNS, TLS, or the AbortSignal timeout.
+    const err = e as Error;
+    return {
+      ok: false,
+      error: {
+        error: "Could not reach the passive-blend solver.",
+        detail:
+          err.name === "TimeoutError"
+            ? `timeout after ${SOLVER_TIMEOUT_MS}ms`
+            : err.message,
+      },
+    };
+  }
+}
+
+/** Spawn transport: LOCAL DEV ONLY (`SOLVER_URL` unset). Shells out to the
+ * solver CLI in a fund_score checkout — the same entry point the service's
+ * parity gate pins the service to. */
+async function solveBySpawn(
   portfolio: PortfolioInput[],
 ): Promise<SolveResponse> {
   const portfolioArg = portfolio

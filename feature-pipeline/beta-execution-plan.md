@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-07T01:05-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-07T03:18-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -76,7 +76,7 @@ Worker loops: `IN` = /implement-next (routes by track/lane, reads spec model/eff
 | W1 | Beta ops minimum (error tracking + feedback + analytics) — backlog Beta-launch group | SS→IN (lean→**standard**) | opus/med impl, session-model gate | **done** |
 | W2 | Preview+prod load RUNBOOK (write only; execution is D1) — backlog Beta-launch group | SS→IN (lean) | opus/med | **done** |
 | W3 | Screener beta port (default: Postgres-served; see register) — backlog Beta-launch group | SS→IN (standard) | opus/high | **done** (web `feature/crescent-profile-v2`; fund_score `89044fb` on `w3/query-serving-tables` in worktree `fund_score-wt-w3` — **owner merges both**). Uncovered **P2**. |
-| W4 | Solver HTTP service — `specs/queue/solver-http-service.md` (build code/container/web-swap/deploy-gate NOW; snapshot bake + AC3 deferred to D2) | IN (reviewed) | opus/high impl; gates session-model + codex --high | ready |
+| W4 | Solver HTTP service — `specs/done/solver-http-service.md` (code/container/web-swap/deploy-gate BUILT; snapshot bake + AC3 → D2) | IN (reviewed) | opus/high impl; gates session-model + codex --high | **done** (web `feature/crescent-profile-v2`; fund_score `6dc6dc7` on `w4/solver-http-service`, worktree `fund_score-wt-w4` — **owner merges both**) |
 | W5 | V4 serving riders spec (skill strip + effective-positions) — backlog Beta-launch group; spec now, build in L after F1 | SS | opus/med | ready |
 | W6 | Pipeline-state hygiene chore (3 rot spots) — backlog Hardening sweep | FB | sonnet/low | ready |
 
@@ -251,3 +251,20 @@ legacy `funds` table go — `/screener` is its only consumer.
   dispatcher independently confirmed `getFundSummaries()` → legacy `funds` table). Also filed: a
   CONFIRMED fail-open in `branch-guard.sh` (resolves the target repo from the first `git -C` anywhere
   in a compound command; the mirror case silently approves a `main` commit). Next: W4.
+- 2026-08-07 03:24 — **W4 DONE (code half; D2 carries the deploy half).** Solver HTTP service built
+  across both repos: authenticated `POST /solve` + `/healthz` + `/manifest`, snapshot builder,
+  container, automated as-of coherence deploy gate, and the `spawn()`→`fetch()` bridge swap behind an
+  UNCHANGED `SolveResponse` union. **AC1 parity 17/17 deep-equal** incl. deterministic run-id hashes;
+  boot verification 4/4. **Hosting: Fly $11.83/mo vs Railway $20.01/mo → Fly**, sized from a MEASURED
+  767 MB peak RSS; nothing provisioned. **S4 respected — no image pushed anywhere.** F1 intact (scratch
+  overlays only). Gates: ruff clean, check registry pass, web lint+build pass, **codex --high PASS both
+  repos**, and the reviewed-lane checkpoint ran as an adversarial `data-reviewer`: **FAIL → fix → PASS
+  on re-review**. That review was the value of the whole item — it broke the price-coherence gate twice
+  (a 90-day-stale panel PASSED the first design; the second was defeated by an aggregate union grid
+  masking a per-series regression, because 79/180 universe ETFs are gap-filled from the fund panel) and
+  caught a FALSE claim in the implementer's own report (`price_lag_days` documented on `/healthz`,
+  absent in fact). Shipped bound is per-series against `max(n_obs)` the lakehouse already records — no
+  invented constant; fund side widened 5 probes → all 4,397 fit-panel funds at a MEASURED 3.5 s cost.
+  Dispatcher separately confirmed `npm run build` reads the PROD database (filed). Residuals filed, not
+  buried: aggregate-vs-per-series in the deploy gate, 53 unchecked never-candidate ETFs, X-Ray
+  two-cadence label, SPY ETF-fallback blowing both timeout budgets. Next: W5.

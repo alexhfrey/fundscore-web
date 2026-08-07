@@ -348,3 +348,150 @@ Cost accepted: one `if` dispatch in `runSolver()` and the dev-only env pins.
   must present it as an option, not a fait accompli.
 - **Cost drift**: the hosting pick is priced at implementation time and reported — no number in
   this spec is binding.
+
+---
+
+## Implementation Result
+
+**Status: BUILT (D1, D2, D3, D4, D5, D7) — pending codex gate + commit. D6 stop honored.
+DEFERRED to queue item D2: the snapshot bake and AC3 end-to-end on preview.**
+Implemented 2026-08-07 by the W4 worker of the beta drain queue.
+Web branch `feature/crescent-profile-v2`; fund_score worktree
+`/Users/alexfrey/Projects/fund_score-wt-w4` on branch `w4/solver-http-service` (off `main`, `5973f0c`).
+
+### Parity evidence (the gate that matters)
+`feature-pipeline/reviews/solver-http-parity-2026-08-07.md` (+ `.json`).
+**17/17 fixture portfolios deep-equal between `POST /solve` and the CLI's `--json`, zero diffs**,
+including the deterministic `solver_run_id` / `portfolio_analysis_id` hashes, spanning covered /
+partial / suppressed / ETF-only / CTM-only-share-class / UIT-blend-leg / dollar-weights /
+dupe-and-case / max-50 (both the resolution and the solve path). Each fixture was also re-run warm
+to prove the scoped-cache union growth is result-neutral. The addendum carries the boot-verification
+matrix (4/4), the 210 s timeout firing for real, the D3 gate output, the four executed web-bridge
+transport paths, the measured sizing, and the in-container dependency proof.
+
+### Re-grounding (implement-next step 4)
+Every concrete reference resolved, with three corrections:
+1. **The middleware is at `src/lib/supabase/middleware.ts`, not `src/middleware.ts`.** The
+   `POST /api/portfolio/solve` → 401 gate is intact and path-based; W1's `/api/ops` exception is the
+   only `/api/` carve-out and does not touch it.
+2. **`fund_profile_facts` has no `payload` column.** The spec's "served refit field in
+   `fund_profile_facts` payloads" describes per-section **top-level JSONB columns**. The canonical
+   D3 field is therefore `passive_baseline -> 'source' ->> 'asof_refit_date'` — verified against
+   `fact_assembler.py:518` AND measured on the local serving DB: exactly one distinct non-null
+   value (`2026-06-30`, 3 664 rows). All three corroborating stamps agree.
+3. **The spec's builder assert `solve_as_of <= both price panels' content_as_of` is unsatisfiable
+   against the current lakehouse and was re-grounded** — see the finding below.
+W3's screener rewrite and removal of `@duckdb/node-api` touch nothing this spec depends on;
+`portfolio-lookthrough.ts` and `route.ts` are untouched, as specified.
+
+### Finding — the price-staleness gate, corrected TWICE (data-reviewer round, 2026-08-07)
+The Sharadar ETF panel covers to **2026-06-18** while the served L2 refit is **2026-06-30**: a
+12-calendar-day vendor lag. The spec's literal assert (`solve_as_of <= both panels' content_as_of`)
+would refuse to package a snapshot reproducing exactly what the fund pages already serve, since the
+served refit was itself solved on that panel.
+
+My first replacement only required a panel to reach **into** the refit's quarter. The adversarial
+data-reviewer executed it on boundary inputs and found it **fails open across a 0–90 day band**: a
+panel ending 2026-04-01, missing ~99% of the quarter's ETF prices, passed. It failed closed in KIND
+but not in DEGREE. That is now fixed at root cause.
+
+**The gate is `fit_sample_gate`, and it is PER SERIES.** For every blend-universe ETF and a set of
+probe funds, the weekly observations still available in the fit window must be at least what the
+**served refit itself achieved with that same series** — `max(n_obs)` from
+`l2_passive_candidate_fit`, a number the lakehouse records rather than one anybody chose. Measured:
+0 violations on the real panels. A panel running *past* `solve_as_of` costs nothing (the window is
+capped at the solve basis), so routine forward refreshes never trip it; only a **regression** does.
+
+A per-series bound is not fussiness — the obvious aggregate version is **silently insensitive**. 79
+of the 180 blend-universe ETFs are tiingo gap-filled from the FUND panel, so the union date grid
+holds at its full 261 points even with Sharadar cut back three months, while 101 individual ETFs
+each lose 10 observations. The aggregate hid the regression completely. (Aggregate-masks-per-series
+is a lesson this project has already paid for.)
+
+Boundary evidence (`scripts/service/test_staleness_gate.py`, table in the evidence file): control
+PASS · **2026-04-01 / 90d FAIL** · 2026-05-15 FAIL · 2026-06-11 / 19d FAIL (1 ETF) · real panel
+2026-06-18 PASS · fund panel cut to the refit date PASS · fund panel cut to 2026-04-01 FAIL (46 ETFs
++ 5/5 probe funds). Lag-in-days is still recorded in `manifest.price_lag_days`, printed on every
+build, **now genuinely on `/healthz`** (it was not before — the reviewer caught the false claim; the
+endpoint was fixed rather than the sentence), and printed by the deploy gate — but it is REPORTED,
+never the bound.
+
+The downstream hole is closed too: the container's own sha check is self-referential, so
+`check_solver_service_coherence.py` re-derives the refit's sample **from the live lakehouse** and
+holds the deployed manifest against it, plus a price-panel non-regression check.
+
+**Final fix round (2026-08-07) — two codex P2s and two reviewer residuals:**
+- `verify()` trusted the manifest to be COMPLETE — it proved every listed input was present, never
+  that the manifest listed everything the solver needs, so a snapshot built with an entry missing
+  booted clean and ran degraded. The input contract moved to
+  `src/fundscore/service/snapshot_contract.py` and is imported by **both** the builder and the
+  service, so there is no second list to drift. Falsified: a manifest with one entry deleted now
+  refuses boot even with the file present on disk.
+- `.dockerignore` re-admitted `data/service/solver_snapshots/**`, sending every snapshot (~1.6 GB
+  each). `data/` is now excluded wholesale and the snapshot arrives via a BuildKit **named
+  context** — structurally one snapshot, not a tidy-directory convention. Verified: main context
+  10.04 kB, snapshot context 986 B.
+- The fund side of the staleness gate went from **5 probe funds to all 4 397 fit-panel funds**,
+  each against its own recorded `n_obs`. Measured cost: **~3.5 s** of load time; the whole builder
+  run is 2.8 s wall clock. A fund-panel regression that flagged 5/5 probes now flags 3 601/4 397.
+- **53 of 180 universe ETFs are never candidates and therefore UNCHECKED.** Deliberately NOT
+  fixed — closing it needs either an invented constant or a cross-snapshot ratchet (a design
+  decision, filed as a backlog item). It is stated in the gate's docstring, in
+  `deploy/solver/README.md`, in every manifest as `fit_sample.unchecked_universe_etfs`, and as a
+  NOTE in every deploy log. Verified tolerable rather than assumed: none of the 53 is selected or
+  a blend component at this refit.
+
+### Findings filed (not fixed here — both out of this spec's scope)
+- **An ETF-fallback row makes the solve exceed every timeout budget.** A book containing a ticker
+  with no taxonomy (`SPY`) draws the full 180-ETF mimicking pool; the solve measured **285 s (CLI) /
+  299 s (HTTP)** — past the service's 210 s budget and the web's 240 s. Identical on both
+  transports, so it is a SOLVER property, not a service one. Belongs to the existing `SPY`-as-input
+  backlog item, which this spec lists as out of scope. DEPLOYMENT.md §4.1/§6 updated with the
+  measurement.
+- **`max_50_holdings` (mixed EQ mandates) honestly suppresses** with
+  `insufficient_overlapping_return_history` — all 50 resolve, but they share no common return
+  window. Correct behaviour; it means that fixture exercises resolution, not the solve, so
+  `max_50_holdings_solvable` was added to cover the max-size solve.
+
+### D-by-D
+- **D1** `scripts/service/build_solver_snapshot.py` — all ten inputs, repo-relative layout,
+  two-cadence manifest, `--mode copy|hardlink|symlink` (copy = the shippable bake; symlink = the
+  zero-disk dev snapshot used here, recorded in the manifest as `link_mode` and REFUSED by the
+  deploy gate). Built and exercised; the shippable copy-mode bake is D2.
+- **D2** `src/fundscore/service/solver_http.py` + `deploy/solver/Dockerfile` (+ `.dockerignore`,
+  `verify_image_deps.py`, `test_boot_verification.py`). `POST /solve`, `GET /healthz`, and an
+  authenticated `GET /manifest` — added because the deploy gate needs per-input sha256 from a
+  REMOTE service, and content hashes fingerprint licensed vendor vintages, so they do not belong on
+  a public health endpoint. Serialized solves, 210 s budget then 504-and-exit, cache cap, boot-time
+  sha256 refusal, body-free logging. Image `deps`→`code`→`runtime` stages; **920 MB** for
+  deps+code, ~1.6 GB with the snapshot. `ecos` has no aarch64 wheel, so deps build in a
+  throwaway toolchain stage and ship as a bare venv.
+- **D3** `scripts/checks/check_solver_service_coherence.py`, registered in `run_checks.py` as
+  `default=False` (it needs a live `--solver-url` and the serving `--database-url`, neither of which
+  exists during a lakehouse `make check`). Green on all substantive checks against the local serving
+  DB; correctly FAILS the dev symlink snapshot.
+- **D4** `src/lib/serving/portfolio-solver.ts` only. `SOLVER_URL` set ⇒ `fetch()` sending **no
+  `as_of_date`**; unset ⇒ the original spawn path, now `solveBySpawn()`; `VERCEL` set with no
+  `SOLVER_URL` ⇒ honest error, never a spawn attempt. `SolveResponse` unchanged, `route.ts`
+  untouched. All four paths executed live.
+- **D5** Fly.io picked. Priced from public pages 2026-08-07: Fly `shared-cpu-2x` 2 GB = **$11.83/mo**
+  flat; Railway equivalent = **$20.01/mo** ($5 Hobby plan + $0.00000386/GB/s x 2.592 M s of resident
+  memory, less the $5 credit). Fly is ~half at every size, because Railway meters resident memory
+  and a warm solver is resident by design. Sized from a MEASURED **745 MB peak RSS** (x1.5 = 1.12 GB
+  ⇒ 2 GB; 1 GB is too tight). No account created, nothing provisioned. One open item: Fly's docs
+  state no default rootfs size or image-size cap and the image is ~1.6 GB — verify before provisioning.
+- **D6** **HONORED. No image was pushed to any registry.** Built and run locally only.
+- **D7** `docs/DEPLOYMENT.md` masthead, §1 table, §4.1 (retired), §4.3 (rewritten), §5 (re-measured:
+  the old four-input/2.2 GB list named the retired tiingo glob and missed six files), §6, §7 env
+  table. `deploy/solver/README.md` written. Cadence row added to `pipeline_status.md` Pending Actions.
+
+### Gates
+- web `npm run lint`: 0 errors (1 pre-existing warning in `.claude/workflows/implement-backend-spec.js`, commit `6c1d78e`, untouched here). `npm run build`: pass, `/api/portfolio/solve` still ƒ Dynamic, `/q/[slug]` still ● SSG x14.
+- fund_score `ruff check` on all new files: clean. `pytest tests/`: 1237 passed, 6 failed — 5 reproduce identically on `main` (pre-existing, data-dependent); the 6th (`test_check_registry`) WAS mine and is fixed by registering the new check.
+- codex gate + commits deliberately NOT run: the dispatcher owns both.
+
+### Remaining for D2
+Bake a `--mode copy` snapshot; `docker build` the full image; re-run parity + the anti-fail-soft
+probes **inside the container**; **S4 licensing confirmation**; push and deploy to Fly; run the D3
+gate against the deploy's serving DB (needs D1's preview load, blocked on S1/P1); AC3 end-to-end on
+a Vercel preview; set `SOLVER_URL` + `SOLVER_SHARED_SECRET` in Vercel preview + production.
