@@ -1,24 +1,21 @@
 "use client";
 // ============================================================================
-// SectionNav — sticky dossier spine with scroll-spy over the 8 section ids.
-// Client island: tracks the active section as the reader scrolls and keeps the
-// active chip in view on the horizontally-scrolling rail.
+// SectionNav — sticky dossier spine with scroll-spy over the Crescent v2 page's
+// five top-level blocks. Client island: tracks the active block as the reader
+// scrolls and keeps the active chip in view on the horizontally-scrolling rail.
 // ============================================================================
 import { useEffect, useRef, useState } from "react";
 
 const SECTIONS: { id: string; num: string; label: string }[] = [
-  { id: "s1", num: "01", label: "Verdict" },
-  { id: "s2", num: "02", label: "Summary" },
-  { id: "s3", num: "03", label: "Performance" },
-  { id: "s4", num: "04", label: "Attribution" },
-  { id: "s5", num: "05", label: "Positioning" },
-  { id: "s6", num: "06", label: "Changes" },
-  { id: "s7", num: "07", label: "Fees" },
-  { id: "s8", num: "08", label: "Family" },
+  { id: "b1", num: "01", label: "Verdict" },
+  { id: "b2", num: "02", label: "Anatomy" },
+  { id: "b3", num: "03", label: "Price" },
+  { id: "b4", num: "04", label: "Performance" },
+  { id: "b5", num: "05", label: "Twin & more" },
 ];
 
 export function SectionNav({ passiveNote }: { passiveNote?: string | null }) {
-  const [active, setActive] = useState("s1");
+  const [active, setActive] = useState("b1");
   const railRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

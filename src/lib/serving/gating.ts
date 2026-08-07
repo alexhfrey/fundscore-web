@@ -153,6 +153,20 @@ export interface ValueOfferingReframed {
     active_share: number | null;
     te_total_bps: number | null;
     idio_risk_share: number | null;
+    /**
+     * vo_reframe_v0.5: why idio_risk_share is null, when it is. The badge's
+     * replicability axis reads the unified te_decomposition panel — the same one the
+     * anatomy hatch reads — so a null is honest-missing, never a defaulted value.
+     *   no_passive_anchor         — no comparable passive twin, so there is no
+     *                               fund-vs-passive active return to decompose.
+     *   decomposition_unavailable — the twin exists but the decomposition gate produced
+     *                               no fit (stale NAV vs the anchor, too few aligned
+     *                               observations, anchor mismatch, degenerate fit).
+     */
+    idio_risk_share_missing_reason?:
+      | "no_passive_anchor"
+      | "decomposition_unavailable"
+      | null;
     low_replica_flag: boolean | null;
     theme_contrib_bps: number | null;
     theme_ride_delta_bps: number | null;
@@ -173,8 +187,10 @@ export interface TheTake {
 // --- value_score (CURRENT value verdict, 2026-06-29) — the hero ----------------
 // Net active value over the passive alternative. RELATIVE/DIAGNOSTIC, never
 // "beats passive". The verdict (coverage_state, breakeven_state, passive alt,
-// confidence) is public/free; the precise figures + the gross/fee receipt are
-// paid (verdict free, precision paid — nulled by applyGates below the paid tier).
+// confidence) is public/free, as is replica_r2 (Crescent v2 fill mark — a
+// confidence detail, not a precise figure); the precise figures + the
+// gross/fee receipt stay paid (verdict free, precision paid — nulled by
+// applyGates below the paid tier).
 export interface ValueScore {
   coverage_state: string | null; // scored | too_new | not_comparable | fee_unavailable
   scored: boolean | null;
@@ -188,7 +204,7 @@ export interface ValueScore {
   passive_alt_label: string | null; // ALWAYS shown beside the verdict
   passive_alt_fee_bps: number | null; // the index's OWN fee — symmetric comparison (paid)
   beta: number | null; // (paid)
-  replica_r2: number | null; // replica quality (paid — confidence detail)
+  replica_r2: number | null; // replica quality — PUBLIC (Crescent v2 fill mark)
   n_weeks: number | null; // track-record length (paid — window detail)
   framing: string | null; // 'relative_diagnostic'
   method_version: string | null;
@@ -460,6 +476,10 @@ export interface TeTopBet {
   factor_id: string | null;
   beta: number | null;
   beta_tstat: number | null;
+  /** Which side of the twin — a separate fact from te_alloc_bps, and the majority
+   *  of bets are "under" WITH a positive allocation. Never render one without the
+   *  other. Absent on v0.1 payloads; derive from the beta sign. */
+  bet_direction: "over" | "under" | null;
   var_share: number | null;
   te_alloc_bps: number | null;
   diversifying: boolean;
@@ -474,6 +494,10 @@ export interface TeProofPreview {
   kind: "te";
   rollup: TeRollupRow[];
   top_bet: TeTopBet | null;
+  /** FALSE when the #1-vs-#2 gap is under the threshold — measured rank-1 stability
+   *  there is 53%, so `top_bet` must NOT be headlined as "the largest". Absent on
+   *  v0.1 payloads, where the previous behaviour is preserved. */
+  top_bet_confident: boolean | null;
   te_total_bps: number | null;
   factor_sleeve_te_bps: number | null;
   selection_te_bps: number | null;
@@ -740,6 +764,23 @@ function pickCheapestSubstitute(s: AnyObj): AlternativePreview | null {
   return null;
 }
 
+/** Which side of the passive twin a bet sits on.
+ *
+ *  Prefers the served `bet_direction` (te_decomp_v0.2). Falls back to the sign of
+ *  the FWL beta, which is the exact rule the backend uses — so v0.1 payloads still
+ *  in Postgres before the reload get the same answer rather than no badge at all.
+ *  `y` is the fund MINUS its twin, so beta > 0 means more exposure than the twin.
+ *  Deliberately NOT derived from te_alloc_bps: those signs disagree for the
+ *  majority of bets (an underweight normally ADDS tracking error). */
+export function betDirection(b: AnyObj | null | undefined): "over" | "under" | null {
+  if (b == null) return null;
+  const served = b.bet_direction;
+  if (served === "over" || served === "under") return served;
+  const beta = num(b.beta);
+  if (beta == null || beta === 0) return null;
+  return beta > 0 ? "over" : "under";
+}
+
 /** Grouped sleeve rollup + the single top bet — the free TE proof point. Copies
  *  ONLY named fields (rollup rows + one bet + anchor scalars); the full per-bet
  *  array never leaves the server below the paid gate. Negatives are preserved
@@ -749,13 +790,15 @@ function pickTeProofPoint(s: AnyObj): TeProofPreview | null {
   const bets: AnyObj[] = Array.isArray(s?.bets) ? s.bets : [];
   const rollup: AnyObj[] = Array.isArray(s?.rollup) ? s.rollup : [];
   if (bets.length === 0 && rollup.length === 0) return null;
-  // Top bet = the single largest tracking-error contributor (already ranked in
-  // the served payload; re-max here so ordering is never assumed).
+  // Top bet = the largest tracking-error contributor by MAGNITUDE. A signed max
+  // would rank a small additive bet above a larger diversifying one, which is not
+  // "the biggest bet" by any reading — and on the global basis real negatives are
+  // routine. Re-max here so served ordering is never assumed.
   const withTe = bets.filter((b) => num(b?.te_alloc_bps) != null);
   const top =
     withTe.length > 0
       ? withTe.reduce((a, b) =>
-          (num(b.te_alloc_bps) ?? 0) > (num(a.te_alloc_bps) ?? 0) ? b : a,
+          Math.abs(num(b.te_alloc_bps) ?? 0) > Math.abs(num(a.te_alloc_bps) ?? 0) ? b : a,
         )
       : null;
   const top_bet: TeTopBet | null = top
@@ -765,6 +808,7 @@ function pickTeProofPoint(s: AnyObj): TeProofPreview | null {
         factor_id: (top.factor_id as string | null) ?? null,
         beta: num(top.beta),
         beta_tstat: num(top.beta_tstat),
+        bet_direction: betDirection(top),
         var_share: num(top.var_share),
         te_alloc_bps: num(top.te_alloc_bps),
         diversifying: top.diversifying === true,
@@ -782,6 +826,8 @@ function pickTeProofPoint(s: AnyObj): TeProofPreview | null {
       confidence_state: (r.confidence_state as string | null) ?? null,
     })),
     top_bet,
+    top_bet_confident:
+      typeof s.top_bet_confident === "boolean" ? s.top_bet_confident : null,
     te_total_bps: num(s.te_total_bps),
     factor_sleeve_te_bps: num(s.factor_sleeve_te_bps),
     selection_te_bps: num(s.selection_te_bps),
@@ -855,10 +901,13 @@ export function applyGates(row: FactRow, userState: UserState): FactRow {
 
   // Field-level: the Value Score VERDICT is public/free — coverage_state,
   // breakeven_state (above/≈/below the passive alternative), the passive alt
-  // label, confidence, and framing. The PRECISE figures (exact 0-100, net bps,
-  // the gross/fee receipt, the index's own fee, replica R²/window/beta) are
-  // paid/pro: withhold the noisiest digits from the least-sophisticated tier
-  // (verdict free, precision paid). Mirrors the legacy value_index paid-gate.
+  // label, confidence, and framing. replica_r2 is ALSO public (Crescent v2:
+  // the fill mark/chip/verdict strip need it below the paid tier — it's a
+  // replica-quality confidence detail, not a precise value figure). The
+  // remaining PRECISE figures (exact 0-100, net bps, the gross/fee receipt,
+  // the index's own fee, window/beta) stay paid/pro: withhold the noisiest
+  // digits from the least-sophisticated tier (verdict free, precision paid).
+  // Mirrors the legacy value_index paid-gate.
   if (out.valueScore && !isLocked(out.valueScore) && rank < TIER_RANK.paid) {
     const vs = out.valueScore as ValueScore;
     out.valueScore = {
@@ -868,7 +917,6 @@ export function applyGates(row: FactRow, userState: UserState): FactRow {
       gross_alpha_bps: null,
       fee_bps: null,
       passive_alt_fee_bps: null,
-      replica_r2: null,
       n_weeks: null,
       beta: null,
       locked_fields: [
@@ -877,7 +925,6 @@ export function applyGates(row: FactRow, userState: UserState): FactRow {
         "gross_alpha_bps",
         "fee_bps",
         "passive_alt_fee_bps",
-        "replica_r2",
         "n_weeks",
         "beta",
       ],

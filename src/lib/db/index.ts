@@ -23,3 +23,22 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 export const db = drizzle(client, { schema });
+
+/**
+ * The database this process is actually pointed at, as `host:port/dbname` —
+ * never the credentials. Exists so a failure can say WHICH database it could
+ * not reach: `.env` precedence makes that genuinely ambiguous (Next loads
+ * `.env.production.local` ahead of `.env.local`, so for a long time every local
+ * `npm run build` silently opened queries against the production pooler).
+ * `scripts/build.mjs` prints the same string before the build starts.
+ */
+export function describeDbHost(): string {
+  const url = process.env.DATABASE_URL;
+  if (!url) return "(DATABASE_URL is unset)";
+  try {
+    const u = new URL(url);
+    return `${u.hostname}:${u.port || "5432"}${u.pathname}`;
+  } catch {
+    return "(DATABASE_URL is not a parseable URL)";
+  }
+}

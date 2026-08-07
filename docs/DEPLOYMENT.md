@@ -1,7 +1,9 @@
 # Deployment — architecture decision + go-live runbook
 
 **Status:** adopted 2026-07-14. Supersedes nothing (first deployment decision).
-**Stack:** Vercel (app) · Supabase (Postgres + Auth) · Cloudflare R2 (parquet) · Fly.io (solver)
+**Stack:** Vercel (app) · Supabase (Postgres + Auth) · **Fly.io (solver — priced against Railway
+2026-08-07, see §4.3)**. Cloudflare R2 is no longer in the picture: the query surface serves from
+Postgres (screener-beta-port, 2026-08-07) and the solver carries a baked data snapshot.
 
 ---
 
@@ -112,14 +114,15 @@ So the split is:
 |---|---|---|
 | Next.js app — all pages, RSC, server actions, route handlers | **Vercel** | CDN, preview deploys, image optimisation, zero ops. The landing page is `force-static` and served from the edge. |
 | Postgres + Auth | **Supabase** | Already the app's DB and auth provider. Free tier covers the gated phase outright. |
-| Pricing parquet + query parquet | **Cloudflare R2** | DuckDB reads it over `httpfs`. R2 has **zero egress fees**, which matters a lot when a query scans remote parquet. |
-| Passive-blend solver (Python/CVXPY) | **Fly.io** | A small always-on machine that holds the pricing panel warm in memory and answers `POST /solve` over HTTP. |
+| ~~Pricing parquet (solver inputs)~~ | ~~Cloudflare R2~~ | **Retired 2026-08-07.** The solver ships a versioned snapshot baked into its own image (see §4.3), so nothing pulls parquet at boot. The query parquets went the same way — the canonical query surface serves from Postgres (screener-beta-port). |
+| Passive-blend solver (Python/CVXPY) | **Fly.io** | A small always-on machine holding the price panel warm in memory, answering `POST /solve` over HTTP. Vendor chosen 2026-08-07 by pricing it against Railway — §4.3 has the actual numbers. |
 
 ### What we deliberately did NOT do
 
-- **Bundle parquet into the app.** `src/lib/serving/screener.ts` states the rule: *"parquets stay in
-  object storage / the lake, never bundled with the app."* The query parquets are only 1.1 MB and it
-  would have been easy — but it's the wrong boundary, and it rots the moment the lake rebuilds.
+- **Bundle parquet into the app.** The query parquets are only 1.1 MB and it would have been easy —
+  but it's the wrong boundary, and it rots the moment the lake rebuilds. (Superseded 2026-08-07: the
+  query surface is 155 rows, so it just serves from Postgres like every other panel — no parquet on
+  the app host, no object store, no query engine in the request path.)
 - **Run Next.js in a container next to the solver.** One deploy, simpler ops — but it gives up the
   CDN, preview deploys and image optimisation on a page whose entire job is marketing. Wrong trade.
 - **Ship the whole 51 GB lakehouse to the solver host.** The solver reads **four inputs, ~2.2 GB
@@ -208,51 +211,135 @@ build time.
 
 Do these in order. **The compaction comes first** — it is what makes everything after it simple.
 
-### 4.1 Compact the pricing panel (blocking, and the highest-leverage fix)
+### 4.1 ~~Compact the pricing panel~~ — RETIRED (superseded 2026-07-16, confirmed by the owner 2026-08-06)
 
-The solver defaults to the glob `data/vendors/tiingo/daily_pricing/*.parquet` — **3,994 separate
-files, re-globbed and re-read on every single request.** That, not CVXPY, is the 170–220s.
+This section described the solver re-globbing 3,994 tiingo files per request, and made compaction a
+prerequisite for a synchronous HTTP solve. Both facts are stale. The solver reads the canonical
+single-vintage `data/gold/fund_daily_adj_close.parquet` with predicate pushdown, and **warm solves
+are ~1–4 s** (measured again 2026-08-07 across the parity fixture suite). No job queue is needed and
+compaction is not a dependency.
 
-Materialise one compacted panel and repoint the default. See the backlog item
-*"Compact the Tiingo daily-pricing panel"*. Expected: minutes → seconds. Verify the blend and fee gap
-come back **bit-identical** — this is a pure I/O change, so any numeric drift is a defect.
+One residual, and it is a real one: a book whose rows fall back to the ETF universe (no taxonomy)
+draws on the whole 180-ETF mimicking pool, and that solve measured **~278 s** — beyond both the
+service's 210 s budget and the web's 240 s fetch budget, on either transport. That belongs to the
+`SPY`-as-input backlog item in §6, not to the service.
 
-Until this lands, a synchronous HTTP solve is not viable and you would need a job queue instead.
+### 4.2 ~~Cloudflare R2~~ — RETIRED 2026-08-07, provision nothing
 
-### 4.2 Cloudflare R2
+**There is no R2 step. Do not create a bucket or an API token.** Both things this section used to
+upload have gone elsewhere, and neither pulls an object at runtime:
 
-Upload the solver's inputs and the query parquets. Create an R2 bucket + an S3-compatible API token.
+- **Solver inputs** → the service carries a versioned snapshot baked into its image, sha256-verified
+  at boot (§4.3). Nothing is fetched at startup.
+- **Query parquets** → `/q/[slug]`, `/search` and `/lens/[lens_slug]` read the
+  `query_canonical_catalog` / `query_canonical_results` serving tables in Postgres
+  (screener-beta-port, 2026-08-07). DuckDB, `QUERY_PARQUET_DIR` and the MotherDuck plan are all
+  retired. Build-time prerendering of `/q/[slug]` comes for free on any host whose `DATABASE_URL`
+  reaches a loaded serving database — see `docs/RUNBOOK-serving-load.md`.
 
-DuckDB reads R2 over `httpfs` with no query rewrite (`screener.ts` already anticipates this:
-*"v1 swaps the source path for a MotherDuck connection string"*). Point `QUERY_PARQUET_DIR` at the
-bucket to restore build-time prerendering of `/q/[slug]` and its SEO value.
+Kept as a heading rather than deleted so the §4.x numbering in older notes still resolves, and so the
+"why not object storage" question does not get re-litigated: the original argument for R2 over S3 was
+free egress, which stopped mattering once nothing egresses.
 
-R2 over S3 specifically because **egress is free** — DuckDB scanning remote parquet is exactly the
-access pattern that makes S3 egress bills unpleasant.
+### 4.3 The solver service — BUILT 2026-08-07 (`solver-http-service`)
 
-### 4.3 Fly.io — the solver service
+**The "pull the panel from R2 on boot" sketch that used to live here is superseded.** The service
+carries a **versioned data snapshot baked into its image**, verified by sha256 at boot. Nothing is
+fetched at startup, so there is no boot-time network dependency and no way to come up healthy on the
+wrong data. Full documentation lives with the code:
+**`fund_score/deploy/solver/README.md`**.
 
-A small always-on machine (`shared-cpu-1x`, 2 GB RAM is enough for a ~2.2 GB panel read lazily; size
-up if you hold it fully in memory). It should:
+The web side of the swap is done: `src/lib/serving/portfolio-solver.ts` now dispatches on
+`SOLVER_URL` — set ⇒ `fetch()` to the service; unset ⇒ the original `spawn()` path, kept for local
+dev only. **On Vercel with `SOLVER_URL` unset it fails closed** with an honest error instead of
+attempting a `spawn()` that cannot work. `route.ts`, `XrayResult.tsx` and the look-through are
+untouched: the `SolveResponse` contract is unchanged.
 
-1. Pull the compacted pricing panel from R2 on boot (or mount a Fly volume).
-2. Hold it **warm in memory** — this is the entire point of a persistent service.
-3. Expose `POST /solve` returning the solver's existing `to_dict()` payload unchanged.
+#### What runs there
 
-Then in `src/lib/serving/portfolio-solver.ts`, replace `spawn()` with `fetch()` behind the **same
-`SolveResponse` contract**. Nothing downstream changes — `route.ts`, `XrayResult.tsx` and the
-look-through all keep working, because they only ever see `SolveResult`.
+| | |
+|---|---|
+| Endpoints | `POST /solve` (bearer), `GET /healthz` (public), `GET /manifest` (bearer) |
+| Image | `fund_score/deploy/solver/Dockerfile`. Deps+code layers measured **920 MB**; the snapshot adds **~712 MB** ⇒ **~1.6 GB** total |
+| Memory | peak RSS measured over the fixture suite incl. a 50-holding book — see the parity report; instance sized ≥ 1.5× that |
+| Concurrency | solves are **serialized** (one in flight). Warm solves ~1–4 s; five concurrent users ⇒ ~20 s worst case |
+| Timeouts | service budget `SOLVER_SOLVE_TIMEOUT_S=210` sits inside the web's `PORTFOLIO_SOLVER_TIMEOUT_MS=240000`. Over budget ⇒ 504, then the process exits for a supervisor restart |
 
-Add `SOLVER_URL` to Vercel's env.
+#### Vendor: priced 2026-08-07, Fly.io picked
+
+Owner decision was "price both, pick the cheaper, report the actual numbers". Both from public
+pricing pages on 2026-08-07, us-east, one always-on instance, no volume (the snapshot is in the
+image), egress negligible at beta scale:
+
+| | Fly.io | Railway |
+|---|---|---|
+| Pricing model | fixed per always-on machine | $5/mo Hobby plan (incl. $5 credit) + **metered actual usage** |
+| 1 GB resident | **$5.92/mo** (`shared-cpu-1x`) | $10.00/mo ($0.00000386/GB/s × 2.592 M s = $10.005, less the $5 credit, plus the $5 plan) |
+| 2 GB resident | **$11.83/mo** (`shared-cpu-2x`) | $20.01/mo (same arithmetic at 2 GB) |
+| 4 GB resident | $23.66/mo (`shared-cpu-4x`) | $40.02/mo |
+| CPU | included in the machine price | $0.00000772/vCPU/s — metered; negligible for a mostly-idle solver |
+| Volume (not needed) | $0.15/GB/mo | $0.156/GB/mo |
+| Egress | $0.02/GB | $0.05/GB |
+
+**Fly.io is cheaper at every size we would plausibly pick** — roughly half, because Railway meters
+resident memory continuously and a warm solver is resident by design. One open item to verify before
+provisioning: Fly's docs do not state a default rootfs size or a maximum image size, and this image
+is ~1.6 GB. Confirm the machine's rootfs accommodates it (or provision a larger one) as part of D2.
+
+*No account was created and no infrastructure was provisioned — these are quoted prices only.*
+
+#### Licensing gate (owner stop S4)
+
+The image bakes licensed vendor data (Sharadar SFP prices, the Tiingo-derived canonical panel) into
+a layer. Local build and local run are fine. **No push to ANY registry — including a platform's own,
+which both `fly deploy` and a Railway build perform — until the owner confirms the Sharadar/Tiingo
+terms permit it.** Plan B if they don't: code-only images plus a platform volume populated out of
+band. Not built.
+
+#### After every deploy
+
+Run the coherence gate. Non-zero exit ⇒ roll back to the previous image:
+
+```sh
+SOLVER_SHARED_SECRET=… uv run python scripts/checks/check_solver_service_coherence.py \
+    --solver-url https://<service> --database-url "$DATABASE_URL" --lake-root "$(pwd)"
+```
+
+It proves the service's `solve_as_of` equals the L2 refit the serving DB actually serves; that **no
+fit-sample regression** is baked into the deployed snapshot (the refit's own weekly sample is
+re-derived from the live lakehouse, because the container's boot-time sha check is self-referential
+and cannot vouch for itself); that the served refit stamp has not been quietly nulled by a load; and
+that the snapshot's fee/holdings panels match the lakehouse state behind the serving load. Set
+`SOLVER_URL` and `SOLVER_SHARED_SECRET` in Vercel's **preview and production** envs.
+
+**On price-panel staleness:** the snapshot builder refuses to bake a snapshot whose price panels
+supply fewer weekly observations, *per series*, than the served refit itself achieved. Lag in days
+is recorded and displayed (`/healthz`, build logs, deploy logs) but is never the bound — see
+`fund_score/deploy/solver/README.md` for why lag-in-days and any aggregate date-grid count are both
+the wrong test.
 
 ### 4.4 Load the serving tables
 
-The app's pages read Postgres, not parquet. Load `fund_profile_facts`, `fund_holdings_full` etc. into
-the hosted Supabase using the existing TRUNCATE+COPY-in-one-transaction path. Watch the free-tier
-size limit — 1.4M holdings rows will push you to Supabase Pro ($25/mo).
+**→ Full procedure: [`RUNBOOK-serving-load.md`](./RUNBOOK-serving-load.md)** (written 2026-08-07).
+It covers both environments end to end — the provenance gate, the DDL order, the load, verification,
+rollback, secrets, and an explicit list of the steps that have no script behind them yet. Read it
+rather than improvising from this section.
+
+The app's pages read Postgres, not parquet. Load `fund_profile_facts`, `fund_holdings_full`,
+`fund_attribution_blocks` and `serving_manifest` into the hosted Supabase using the existing
+TRUNCATE+COPY-in-one-transaction path (fund_score's `scripts/pipeline/build_serving_facts.py`).
+Watch the free-tier size limit — 1.4M holdings rows will push you to Supabase Pro ($25/mo).
 
 **Never load from a branch missing another feature's emitters** — that NULLs newer sections. This has
-bitten before.
+bitten before, and it fails *silently*: the loader COPYs the contract∩table intersection and only
+errors on five required columns, so a missing column is a blank section, not a crash. The runbook's
+pre-flight column diff is the check that catches it.
+
+Two things the schema step needs to get right, both detailed in the runbook: the serving DDL comes
+from fund_score's `apply_serving_schema.py` (**not** `npm run db:push` — `drizzle.config.ts`
+hardcodes `.env.local`, and the TS schema is missing `fund_holdings_full.position_direction`), and
+`apply_auth_schema.py` must run too, because `resolveSession()` reads `entitlements` on every
+signed-in page render.
 
 ### 4.5 Flip the switch
 
@@ -266,16 +353,32 @@ were removed because a button that bounces you back to the page you're on is wor
 
 ## 5. What the solver actually needs
 
-Sized 2026-07-14. The 51 GB lakehouse is **not** the deployment unit.
+**Re-measured 2026-08-07** (the 2026-07-14 sizing below it was wrong in both directions — it named
+the retired raw tiingo glob and missed six files). The lakehouse is **not** the deployment unit; the
+live-read closure is **ten files, ~712 MB**, and `scripts/service/build_solver_snapshot.py` is the
+single source of truth for the list.
 
-| Input | Size |
-|---|---|
-| `data/vendors/tiingo/daily_pricing/*.parquet` | **2.2 GB** across **3,994 files** ← compact this |
-| `data/vendors/sharadar/sfp/daily/adj_close_all.parquet` | 10 MB |
-| `data/nport/class_ticker_mappings.parquet` | 7.6 MB |
-| `data/gold/expense_ratio_history.parquet` | 840 KB |
+| Input | Size | If it is missing |
+|---|---|---|
+| `data/gold/fund_daily_adj_close.parquet` | 609 MB | crash |
+| `data/gold/fund_metadata.parquet` | 20 MB | crash |
+| `data/vendors/sharadar/sfp/daily/adj_close_all.parquet` | 10 MB | crash |
+| `data/gold/expense_ratio_history.parquet` | 0.9 MB | crash |
+| `data/gold/fund_taxonomy.parquet` | 0.4 MB | crash |
+| `data/gold/holdings_complete.parquet` | 57 MB | **fail-soft** → exposure goes `missing` |
+| `data/gold/cusip_reference.parquet` | 4 MB | **fail-soft** (same) |
+| `data/gold/etf_holdings_snapshots.parquet` | 2.1 MB | **fail-soft** (same) |
+| `data/nport/class_ticker_mappings.parquet` | 8 MB | **fail-soft** → non-primary share classes stop resolving |
+| `data/reference/etf_expense_ratios.parquet` | 5 KB | **fail-soft** → UIT ETFs (SPY/QQQ/DIA) silently lose their expense ratio |
 
-The query/screener parquets are a separate, tiny set (1.1 MB total).
+**Five of the ten fail SOFT.** A container packaged without them boots healthy and quietly serves
+degraded answers — which is why the service verifies presence *and* sha256 of all ten against the
+snapshot manifest before it binds a port, and refuses to start on any mismatch.
+
+The raw `data/vendors/tiingo/daily_pricing/*.parquet` glob (2.2 GB, 3,994 files) is **no longer
+read** — the solver moved to the canonical single-vintage panel, which is also why the "compact the
+pricing panel" prerequisite in §4.1 is retired. The query/screener parquets are gone entirely
+(Postgres).
 
 ---
 
@@ -283,11 +386,16 @@ The query/screener parquets are a separate, tiny set (1.1 MB total).
 
 Filed in `feature-pipeline/backlog.md` (deploy group):
 
-- **`SPY` is `unsupported` as an input**, and 30% of it suppresses the *entire* solve. The landing
-  page tells people to paste in what they hold; SPY is the most widely held ETF in existence. This is
-  the first thing a real user will hit.
-- **170–220s solve** (§4.1).
-- **Solver can't deploy** until it becomes an HTTP service (§4.3).
+- **`SPY` as an input is still the first thing a real user will hit.** It no longer comes back
+  `unsupported` — it resolves through the ETF-universe fallback — but *because* that fallback has no
+  taxonomy, the blend search runs over the full 180-ETF mimicking pool and the solve measured
+  **~278 s** on 2026-08-07 (identical on both transports; it is a solver property, not a service
+  one). That is past the service's 210 s budget and the web's 240 s fetch budget, so the user gets a
+  timeout. Still the top X-Ray blocker.
+- ~~**170–220 s solve**~~ — retired; warm solves are ~1–4 s (§4.1).
+- ~~**Solver can't deploy**~~ — **BUILT 2026-08-07** (§4.3). Remaining: the owner's licensing
+  confirmation before any image push, then the snapshot bake, deploy and end-to-end acceptance
+  against a populated preview DB.
 
 ---
 
@@ -299,10 +407,13 @@ Filed in `feature-pipeline/backlog.md` (deploy group):
 | `NEXT_PUBLIC_SUPABASE_URL` | 1 | Supabase auth client |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 1 | Supabase auth client |
 | `LAUNCHED` | 1 | The gate. Unset/`false` = gated. `true` = public. |
-| `QUERY_PARQUET_DIR` | 2 | DuckDB screener source (local dir, or R2 via httpfs) |
-| `SOLVER_URL` | 2 | The Fly.io solver service (replaces `FUND_SCORE_REPO` + `UV_BIN`) |
+| ~~`QUERY_PARQUET_DIR`~~ | — | **Retired 2026-08-07 (screener-beta-port).** The query surface serves from Postgres via `DATABASE_URL`; delete this var wherever it is set. |
+| `SOLVER_URL` | 2 | Base URL of the solver service. **Set ⇒ HTTP transport; unset ⇒ local `spawn()`.** On Vercel, unset means the X-Ray returns an honest "could not reach the solver" error — it never attempts `spawn()`. |
+| `SOLVER_SHARED_SECRET` | 2 | Bearer secret for `POST /solve`. Must match the service's env exactly. Never `NEXT_PUBLIC_`. |
 | `FUND_SCORE_REPO`, `UV_BIN` | local | Only for the `spawn()` path in local dev |
-| `PORTFOLIO_SOLVER_AS_OF` | 2 | Pinned solver as-of. Currently `2026-02-28` — **stale**, revisit. |
+| `PORTFOLIO_SOLVER_AS_OF` | **local only** | The spawn path's CLI as-of pin (code default `2026-06-30`; this table said `2026-02-28`, which was never the code's value). **Retired from every deployed environment 2026-08-07** — the HTTP path sends no as-of, because the service's snapshot manifest owns the solve basis and returns it in `SolveResult.as_of_date`. Two independent pins is exactly how the X-Ray and the fund pages drift apart. |
+| `OPS_ALERT_WEBHOOK_URL` | beta, **optional** | Slack/Discord incoming webhook. Set = server errors also POST a one-line summary. Unset = silent (§9). |
+| `NEXT_PUBLIC_SUPPORT_EMAIL` | beta, **optional** | Renders the `mailto:` fallback in the feedback widget. Unset = the line is not rendered (no address is hardcoded). |
 
 ---
 
@@ -367,3 +478,61 @@ Do this when you're happy with the site on `fundscore-web.vercel.app`.
 
 **Note:** the site is gated, so the moment DNS resolves, the public sees the landing page and the
 waitlist form. That is the intended launch state.
+
+---
+
+## 9. Beta ops — errors, feedback, pageviews
+
+Wired 2026-08-06 (`feature-pipeline/specs/done/beta-ops-minimum.md`). Before invites go out we
+need to see what beta users see. All three pieces are **first-party** — no Sentry, no PostHog,
+no analytics vendor, no new npm dependency, **and no secret to provision**. The reason is the
+constraint, not purity: the beta had to become observable without the owner creating an account
+or pasting a DSN, and Vercel Hobby log retention is too short to be the only record of a beta
+user's crash.
+
+| Piece | How | Where it lands |
+|---|---|---|
+| **Error tracker** | `src/instrumentation.ts` (`onRequestError`, all server errors) + `src/app/global-error.tsx` and `src/app/(site)/error.tsx` (client boundaries) | `ops_error_events` **and** a structured `[ops:error]` stderr line (Vercel-log backstop) |
+| **Feedback** | `FeedbackWidget` in the `(site)` chrome — a corner button that captures the current path automatically | `ops_feedback` |
+| **Pageviews** | `OpsBeacon` in the ROOT layout (so it covers the landing page too) → `POST /api/ops` | `ops_pageviews` |
+
+**Throttle (added 2026-08-07, H4):** `POST /api/ops` is the ONE `/api/` route exempt from the
+`early_access` gate, which makes it an unauthenticated INSERT path on a public site. A per-client
+rate limit (`src/lib/ops/rate-limit.ts`) now caps it at 120 requests / 60s per hashed client key —
+still no new secret to provision: the HMAC key is `DATABASE_URL`, already server-only and present
+in every environment. State lives in `ops_rate_limits`, created by the same apply script below.
+
+### Required step per environment
+
+The tables are **not** created by a deploy. Run once against each database:
+
+```bash
+DATABASE_URL='<prod pooled URI>'    node scripts/apply-ops-schema.mjs   # henxcsknsjfadetomjeu
+DATABASE_URL='<preview pooled URI>' node scripts/apply-ops-schema.mjs   # yqyyvhcrmcwarxweusbw
+```
+
+Idempotent and non-interactive, like the waitlist/allowlist scripts. **Until it is run, ops writes
+fail soft** — the app does not crash and users see nothing wrong, but nothing is recorded either.
+RLS is on with no policies and no grants: only the app's direct connection can read or write, so a
+beta user can never read another's feedback, errors or browsing history.
+
+### Reading the data
+
+```bash
+node scripts/ops-report.mjs --days 7     # pageviews by day + top paths, recent errors, recent feedback
+```
+
+Deliberately a CLI, not an admin page — at beta scale the owner needs the numbers, not a dashboard
+to maintain.
+
+### The one gate exception
+
+`/api/ops` is the **only** `/api/` path added to the pre-launch gate's public list
+(`src/lib/supabase/middleware.ts`). An error tracker that cannot see the landing page is blind to
+exactly where a first-time invitee arrives. It is safe in the way `/api/portfolio/solve` is not:
+no expensive compute, one small capped row, same-origin only, and it reflects nothing back to the
+caller. Verified while gated (`LAUNCHED=false`): `/funds/*` 307, `/api/portfolio/solve` 401,
+`/api/lens/quota` 401, `/api/ops` 204, cross-origin `/api/ops` 403.
+
+**No IP addresses are stored.** The only identity recorded is the signed-in email when a session
+exists — never inferred, never fabricated.

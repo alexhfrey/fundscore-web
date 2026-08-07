@@ -4,14 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "build": "node scripts/next-env-guard.mjs build",
+    "start": "node scripts/next-env-guard.mjs start",
     "lint": "eslint",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:push": "node scripts/db-push-refuse.mjs",
+    "db:studio": "drizzle-kit studio",
+    "db:check-serving": "node scripts/check-serving-schema.mjs"
   },
   "dependencies": {
-    "@duckdb/node-api": "^1.5.4-r.1",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.2",
     "dotenv": "^17.3.1",

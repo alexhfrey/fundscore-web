@@ -38,6 +38,7 @@ export function HistoricalPerformance({
   headlineTeNote,
   headlineBetaNote,
   isPassive = false,
+  demoted = false,
 }: {
   navSeries: NavSeries | null;
   showComparison: boolean;
@@ -49,6 +50,12 @@ export function HistoricalPerformance({
   headlineTeNote?: string | null;
   headlineBetaNote?: string | null;
   isPassive?: boolean;
+  // Crescent v2 (Step 8): renders the chapter header as a smaller SUB-header
+  // (no "Section 03 · of total" eyebrow) when this section is reparented
+  // under the page's "Growth of $1,000" <details> drill-down instead of
+  // standing as its own numbered chapter. Default false = unchanged
+  // standalone-chapter behavior.
+  demoted?: boolean;
 }) {
   const hasNavTable =
     navSeries != null && (navSeries.points?.length ?? 0) > 0 && showComparison;
@@ -67,7 +74,7 @@ export function HistoricalPerformance({
   if (!navSeries || !navSeries.points || navSeries.points.length === 0) {
     return (
       <section id="s3" className="scroll-mt-24">
-        <ChapterHeader index={3} title="Historical performance" />
+        <ChapterHeader index={3} title="Historical performance" demoted={demoted} />
         <Unavailable>
           We don&apos;t have a validated matched fund-vs-passive growth series for
           this fund, so the performance read is suppressed rather than shown
@@ -136,6 +143,7 @@ export function HistoricalPerformance({
       <ChapterHeader
         index={3}
         title="Historical performance"
+        demoted={demoted}
         asOf={
           navSeries.as_of
             ? `monthly adjusted-NAV growth · through ${navSeries.as_of}${seriesStart ? ` · paired window from ${seriesStart}` : ""}`

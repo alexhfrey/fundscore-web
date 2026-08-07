@@ -1,6 +1,18 @@
 # PRD — Run the passive solver as an HTTP service so the app can deploy
 
-**Status:** red-teamed (1 round, revised) → **AWAITING OWNER** · **Slug:** `solver-http-service` · **Created:** 2026-07-16 (night run)
+**Status:** RESOLVED — owner answered all 4 questions 2026-08-06 → **ready to spec** · **Slug:** `solver-http-service` · **Created:** 2026-07-16 (night run)
+
+## Owner answers (2026-08-06)
+
+1. **Hosting:** cheapest of Fly.io/Railway that fits a ~1 GB-disk always-on container — engineering
+   picks and reports the actual monthly cost.
+2. **Licensing:** owner will verify the Sharadar/Tiingo license terms permit baking the snapshot
+   into a registry-pushed image BEFORE any image is pushed; build work proceeds up to that point.
+3. **Compaction-first dependency:** de-scope CONFIRMED (stays a standalone hygiene item).
+4. **Freshness:** match the fund-page cadence — fee/holdings inputs refresh between quarterly
+   refits, and the as-of coherence check is an AUTOMATED deploy gate (not a manual runbook step).
+   The refit-pinned L2 as-of and the fresher panel inputs are two cadences in one snapshot; the
+   spec must keep them distinctly labeled and never let a fresher panel silently relabel the solve as-of.
 
 ## Problem
 
@@ -36,9 +48,9 @@ not existing) on fundscore.ai.
 - The service is **not publicly callable**: `POST /solve` requires a shared secret (env var on
   both sides). Exception: the health/version endpoint is unauthenticated (platform health checks
   need it) and exposes no user data — only solver version + data as-of.
-- The service ships with its own copy of the solver's data inputs. **Verified inventory
+- The service ships with its own copy of the solver's data inputs. **CORRECTED 2026-08-06 (spec-writing pass): the solver live-reads TEN files, not nine — this inventory missed `data/reference/etf_expense_ratios.parquet` (fail-soft: missing ⇒ SPY/QQQ/DIA blend legs silently lose their ER, blend fee degrades to `partial`); sizes have also drifted (~712 MB total, adj_close 609 MB). The spec's inventory is authoritative.** Original verified inventory
   (fund_score `main`, post-d92213c — the solver live-reads NINE files, ~690 MB total, not the
-  ~2.2 GB in the backlog item; that figure is the raw Tiingo store, no longer read):**
+  ~2.2 GB in the backlog item; that figure is the raw Tiingo store, no longer read):
   - `data/gold/fund_daily_adj_close.parquet` — 581 MB (canonical panel; both `funds_daily` and
     `tiingo_daily` default to it)
   - `data/vendors/sharadar/sfp/daily/adj_close_all.parquet` — 10 MB

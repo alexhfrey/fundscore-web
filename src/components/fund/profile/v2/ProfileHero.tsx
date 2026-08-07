@@ -30,6 +30,7 @@ export function ProfileHero({
   fees,
   holdingsAsOf,
   holdingsStale,
+  variant = "full",
 }: {
   identity: Identity;
   requestedTicker: string;
@@ -37,6 +38,11 @@ export function ProfileHero({
   fees: FeesLite | null;
   holdingsAsOf: string | null;
   holdingsStale?: boolean;
+  /** "full" (default): masthead + identity + verdict/score column + cost
+   *  footer — zero behavior change from before this prop existed. "identity":
+   *  masthead + identity grid only, for pages that render their own verdict
+   *  block elsewhere (Crescent v2's VerdictBlock). */
+  variant?: "full" | "identity";
 }) {
   const ticker = identity.ticker ?? requestedTicker.toUpperCase();
   const vs = valueScore;
@@ -52,82 +58,100 @@ export function ProfileHero({
     .filter(Boolean)
     .map((t) => String(t));
 
+  const masthead = (
+    <div className="px-6 pb-4 pt-6">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">{ticker}</h1>
+        <span className="text-xl text-gray-600">{identity.fund_name}</span>
+        {tags.map((t) => (
+          <span
+            key={t}
+            className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium capitalize text-gray-600"
+          >
+            {t}
+          </span>
+        ))}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-[13px] text-gray-500">
+        {identity.latest_nav != null && (
+          <span>
+            NAV{" "}
+            <span className="font-semibold text-gray-900">
+              ${identity.latest_nav.toFixed(2)}
+            </span>
+          </span>
+        )}
+        {identity.aum_usd != null && (
+          <span>
+            AUM{" "}
+            <span className="font-semibold text-gray-900">
+              ${(identity.aum_usd / 1e9).toFixed(1)}B
+            </span>
+          </span>
+        )}
+        {identity.holdings_count != null && (
+          <span>
+            Holdings{" "}
+            <span className="font-semibold text-gray-900">{identity.holdings_count}</span>
+          </span>
+        )}
+        {holdingsAsOf && (
+          <span className="inline-flex items-center gap-1.5 text-amber-700">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+            Holdings filed with a lag · as of {fmtDate(holdingsAsOf)}
+            {holdingsStale ? " · stale" : ""}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+
+  const identityGrid = (
+    <>
+      <div className="text-[11px] font-semibold uppercase tracking-widest text-emerald-700">
+        Identity
+      </div>
+      <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-5 gap-y-2.5 text-[13px]">
+        {/* The identity scalar is the SEC TRUST/REGISTRANT — a different
+            thing from section 08's adviser-level "fund family"; two rows
+            named "Fund family" with different answers would contradict
+            (DQ-critic P3). */}
+        <IdRow k="Trust / registrant" v={identity.fund_family} />
+        <IdRow
+          k="Asset class"
+          v={[identity.asset_class, identity.peer_group].filter(Boolean).join(" · ") || null}
+        />
+        <IdRow
+          k="Fee (net expense ratio)"
+          v={netFee != null ? `${pctFromBps(netFee)} / yr` : null}
+        />
+        <IdRow
+          k="Closest passive alternative"
+          v={passive}
+          sub={passiveFee != null ? `· ${pctFromBps(passiveFee)}/yr` : undefined}
+        />
+        <IdRow k="Inception (share class)" v={fmtDate(identity.inception_date)} />
+      </dl>
+    </>
+  );
+
+  if (variant === "identity") {
+    return (
+      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        {masthead}
+        <div className="border-t border-gray-100 px-6 py-5">{identityGrid}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-      {/* Masthead */}
-      <div className="px-6 pb-4 pt-6">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">{ticker}</h1>
-          <span className="text-xl text-gray-600">{identity.fund_name}</span>
-          {tags.map((t) => (
-            <span
-              key={t}
-              className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium capitalize text-gray-600"
-            >
-              {t}
-            </span>
-          ))}
-        </div>
-        <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-[13px] text-gray-500">
-          {identity.latest_nav != null && (
-            <span>
-              NAV{" "}
-              <span className="font-semibold text-gray-900">
-                ${identity.latest_nav.toFixed(2)}
-              </span>
-            </span>
-          )}
-          {identity.aum_usd != null && (
-            <span>
-              AUM{" "}
-              <span className="font-semibold text-gray-900">
-                ${(identity.aum_usd / 1e9).toFixed(1)}B
-              </span>
-            </span>
-          )}
-          {identity.holdings_count != null && (
-            <span>
-              Holdings{" "}
-              <span className="font-semibold text-gray-900">{identity.holdings_count}</span>
-            </span>
-          )}
-          {holdingsAsOf && (
-            <span className="inline-flex items-center gap-1.5 text-amber-700">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-              Holdings filed with a lag · as of {fmtDate(holdingsAsOf)}
-              {holdingsStale ? " · stale" : ""}
-            </span>
-          )}
-        </div>
-      </div>
+      {masthead}
 
       {/* Body: identity grid (left) + verdict (right) */}
       <div className="grid border-t border-gray-100 md:grid-cols-2">
         <div className="border-b border-gray-100 px-6 py-5 md:border-b-0 md:border-r">
-          <div className="text-[11px] font-semibold uppercase tracking-widest text-emerald-700">
-            Identity
-          </div>
-          <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-5 gap-y-2.5 text-[13px]">
-            {/* The identity scalar is the SEC TRUST/REGISTRANT — a different
-                thing from section 08's adviser-level "fund family"; two rows
-                named "Fund family" with different answers would contradict
-                (DQ-critic P3). */}
-            <IdRow k="Trust / registrant" v={identity.fund_family} />
-            <IdRow
-              k="Asset class"
-              v={[identity.asset_class, identity.peer_group].filter(Boolean).join(" · ") || null}
-            />
-            <IdRow
-              k="Fee (net expense ratio)"
-              v={netFee != null ? `${pctFromBps(netFee)} / yr` : null}
-            />
-            <IdRow
-              k="Closest passive alternative"
-              v={passive}
-              sub={passiveFee != null ? `· ${pctFromBps(passiveFee)}/yr` : undefined}
-            />
-            <IdRow k="Inception (share class)" v={fmtDate(identity.inception_date)} />
-          </dl>
+          {identityGrid}
         </div>
 
         <div className="bg-gray-50/70 px-6 py-5">

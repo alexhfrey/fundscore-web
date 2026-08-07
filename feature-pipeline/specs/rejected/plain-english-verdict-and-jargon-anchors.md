@@ -1,7 +1,7 @@
 ---
 id: plain-english-verdict-and-jargon-anchors
 title: Add a plain-English verdict line and anchor the jargon for retail
-status: queued
+status: rejected
 track: frontend
 repo: fundscore-web
 depends_on: ""

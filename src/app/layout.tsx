@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Source_Serif_4, IBM_Plex_Mono } from "next/font/google";
+import { OpsBeacon } from "@/components/ops/OpsBeacon";
 import "./globals.css";
 
 const inter = Inter({
@@ -38,7 +39,13 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} ${sourceSerif.variable} ${plexMono.variable}`}
     >
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        {children}
+        {/* Pageview counter. Mounted at the root so it covers the marketing
+            landing page as well as every product route; it renders nothing and
+            does not affect static rendering. */}
+        <OpsBeacon />
+      </body>
     </html>
   );
 }

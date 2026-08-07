@@ -10,6 +10,14 @@ Stack: Next.js 16 / React 19 RSC, Drizzle + Postgres (Supabase), Tailwind v4, re
 ## Two-repo system
 - **This repo** — UI + serving layer. Data layer: `src/lib/data/index.ts` (async, Promises).
   Schema: `src/lib/db/schema/` (barrel export). DB singleton: `src/lib/db/index.ts`.
+- **Serving tables have ONE definition and it is not in this repo**:
+  `fund_score/scripts/pipeline/apply_serving_schema.py` creates `fund_profile_facts`,
+  `fund_holdings_full`, `fund_attribution_blocks`, `serving_manifest`, `query_canonical_*` —
+  columns, indexes, grants and RLS. `src/lib/db/schema/serving.ts` is a **read-only typed mirror**
+  for queries; it creates nothing. Change the authority first, mirror second, then prove it with
+  `npm run db:check-serving` — exit 0 means "fit to serve this checkout"; it fails on a missing
+  table, drift in either direction, or anon/authenticated grants on the paid tables. `db:push` is disabled:
+  every table has an apply script, and push builds serving tables with RLS off.
 - **fund_score** (`/Users/alexfrey/Projects/fund_score`) — Python/uv/Polars/DuckDB backend.
   Parquet lakehouse `data/{bronze,silver,gold,product}`. Orient there via `CLAUDE.md` →
   `docs/agent_context_map.md` → `docs/status/pipeline_status.md`.
@@ -58,6 +66,11 @@ Pins live in agent frontmatter (`model:`) and workflow `agent()` opts. Specs may
 implementer via `model:`/`effort:` frontmatter; gates always stay on the session model.
 
 ## Commands
-- `npm run db:push` / `db:seed` / `db:studio` — schema push / synthetic seed / Drizzle Studio.
+- `npm run db:check-serving` — verify the serving mirror + PostgREST exposure against
+  `DATABASE_URL`. `db:studio` — Drizzle Studio. `db:push` refuses (use the per-table apply scripts
+  in `scripts/apply-*.mjs` and fund_score's `scripts/pipeline/apply_*_schema.py`).
 - Local dev needs Docker: `npx supabase start` (Postgres on 54322); `DATABASE_URL` in `.env.local`.
-- Build gate before done: `npm run build && npm run lint`.
+- Build gate before done: `npm run build && npm run lint`. The build prints the `host:port/db` it
+  resolved and uses `.env.local` (NOT `.env.production.local`, which Next would otherwise rank
+  higher) on any non-Vercel host; it fails if that database is unreachable. `npm start` gets the
+  same treatment. See `scripts/next-env-guard.mjs`.

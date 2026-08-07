@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import {
   authenticateAdminAction,
   closeBacklogItemAction,
@@ -158,12 +158,14 @@ function BacklogSection({
           </div>
         ) : (
           items.map((item, index) => (
-            <BacklogItemEditor
-              key={`${item.lineNo}-${hashText(item.line)}`}
-              item={item}
-              index={index}
-              compact={compact}
-            />
+            <Fragment key={`${item.lineNo}-${hashText(item.line)}`}>
+              {item.group && item.group !== items[index - 1]?.group && (
+                <p className="pt-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {item.group}
+                </p>
+              )}
+              <BacklogItemEditor item={item} index={index} compact={compact} />
+            </Fragment>
           ))
         )}
       </div>
@@ -195,7 +197,9 @@ function BacklogItemEditor({
             {item.title}
           </span>
         </div>
-        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-gray-500">{item.line}</p>
+        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-gray-500">
+          {item.ownerSummary ?? item.line}
+        </p>
       </article>
     );
   }
@@ -209,7 +213,16 @@ function BacklogItemEditor({
           {item.title}
         </span>
       </div>
-      <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-gray-600">{item.line}</p>
+      {item.ownerSummary ? (
+        <>
+          <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-gray-600">
+            {item.ownerSummary}
+          </p>
+          <p className="mt-1 line-clamp-1 text-xs leading-relaxed text-gray-400">{item.line}</p>
+        </>
+      ) : (
+        <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-gray-600">{item.line}</p>
+      )}
 
       <div className="mt-2 flex flex-wrap gap-2">
         <Link

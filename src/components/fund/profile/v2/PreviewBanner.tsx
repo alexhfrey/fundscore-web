@@ -1,7 +1,12 @@
 // ============================================================================
-// PreviewBanner — the amber "this is a design preview" strip. Server component.
+// PreviewBanner — the amber "this is a design preview" strip. Server component
+// (stays server — the Gold/Blue accent control is a client island rendered
+// inline, per the app's server-shell/client-island split used everywhere
+// else in v2).
 // States the honesty contract: sections marked "sample" are not served yet.
 // ============================================================================
+import { AccentToggle } from "./AccentToggle";
+
 export function PreviewBanner({ tier }: { tier: string }) {
   return (
     <div className="border-b border-amber-200 bg-amber-50">
@@ -15,6 +20,7 @@ export function PreviewBanner({ tier }: { tier: string }) {
           served yet — their figures come from a labeled FCNTX fixture, not the
           production pipeline.
         </span>
+        <AccentToggle />
         <span className="ml-auto text-[11px] text-amber-700/80">
           viewing as <span className="font-semibold capitalize">{tier}</span>
         </span>

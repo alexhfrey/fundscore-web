@@ -2,7 +2,10 @@
 
 Backlog origin: `(story)` "Fee-fairness peer band — show where a fund's fee-over-passive sits vs
 its category peers (percentile), not just the raw bps. [web profile]" (Open, 2026-07). Drafted
-2026-07-10 (overnight run). Status: awaiting red-team + owner resolution of open questions.
+2026-07-10 (overnight run). Status: RESOLVED (2026-08-06) — both derived specs shipped:
+`fee-peer-band-backend` (done) and `fee-peer-band-web` (done, implemented 2026-07-11, codex
+`CODEX_GATE: pass`). See `feature-pipeline/specs/done/fee-peer-band-backend.md` and
+`feature-pipeline/specs/done/fee-peer-band-web.md`.
 
 ## Problem
 

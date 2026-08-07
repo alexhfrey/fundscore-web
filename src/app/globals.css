@@ -1,5 +1,23 @@
 @import "tailwindcss";
 
+/* Crescent tokens — raw swappable vars (canvas reads via getComputedStyle) */
+:root {
+  --crescent-accent: #BE861F; --crescent-accent-bright: #E0A93C; --crescent-accent-text: #8F6410;
+  --crescent-twin: #C1C6CF; --crescent-twin-edge: #A9AFBB;
+  --crescent-good: #2C7A66; --crescent-bad: #AE4635;
+}
+:root[data-accent="blue"] {
+  --crescent-accent: #1466b8; --crescent-accent-bright: #3f86cd; --crescent-accent-text: #11599f;
+}
+:root[data-theme="dark"] {
+  --crescent-accent: #E4AE49; --crescent-accent-bright: #F1C063; --crescent-accent-text: #F0BE5E;
+  --crescent-twin: #363B45; --crescent-twin-edge: #474D59;
+  --crescent-good: #4FB39A; --crescent-bad: #D2735F;
+}
+:root[data-theme="dark"][data-accent="blue"] {
+  --crescent-accent: #5D9FDE; --crescent-accent-bright: #7FB5E9; --crescent-accent-text: #8FBCEB;
+}
+
 @theme inline {
   --font-sans: var(--font-inter);
   --font-serif: var(--font-display);
@@ -15,6 +33,15 @@
   --color-paper: #f5f7f9;
   --color-rule: #dbe3ea;
   --color-below: #a8323f;
+
+  /* Crescent — aliases onto the raw swappable vars above (light/dark/accent) */
+  --color-crescent-accent: var(--crescent-accent);
+  --color-crescent-accent-bright: var(--crescent-accent-bright);
+  --color-crescent-accent-text: var(--crescent-accent-text);
+  --color-crescent-twin: var(--crescent-twin);
+  --color-crescent-twin-edge: var(--crescent-twin-edge);
+  --color-crescent-good: var(--crescent-good);
+  --color-crescent-bad: var(--crescent-bad);
 }
 
 body {

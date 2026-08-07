@@ -11,6 +11,7 @@ import {
   type SourceStamp,
   type Locked,
   type TeProofPreview,
+  type ExposurePreview,
   type UserState,
 } from "@/lib/serving/profile";
 import { resolveSession } from "@/lib/serving/session";
@@ -33,14 +34,22 @@ import {
   PreviewBanner,
   SectionNav,
   ProfileHero,
-  AISummary,
+  VerdictBlock,
+  AnatomySection,
+  FeeReceipt,
+  HurdlePanel,
   HistoricalPerformance,
   AttributionSection,
   CurrentPositioning,
   RecentChanges,
   FeeFairnessV2,
   FundFamily,
+  TwinPanel,
 } from "@/components/fund/profile/v2";
+import { topVsBenchmarkTilt } from "@/components/fund/profile/v2/crescent/VerdictBlock";
+import { BlockHeader } from "@/components/fund/profile/v2/crescent/BlockHeader";
+import { HurdleHeadline } from "@/components/fund/profile/v2/crescent/HurdlePanel";
+import { orientFromTilt } from "@/lib/crescent";
 
 // Per-user dynamic render: reads the session to gate by tier server-side, and
 // (PREVIEW ONLY) honors a ?tier= override so reviewers can walk the tier matrix.
@@ -91,22 +100,6 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
   // pass ONLY that to the components — gated fixture numbers never reach a
   // below-the-gate client (mirrors how applyGates strips the real sections).
   // ------------------------------------------------------------------------
-  const firstSentence = (p: string): string => {
-    const m = /^(.*?[.!?])(\s|$)/.exec(p);
-    return m ? m[1] : p;
-  };
-
-  // AI summary — first sentence public, full free.
-  const aiFx = row.aiSummary ?? null;
-  const aiSummary = aiFx
-    ? free
-      ? aiFx
-      : {
-          ...aiFx,
-          paragraphs: aiFx.paragraphs?.length ? [firstSentence(aiFx.paragraphs[0])] : [],
-        }
-    : null;
-
   // Nav series — SERVED (profile-nav-series; gate public). applyGates already
   // field-stripped below paid: passive/β-adj point legs + β nulled, and the
   // period table collapsed to ONE free proof-point row (its β-adj diff nulled).
@@ -282,6 +275,25 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
   };
 
   const exposureXray = unlocked<{ rows?: unknown[] }>(row.exposureXray);
+  // The anon-tier free proof point for the Crescent hero's orientation tilt —
+  // the SAME whitelisted preview a locked exposure-X-ray section would surface
+  // (exposure_xray gate: free), read off the RAW pre-unlock value so it only
+  // fires when the section is actually locked (free+ already has `exposureXray`
+  // above). Mirrors the teProof / betsText pattern used elsewhere on this page.
+  const exposurePreview = isLocked(row.exposureXray)
+    ? (getPreview(row.exposureXray) as ExposurePreview | null)
+    : null;
+
+  // Block 2 (Anatomy) inputs — the idio share comes from whichever te-decomp
+  // view this tier is entitled to (paid full object, else the free proof
+  // point); anonymous gets neither and the anatomy movement simply doesn't
+  // render. Orientation reuses the hero's own tilt-row selection so the two
+  // marks can never point different ways.
+  const idioRiskShare = teDecomposition?.idio_risk_share ?? teProof?.idio_risk_share ?? null;
+  const anatomyOrientDeg = orientFromTilt(
+    topVsBenchmarkTilt((exposureXray?.rows as Record<string, unknown>[] | undefined) ?? null) ??
+      exposurePreview,
+  );
 
   return (
     <div className="bg-white">
@@ -289,9 +301,11 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
       <SectionNav passiveNote={passiveLabel ? `read against ${passiveLabel} — closest passive alt` : null} />
 
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* 01 · Verdict */}
-        <section id="s1" className="scroll-mt-24">
+        {/* Crescent hero (Step 4, Block 1) — masthead/identity only from
+            ProfileHero, then the Crescent verdict block. */}
+        <div id="b1" className="space-y-6 scroll-mt-24">
           <ProfileHero
+            variant="identity"
             identity={identity}
             requestedTicker={ticker}
             valueScore={valueScore}
@@ -299,73 +313,156 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
             holdingsAsOf={holdingsAsOf}
             holdingsStale={holdingsStale}
           />
+          <VerdictBlock
+            identity={identity}
+            requestedTicker={ticker}
+            valueScore={valueScore}
+            fees={fees}
+            passiveLabel={passiveLabel}
+            exposureXrayRows={(exposureXray?.rows as Record<string, unknown>[] | undefined) ?? null}
+            exposurePreview={exposurePreview}
+            archetype={row.archetype ?? null}
+            archetypeRules={row.archetypeRules ?? null}
+          />
+        </div>
+
+        {/* Crescent anatomy (Step 6, Block 2) — the hatched mark + split
+            sentence, with the positioning dossier (old 05) and Recent shifts
+            (old 06) reparented beneath as demoted SUB-headers (step 7
+            chrome) rather than standalone numbered chapters. */}
+        <div id="b2" className="scroll-mt-24">
+          <AnatomySection
+            ticker={identity.ticker ?? ticker.toUpperCase()}
+            valueScore={valueScore}
+            idioRiskShare={idioRiskShare}
+            orientDeg={anatomyOrientDeg}
+          >
+            <CurrentPositioning
+              positioning={positioningContext}
+              riskExplainers={riskExplainers}
+              teDecomposition={teDecomposition}
+              teProof={teProof}
+              teLocked={teLocked}
+              bridges={bridges}
+              top10={top10}
+              holdingsFullTeaser={holdingsFullTeaser}
+              loadHoldingsFullRows={loadHoldingsFullRows}
+              exposureXray={exposureXray}
+              present={tePresent || row.top10VsIwf != null || positioningPresent || holdingsFullTeaser != null}
+              free={free}
+              paid={paid}
+              passiveLabel={passiveLabel}
+              l2BlendEtfs={l2BlendEtfs}
+              attributedFactorIds={attributedFactorIds}
+              demoted
+            />
+            <RecentChanges changes={recentChanges} present={rcPresent} free={free} paid={paid} demoted />
+          </AnatomySection>
+        </div>
+
+        {/* Block 3 — PRICE (design pass 2026-07-22: the old 2-col proof grid
+            split into two full sections so Performance can carry its own
+            headline). The receipt is the statement; keep it a calm, narrow
+            column. Fee-fairness ruler stays its drill-down. */}
+        <section id="b3" className="mt-14 border-t border-gray-100 pt-10 scroll-mt-24">
+          <BlockHeader
+            eyebrow="The receipt · what the active part costs"
+            headline="What you pay, line by line"
+          />
+          <div className="mt-6 max-w-xl space-y-3">
+            <FeeReceipt
+              fees={fees}
+              periodTable={navSeries?.period_table ?? null}
+              seriesStart={navSeries?.series_start ?? null}
+              free={free}
+            />
+            <details className="group rounded-2xl border border-gray-200 bg-white/60 shadow-sm">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
+                <span className="text-sm font-semibold text-gray-700">The full fee-fairness ruler</span>
+                <span className="text-xs text-gray-400">
+                  <span className="group-open:hidden">show</span>
+                  <span className="hidden group-open:inline">hide</span>
+                </span>
+              </summary>
+              <div className="border-t border-gray-100 px-5 py-6">
+                <FeeFairnessV2 fees={fees} isPassive={isPassive} free={free} demoted />
+              </div>
+            </details>
+          </div>
         </section>
 
-        <div className="mt-16 space-y-16">
-          {/* 02 · Summary */}
-          <AISummary summary={aiSummary} full={free} />
-
-          {/* 03 · Historical performance */}
-          <HistoricalPerformance
-            navSeries={navSeries}
-            showComparison={paid}
-            riskBehavior={riskBehavior}
-            riskLocked={riskLocked}
-            pricingStamp={pricingStamp}
-            headlineTeNote={headlineTeNote}
-            headlineBetaNote={headlineBetaNote}
-            isPassive={isPassive}
+        {/* Block 4 — PERFORMANCE, its own headlined section (owner ask,
+            2026-07-22): serif verdict headline for the longest served window,
+            the hurdle bars full-width, growth chart PROMOTED out of its
+            details, Brinson attribution stays the drill-down. */}
+        <section id="b4" className="mt-14 border-t border-gray-100 pt-10 scroll-mt-24">
+          <BlockHeader
+            eyebrow="The hurdle · after all fees vs its free twin"
+            headline={<HurdleHeadline navSeries={navSeries} passiveLabel={passiveLabel} />}
           />
+          <div className="mt-6 space-y-6">
+            <HurdlePanel navSeries={navSeries} fees={fees} passiveLabel={passiveLabel} paid={paid} />
+            <HistoricalPerformance
+              navSeries={navSeries}
+              showComparison={paid}
+              riskBehavior={riskBehavior}
+              riskLocked={riskLocked}
+              pricingStamp={pricingStamp}
+              headlineTeNote={headlineTeNote}
+              headlineBetaNote={headlineBetaNote}
+              isPassive={isPassive}
+              demoted
+            />
+            <details className="group rounded-2xl border border-gray-200 bg-white/60 shadow-sm">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
+                <span className="text-sm font-semibold text-gray-700">
+                  What the bets did — realized return attribution
+                </span>
+                <span className="text-xs text-gray-400">
+                  <span className="group-open:hidden">show</span>
+                  <span className="hidden group-open:inline">hide</span>
+                </span>
+              </summary>
+              <div className="border-t border-gray-100 px-5 py-6">
+                <AttributionSection
+                  summary={attrSummary}
+                  present={attrPresent}
+                  returnAttribution={row.returnAttribution as { rows?: unknown[] } | Locked | null}
+                  riskExplainers={riskExplainers}
+                  paid={paid}
+                  passiveLabel={passiveLabel}
+                  demoted
+                />
+              </div>
+            </details>
+          </div>
+        </section>
 
-          {/* 04 · Performance attribution */}
-          <AttributionSection
-            summary={attrSummary}
-            present={attrPresent}
-            returnAttribution={row.returnAttribution as { rows?: unknown[] } | Locked | null}
-            riskExplainers={riskExplainers}
-            paid={paid}
+        {/* Crescent twin + more (Step 7, Block 5) — the passive-twin lead
+            card, then the remaining drill-downs that don't have a Block 3/4
+            home: fund family, alternatives, sources. The old numbered-chapter
+            scheme (01 Verdict / 02 Summary standalone sections, 08 Family as
+            its own chapter) is retired — 01/02 are superseded by Block 1
+            above; 08 lives here as a "More detail" drill-down alongside
+            alternatives/sources. */}
+        <div id="b5" className="mt-14 border-t border-gray-100 pt-10 scroll-mt-24 space-y-4">
+          <TwinPanel
             passiveLabel={passiveLabel}
+            fees={fees}
+            valueScore={valueScore}
+            teBps={positioningContext?.te_bps ?? null}
           />
 
-          {/* 05 · Current positioning */}
-          <CurrentPositioning
-            positioning={positioningContext}
-            riskExplainers={riskExplainers}
-            teDecomposition={teDecomposition}
-            teProof={teProof}
-            teLocked={teLocked}
-            bridges={bridges}
-            top10={top10}
-            holdingsFullTeaser={holdingsFullTeaser}
-            loadHoldingsFullRows={loadHoldingsFullRows}
-            exposureXray={exposureXray}
-            present={tePresent || row.top10VsIwf != null || positioningPresent || holdingsFullTeaser != null}
-            free={free}
-            paid={paid}
-            passiveLabel={passiveLabel}
-            l2BlendEtfs={l2BlendEtfs}
-            attributedFactorIds={attributedFactorIds}
-          />
-
-          {/* 06 · Recent changes */}
-          <RecentChanges changes={recentChanges} present={rcPresent} free={free} paid={paid} />
-
-          {/* 07 · Fee fairness (REAL served fees) */}
-          <FeeFairnessV2 fees={fees} isPassive={isPassive} free={free} />
-
-          {/* 08 · Fund family */}
-          <FundFamily family={fundFamily} present={familyPresent} free={free} />
-
-          {/* More detail — reuse existing Alternatives + SourceFooter as-is */}
           <details className="group rounded-2xl border border-gray-200 bg-white/60 shadow-sm">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
               <span className="text-lg font-bold text-gray-900">More detail</span>
               <span className="text-sm text-gray-400">
-                <span className="group-open:hidden">alternatives · sources — show</span>
+                <span className="group-open:hidden">fund family · alternatives · sources — show</span>
                 <span className="hidden group-open:inline">Hide</span>
               </span>
             </summary>
             <div className="space-y-12 border-t border-gray-100 px-5 py-8">
+              <FundFamily family={fundFamily} present={familyPresent} free={free} demoted />
               {/* Alternatives handles its own Locked marker (paid gate) + preview. */}
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               <Alternatives alts={row.alternatives as any} />

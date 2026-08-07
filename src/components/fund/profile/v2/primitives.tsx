@@ -38,9 +38,22 @@ export function GapChip({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * A dossier chapter header: eyebrow ("Section NN · of 08"), title, optional
+ * A dossier chapter header: eyebrow ("Section NN · of total"), title, optional
  * as-of, and the takeaway line that leads the section. `sampleChip` shows the
  * sample marker inline; sample sections pass NO methodology anchor.
+ *
+ * `total` defaults to 5 — the Crescent v2 page (Step 7) has five top-level
+ * blocks, not the old eight numbered chapters; every caller that doesn't pass
+ * its own `total` (fund family / historical performance / attribution / fee
+ * fairness — all now living as drill-downs, not chapters) inherits that
+ * default so a stale "of 08" reading can't leak back in from an unmodified
+ * call site.
+ *
+ * `demoted` renders the SAME title/asOf/takeaway/sub as a smaller SUB-header
+ * with no "Section NN · of total" eyebrow and no big number — for a chapter
+ * reparented under another top-level block (e.g. Current positioning / Recent
+ * changes living inside Block 2's Anatomy section) rather than standing as
+ * its own numbered chapter.
  */
 export function ChapterHeader({
   index,
@@ -49,6 +62,8 @@ export function ChapterHeader({
   takeaway,
   sub,
   sample,
+  total = 5,
+  demoted = false,
 }: {
   index: number;
   title: string;
@@ -56,12 +71,36 @@ export function ChapterHeader({
   takeaway?: React.ReactNode;
   sub?: React.ReactNode;
   sample?: boolean;
+  total?: number;
+  demoted?: boolean;
 }) {
+  if (demoted) {
+    return (
+      <div>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h3 className="font-serif text-lg font-semibold tracking-tight text-gray-900">{title}</h3>
+          <div className="flex items-center gap-2">
+            {asOf && <span className="text-xs text-gray-400">{asOf}</span>}
+            {sample && <SampleChip />}
+          </div>
+        </div>
+        {takeaway && (
+          <p className="mt-2 max-w-[74ch] text-[15px] font-semibold leading-relaxed text-gray-900">
+            {takeaway}
+          </p>
+        )}
+        {sub && (
+          <p className="mt-1.5 max-w-[76ch] text-sm leading-relaxed text-gray-500">{sub}</p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-3 flex items-center gap-3">
         <span className="text-[10.5px] font-semibold uppercase tracking-[0.16em] text-gray-400">
-          Section {String(index).padStart(2, "0")} · of 08
+          Section {String(index).padStart(2, "0")} · of {String(total).padStart(2, "0")}
         </span>
         <span className="h-px flex-1 bg-gray-200" />
         {sample && <SampleChip />}
@@ -92,7 +131,7 @@ export function Panel({
 }) {
   return (
     <div
-      className={`mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ${className}`}
+      className={`mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm ${className}`}
     >
       {children}
     </div>

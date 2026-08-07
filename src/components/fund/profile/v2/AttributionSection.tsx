@@ -54,6 +54,7 @@ export function AttributionSection({
   riskExplainers,
   paid,
   passiveLabel,
+  demoted = false,
 }: {
   // Built from the SERVED sub-panel — non-null only for paid callers.
   summary: AttributionWindowSummary | null;
@@ -64,6 +65,12 @@ export function AttributionSection({
   riskExplainers: RiskExplainers | null;
   paid: boolean;
   passiveLabel: string | null;
+  // Crescent v2 (Step 8): renders the chapter header as a smaller SUB-header
+  // (no "Section 04 · of total" eyebrow) when this section is reparented
+  // under a <details> drill-down (page.tsx's "What the bets did") instead of
+  // standing as its own numbered chapter. Default false = unchanged
+  // standalone-chapter behavior.
+  demoted?: boolean;
 }) {
   const pass = passiveLabel ?? "the index";
 
@@ -71,7 +78,7 @@ export function AttributionSection({
   if (!present) {
     return (
       <section id="s4" className="scroll-mt-24">
-        <ChapterHeader index={4} title="Performance attribution" />
+        <ChapterHeader index={4} title="Performance attribution" demoted={demoted} />
         <Unavailable>
           A holdings-era return decomposition isn&apos;t served for this fund.
         </Unavailable>
@@ -87,6 +94,7 @@ export function AttributionSection({
         <ChapterHeader
           index={4}
           title="Performance attribution"
+          demoted={demoted}
           takeaway={
             <>
               How the fund&apos;s sector, theme and macro bets and its stock-picking
@@ -167,6 +175,7 @@ export function AttributionSection({
             : undefined
         }
         takeaway={takeaway}
+        demoted={demoted}
       />
       <div className="mt-1.5 flex justify-end text-[11px] text-gray-400">
         <Link

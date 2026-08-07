@@ -10,11 +10,12 @@
 // ============================================================================
 import { useState } from "react";
 import { EM_DASH } from "@/lib/serving/format";
-import { bpsSigned, ppSigned } from "./format";
+import { bpsSigned, ppSigned, directionWords } from "./format";
 
 export interface BetRow {
   name: string;
-  type: string | null; // sector | theme | macro | stock | null (bridge)
+  type: string | null; // geography | sector | macro | commodity | theme | stock | null (bridge)
+  direction: "over" | "under" | null; // which SIDE of the twin — never inferred from teBps
   heldPct: number | null;
   iwfPct: number | null;
   activePp: number | null;
@@ -22,16 +23,26 @@ export interface BetRow {
   diversifying: boolean;
   bridge: string | null;
   sub: string | null;
+  /** Always rendered, even when the default view is truncated. The display-rule
+   *  rollup carries more tracking error than any named bet on many funds, so
+   *  letting the top-8 cut hide it would overstate factor concentration — the
+   *  exact thing the rollup exists to prevent. */
+  pinned?: boolean;
 }
 
 const TYPES: { key: string; label: string }[] = [
   { key: "all", label: "All bets" },
+  { key: "geography", label: "Geography" },
   { key: "sector", label: "Sector" },
-  { key: "theme", label: "Theme" },
   { key: "macro", label: "Macro" },
+  { key: "commodity", label: "Commodity" },
+  { key: "theme", label: "Theme" },
   { key: "stock", label: "Stock" },
 ];
 const LIMIT = 8;
+
+// The direction badge vocabulary lives in ./format so this table and the free
+// proof point speak with ONE voice (owner display contract, Crescent V3 review).
 
 export function BetsTable({
   rows,
@@ -49,8 +60,13 @@ export function BetsTable({
   const [type, setType] = useState("all");
   const [open, setOpen] = useState(false);
 
-  const pool = type === "all" ? rows : rows.filter((r) => r.type === type);
-  const shown = type === "all" && !open ? pool.slice(0, LIMIT) : pool;
+  // Pinned rows (the display-rule rollup) are held out of the truncation and
+  // re-appended, so they survive the default top-8 view.
+  const all = type === "all" ? rows : rows.filter((r) => r.type === type);
+  const pool = all.filter((r) => !r.pinned);
+  const pinned = all.filter((r) => r.pinned);
+  const shown =
+    type === "all" && !open ? [...pool.slice(0, LIMIT), ...pinned] : [...pool, ...pinned];
   const canExpand = type === "all" && pool.length > LIMIT;
 
   return (
@@ -85,10 +101,27 @@ export function BetsTable({
             </tr>
           </thead>
           <tbody className="tabular-nums">
-            {shown.map((r, i) => (
+            {shown.map((r, i) => {
+              const badge = directionWords(r.type, r.direction);
+              return (
               <tr key={`${r.name}-${i}`} className="border-b border-gray-50 text-right align-top last:border-0">
                 <td className="px-4 py-2.5 text-left">
                   <span className="font-semibold text-gray-900">{r.name}</span>
+                  {/* Direction sits WITH the name: the bps column says how much
+                      tracking error the bet creates, not which way it points, and
+                      most bets here point the opposite way to their sign. */}
+                  {badge && (
+                    <span
+                      title={badge.title}
+                      className={`ml-2 rounded px-1.5 py-0.5 align-middle text-[9px] font-bold uppercase tracking-wide ${
+                        badge.tone === "over"
+                          ? "bg-slate-100 text-slate-700"
+                          : "bg-amber-50 text-amber-800"
+                      }`}
+                    >
+                      {badge.short}
+                    </span>
+                  )}
                   {r.sub && (
                     <span className="mt-0.5 block text-[11px] font-normal leading-snug text-gray-500">
                       {r.sub}
@@ -152,7 +185,8 @@ export function BetsTable({
                   )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -163,7 +197,7 @@ export function BetsTable({
           onClick={() => setOpen((o) => !o)}
           className="block w-full border-t border-dashed border-gray-200 bg-gray-50 py-2.5 text-center text-[12.5px] font-semibold text-[#1466b8] hover:bg-gray-100"
         >
-          {open ? "Show top 8 ▴" : `Show all ${rows.length} bets ▾`}
+          {open ? "Show top 8 ▴" : `Show all ${pool.length} bets ▾`}
         </button>
       )}
     </div>

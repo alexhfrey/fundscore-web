@@ -19,6 +19,28 @@ import { sql } from "drizzle-orm";
 import { assetClassCodeEnum } from "./enums";
 
 // ============================================================================
+// THESE SERVING TABLES ARE A READ-ONLY MIRROR — THEY ARE NOT CREATED FROM HERE.
+// ----------------------------------------------------------------------------
+// The ONE authoritative DDL for fund_profile_facts, fund_holdings_full,
+// fund_attribution_blocks, serving_manifest and query_canonical_* lives in
+// fund_score: scripts/pipeline/apply_serving_schema.py. It creates the tables,
+// the enums, the indexes and their access control, and the serving loader
+// refuses to run against a database it hasn't been applied to.
+//
+// The definitions below exist for ONE reason: so the app can read those tables
+// through Drizzle with types. Until 2026-08-07 there were three more
+// hand-maintained copies (schema.sql + two drizzle/*.sql migrations) that had
+// silently drifted 4-13 columns apart and knew nothing of the two long tables;
+// they have been deleted, not re-synced. Adding a column: change
+// apply_serving_schema.py FIRST, then mirror it here.
+//
+//   • drizzle.config.ts excludes these tables from `drizzle-kit push` — pushing
+//     this file can never create or alter them.
+//   • `npm run db:check-serving` verifies this mirror against a live database.
+//     It is a required step of docs/RUNBOOK-serving-load.md after every load.
+// ============================================================================
+
+// ============================================================================
 // SERVING-LAYER ENUMS (Track 1B — Value Offering serving model)
 // These back the new fund_profile_facts hot path. They are intentionally
 // separate from the legacy predictive-score enums in ./enums.ts, which the
@@ -171,6 +193,15 @@ export const fundHoldingsFull = pgTable(
     isin: varchar("isin", { length: 12 }),
     weightPct: doublePrecision("weight_pct"), // filed pctVal, EXACTLY as filed
     valueUsd: doublePrecision("value_usd"), // filed valUSD
+    // Filed long/short marker. Postgres type is plain `text` (no enum, no CHECK)
+    // — mirrored as text, NOT a pgEnum, because the database does not constrain
+    // it and a narrower TS type would claim a guarantee that isn't there. The
+    // three values the loader has ever written, measured over all 1,398,380
+    // served rows on 2026-08-07: "long" (1,370,084), "derivative_na" (25,637),
+    // "short" (2,659). The sign already lives in weight_pct/value_usd (99.4% of
+    // "short" rows are filed negative); this column is what NAMES the position
+    // so a −2.68% row reads as a short sale rather than a data error.
+    positionDirection: text("position_direction"),
     country: text("country"), // filed invCountry
     sector: text("sector"), // cusip_reference join; null where unresolved
     assetCat: varchar("asset_cat", { length: 16 }), // filed assetCat raw code (display labeling is frontend)
@@ -225,6 +256,68 @@ export const servingManifest = pgTable(
   (t) => [
     index("sm_build_version_idx").on(t.profileBuildVersion),
     index("sm_active_idx").on(t.active),
+  ],
+);
+
+// ============================================================================
+// query_canonical_catalog / query_canonical_results — the published-query
+// surface behind /q/{slug}, /search and /lens/{lens_slug} (screener-beta-port)
+// ----------------------------------------------------------------------------
+// 1:1 with fund_score's data/product/query/query_canonical_{catalog,results}
+// parquets. Until 2026-08-07 the web app read those files directly through
+// DuckDB, which pinned the whole query surface to a local filesystem and could
+// not run on Vercel; they now serve from Postgres like every other panel.
+//
+// AUTHORITATIVE DDL LIVES IN fund_score's scripts/pipeline/apply_serving_schema.py
+// (see the open serving-DDL-drift bug). These definitions mirror it for typed
+// reads only — Drizzle must NOT create the serving tables.
+//
+// Nothing here is computed: every column is inherited verbatim from the
+// already-validated query panels. The Value Score verdict shown next to a result
+// is NOT stored here — it is LEFT JOINed live from fund_profile_facts, so the
+// screener and the fund's own profile page cannot disagree.
+// ============================================================================
+
+export const queryCanonicalCatalog = pgTable("query_canonical_catalog", {
+  canonicalId: text("canonical_id").notNull(),
+  querySlug: text("query_slug").primaryKey(),
+  queryType: text("query_type").notNull(),
+  parsedQueryText: text("parsed_query_text").notNull(),
+  parsedSpecHash: text("parsed_spec_hash"),
+  referenceFrame: text("reference_frame"),
+  universeSize: integer("universe_size").notNull(),
+  resultCount: integer("result_count").notNull(),
+  primaryMetricLabel: text("primary_metric_label"),
+  refusalReason: text("refusal_reason"),
+  asOf: date("as_of"),
+  rankerVersion: text("ranker_version").notNull(),
+  parserVersion: text("parser_version").notNull(),
+});
+
+export const queryCanonicalResults = pgTable(
+  "query_canonical_results",
+  {
+    rank: integer("rank").notNull(),
+    seriesId: text("series_id").notNull(),
+    ticker: text("ticker"),
+    fundName: text("fund_name"),
+    wrapperLabel: text("wrapper_label"),
+    relevanceScore: integer("relevance_score"),
+    primaryMetricValue: doublePrecision("primary_metric_value"),
+    primaryMetricLabel: text("primary_metric_label"),
+    expenseRatioBps: doublePrecision("expense_ratio_bps"),
+    badge: text("badge"),
+    whyBasisText: text("why_basis_text"),
+    whyBasisSourceFields: text("why_basis_source_fields"),
+    holdingsAsOf: date("holdings_as_of"),
+    fundProfileHref: text("fund_profile_href"),
+    canonicalId: text("canonical_id"),
+    querySlug: text("query_slug").notNull(),
+    queryType: text("query_type"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.querySlug, t.rank] }),
+    index("qcr_series_idx").on(t.seriesId),
   ],
 );
 

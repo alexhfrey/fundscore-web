@@ -1,7 +1,7 @@
 ---
 id: ai-summary-generation
 title: Generate the per-fund AI summary from served facts only, behind an in-code fact-grounding gate
-status: queued
+status: rejected
 track: backend
 repo: fund_score
 depends_on: fund-named-manager-source, profile-nav-series, attribution-factor-path-serving, fund-family-panel
@@ -10,6 +10,13 @@ created: 2026-07-01
 scope: global
 model: fable
 ---
+
+> **REJECTED 2026-07-22 (owner-approved queue cleanup):** the Crescent five-block redesign
+> (web branch `feature/crescent-profile-v2`, on the preview since 2026-07-21) removed the
+> AI-summary section from the fund page entirely — the `AISummary` component is no longer rendered
+> anywhere. This spec's premise ("serve the profile's AI Summary section") has no section to serve.
+> If a narrative layer returns in the Crescent system, re-propose against that design rather than
+> reopening this spec.
 
 ## Owner summary
 Generates the plain-English summary paragraph at the top of each fund page from our own verified data — the "read this first" layer for retail customers. Deliberately de-scoped from the V1 launch; ships as a fast-follow under the same per-section quality gates so we never launch machine-written text we haven't gated.

@@ -3,6 +3,61 @@
 // ============================================================================
 import { EM_DASH } from "@/lib/serving/format";
 
+// --- bet direction badge (owner display contract, Crescent V3 review) --------
+// Every displayed bet must say which SIDE of the passive twin the fund sits on,
+// in plain English — never a bare signed beta, and never inferred from the
+// tracking-error figure. Those two signs disagree for the majority of bets: an
+// underweight normally ADDS tracking error, so "Japan 98 bps" alone reads as a
+// bet ON Japan when the fund is positioned away from it.
+//
+// Weight-like bets — where "how much of the fund sits here" is a real question —
+// read OVER/UNDER. Pure return exposures, where there is no position to weigh,
+// read LONG/AGAINST.
+const WEIGHT_BASIS_KINDS = new Set(["geography", "sector", "stock", "theme"]);
+
+export interface DirectionWords {
+  /** table badge, e.g. "UNDER" */
+  short: string;
+  /** prose/proof-point form, e.g. "UNDERWEIGHT" */
+  long: string;
+  /** hover explanation — the jargon stays behind the affordance */
+  title: string;
+  tone: "over" | "under";
+}
+
+/** Plain-English direction for one bet, or null when the side is unknown (a
+ *  mixed rollup group, the selection sleeve, or a zero/absent beta). Null means
+ *  render NO badge — never a guessed one. */
+export function directionWords(
+  type: string | null,
+  direction: "over" | "under" | null,
+): DirectionWords | null {
+  if (direction == null) return null;
+  const weighted = type == null || WEIGHT_BASIS_KINDS.has(type);
+  const over = direction === "over";
+  return {
+    short: weighted ? (over ? "OVER" : "UNDER") : over ? "LONG" : "AGAINST",
+    long: weighted ? (over ? "OVERWEIGHT" : "UNDERWEIGHT") : over ? "LONG" : "AGAINST",
+    title: weighted
+      ? over
+        ? "The fund holds more of this than its passive twin."
+        : "The fund holds less of this than its passive twin."
+      : over
+        ? "The fund moves with this more than its passive twin does."
+        : "The fund moves against this relative to its passive twin.",
+    tone: direction,
+  };
+}
+
+/** Tracking-error contribution as a MAGNITUDE ("98 bps"). The signed form invites
+ *  reading the sign as the bet's direction, which is wrong for most bets — the
+ *  direction badge carries that, and `diversifying` carries the rarer case of a
+ *  bet that REDUCES total tracking error. */
+export function fmtBpsMagnitude(bps: number | null | undefined): string {
+  if (bps == null || !Number.isFinite(bps)) return EM_DASH;
+  return `${Math.round(Math.abs(bps))} bps`;
+}
+
 /** ISO-3166 alpha-2 → full country name (labels only, never data). */
 const COUNTRY_NAMES: Record<string, string> = {
   US: "United States",

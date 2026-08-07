@@ -14,6 +14,7 @@ export function RecentChanges({
   present,
   free,
   paid,
+  demoted = false,
 }: {
   // `changes` is passed only when free-entitled; `present` says a fixture exists
   // so the gated state reads "locked", not "unavailable".
@@ -21,11 +22,16 @@ export function RecentChanges({
   present: boolean;
   free: boolean;
   paid: boolean;
+  // Crescent v2 (Step 7): renders the chapter header as a smaller SUB-header
+  // (no "Section 06 · of total" eyebrow) when this section is reparented
+  // under Block 2 (AnatomySection) instead of standing as its own chapter.
+  // Default false = unchanged standalone-chapter behavior.
+  demoted?: boolean;
 }) {
   if (!present) {
     return (
       <section id="s6" className="scroll-mt-24">
-        <ChapterHeader index={6} title="Recent changes" />
+        <ChapterHeader index={6} title="Recent changes" total={5} demoted={demoted} />
         <Unavailable>
           A year-over-year holdings comparison isn&apos;t served for this fund yet.
         </Unavailable>
@@ -37,7 +43,7 @@ export function RecentChanges({
   if (!free || !changes || !changes.rows || changes.rows.length === 0) {
     return (
       <section id="s6" className="scroll-mt-24">
-        <ChapterHeader index={6} title="Recent changes" sample />
+        <ChapterHeader index={6} title="Recent changes" total={5} demoted={demoted} sample />
         <LockedNotice tier="free">
           See the fund&apos;s biggest year-over-year positioning changes, with both
           filing dates.
@@ -68,6 +74,8 @@ export function RecentChanges({
           </>
         }
         sample
+        total={5}
+        demoted={demoted}
       />
 
       <Panel className="p-0">

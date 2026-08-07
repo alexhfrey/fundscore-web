@@ -1,7 +1,7 @@
 ---
 id: attribution-quarter-blocks
 title: V2: materialize quarterly Brinson member blocks for custom-window attribution drill-downs
-status: queued
+status: rejected
 track: backend
 repo: fund_score
 depends_on: attribution-factor-path-serving, profile-v2-production-cutover
@@ -10,6 +10,12 @@ created: 2026-07-01
 scope: global
 model: opus
 ---
+
+> **REJECTED 2026-07-22 (owner-approved queue cleanup):** V2-only enhancement whose parent surface
+> moved — the Crescent five-block redesign demoted the Attribution Explorer to a drill-down
+> chapter, and this spec already depended on `profile-v2-production-cutover` (itself pending a
+> Crescent re-grounding). Two layers of "later"; reopen only if custom-window attribution returns
+> to the roadmap, and re-ground it against the Crescent drill-down when it does.
 
 ## Owner summary
 Lets customers zoom the performance-attribution story into custom date windows ("what drove returns in 2023?") instead of one fixed multi-year window. A V2 enhancement — the per-quarter building blocks are already served; this adds the interactive composition.

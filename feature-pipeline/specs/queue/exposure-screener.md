@@ -5,7 +5,7 @@ status: queued
 track: full-stack
 repo: fundscore-web + fund_score
 depends_on: serve-full-exposure-panel
-source_proposal: feature-pipeline/proposals/approved/homepage-promise.md
+source_proposal: "no proposal doc exists — the backlog's guessed target (docs/product/page_specs/home.md) also does not exist and never has (verified via git log --all + filesystem). This spec derives directly from the homepage copy in src/app/page.tsx (\"Search by the bet, not the label.\"), added in the same commit (ea98533, 2026-07-14) that wrote this spec; no separate proposal artifact was ever created."
 created: 2026-07-14
 scope: global
 model: fable
