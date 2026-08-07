@@ -19,11 +19,11 @@ irreversible in practice — there is no snapshot step today (gap **G5**).
 nobody is looking at. If a step is going to surprise you, it will surprise you there.
 
 > ### Read the Gaps section (§8) before you start
-> §8 lists eight gaps: six are steps in this procedure with **no script behind them**, one (G4) is a
-> live schema-drift defect, one (G8) is missing documentation. Two of them change what you *type*,
-> not just what you know — **G1** (there is no "replay the verified staging parquet" mode, so the
-> load re-assembles) and **G4** (the web Drizzle schema is missing a column the loader COPYs, so
-> Drizzle must not create the tables).
+> §8 lists eight gaps: six are steps in this procedure with **no script behind them**, one (G8) is
+> missing documentation, and one (**G4**, the serving-schema drift) is now **CLOSED** — read it
+> anyway, because it is why §3.1 works the way it does. One gap still changes what you *type*, not
+> just what you know: **G1** — there is no "replay the verified staging parquet" mode, so the load
+> re-assembles.
 
 ---
 
@@ -241,21 +241,92 @@ off local parquet through DuckDB, which could not run on Vercel at all; they are
 rows) and now load with everything else. If `tables present:` shows only four, you are running an
 older `LAKE` — stop and re-check §1.1.
 
-**Do not use `npm run db:push` for this.** Three independent reasons:
+#### `apply_serving_schema.py` is the ONE definition of these tables
 
-1. `drizzle.config.ts` hardcodes `config({ path: ".env.local" })` — `drizzle-kit push` reads
-   **local** credentials regardless of your exported `DATABASE_URL`. It would push to the wrong
-   database silently.
-2. `docs/DEPLOYMENT.md` §3.1 records that it hangs against Supabase's pooler.
-3. The web Drizzle schema is **behind** the loader's column contract — `fundHoldingsFull` in
-   `src/lib/db/schema/serving.ts` has no `position_direction`, but the loader COPYs it
-   (`HOLDINGS_FULL_COLUMNS`, `src/fundscore/serving/load.py:72`). A Drizzle-created table would make
-   the COPY fail. See gap **G4**.
+There is no second source. As of 2026-08-07 there is no longer a second *copy* either — but read
+the **Status** column, because half of this landed in `WEB` and half is still on an unmerged
+`fund_score` branch:
 
-The checked-in SQL files are not an alternative either: `WEB/schema.sql` and
-`WEB/drizzle/serving_layer_additive.sql` are both stale against the current contract (missing 13
-`fund_profile_facts` columns, still carrying 4 retired ones). `apply_serving_schema.py` is the only
-current source.
+| Was | Now | Status |
+|---|---|---|
+| `WEB/schema.sql` serving section | **deleted** — it was 4 columns short, still carried 4 columns retired in 2026-06, and never knew the two long tables existed. Replaced by a pointer. | **live** in this checkout |
+| `WEB/drizzle/*.sql` + `drizzle/meta/` | gitignored, never tracked — local-only leftovers on one machine. Nothing reads them; delete yours. | **live** |
+| `WEB` `drizzle-kit push` | refuses, at the config layer, so `npx drizzle-kit push` is blocked too. | **live** |
+| `apply_serving_schema.py` — revokes anon/authenticated, enables RLS, self-verifies its own column contract | closes the PostgREST exposure and makes a forgotten column fail at apply time | ⚠️ **`feat/h1-serving-ddl-authority` (`1f3d91f`), NOT merged** |
+| `apply_auth_schema.py` serving-RLS block | **removed** — it ran *after* §3.1 and re-created a `USING (true)` read policy exposing the paid JSONB sections | ⚠️ **same branch, NOT merged** |
+| `WEB/src/lib/db/schema/serving.ts` | kept, as a **read-only typed mirror** so the app can query the tables. It creates nothing. | **live** |
+
+> ### ⚠️ The RLS hole is NOT closed on `fund_score` `main`
+>
+> If you run §3.1 and §3.2 from `main` as it stands, **§3.2 re-opens the hole §3.1 was supposed to
+> close** — `apply_auth_schema.py` on `main` still enables RLS on `fund_profile_facts` /
+> `serving_manifest` and recreates `fpf_public_read` / `sm_public_read` as `FOR SELECT TO public
+> USING (true)`, so every paid JSONB section (`value_score` figures, `return_attribution`,
+> `alternatives`, `te_decomposition`) is readable over PostgREST with the browser-shipped anon key.
+> `fund_holdings_full` and `fund_attribution_blocks` are worse on `main`: RLS off, zero policies,
+> and `anon` holding SELECT/INSERT/UPDATE/DELETE/**TRUNCATE**.
+>
+> **Do not treat this as done until `feat/h1-serving-ddl-authority` (`1f3d91f`) is merged into
+> `fund_score` `main` and your `LAKE` checkout contains it.** Verify before you start:
+>
+> ```bash
+> git -C "$LAKE" log --oneline -1 --grep='serving.DDL' || \
+>   grep -c 'REVOKE ALL ON TABLE' "$LAKE/scripts/pipeline/apply_serving_schema.py"   # expect ≥1
+> grep -c 'fpf_public_read ON public' "$LAKE/scripts/pipeline/apply_auth_schema.py"  # expect 0
+> ```
+>
+> If either check fails you are on the pre-fix code. The load itself still works; the exposure just
+> stays open — and `npm run db:check-serving` will **fail** on it (exit 1, `PostgREST EXPOSED`)
+> rather than let you call the load done.
+
+**Do not use `npm run db:push`.** It is now a guard script that refuses and names the right tool.
+Measured 2026-08-07 against an empty database: `drizzle-kit push` creates all six serving tables
+with **ROW LEVEL SECURITY OFF**, and on Supabase they inherit `anon`/`authenticated` full-DML
+grants. (`tablesFilter` does *not* prevent this — it filters what push reads back, not what it
+creates. Verified, not assumed.) `docs/DEPLOYMENT.md` §3.1 also records that it hangs against
+Supabase's pooler, and `drizzle.config.ts` hardcodes `.env.local`, so it can silently target the
+wrong database.
+
+**Access control is part of this step.** `apply_serving_schema.py` revokes `anon`/`authenticated`
+from all six tables and enables RLS with no policy. The app reads them as the owner role over
+`DATABASE_URL` (which bypasses RLS) and never through PostgREST — verified: the only PostgREST
+reads in the app are `entitlements` and `early_access`. This matters because the anon key ships to
+every browser; before the fix, `fund_holdings_full` (the PAID full-holdings list) was readable —
+and truncatable — by anyone holding it.
+
+#### Then verify the app can read what you just created
+
+```bash
+cd "$WEB"
+DATABASE_URL='<the same target>' npm run db:check-serving
+```
+
+**Exit 0 from this command means "this database is fit to serve this checkout of the app".**
+Take no flags, and treat a non-zero exit as a stop. It fails on:
+
+| | |
+|---|---|
+| `TABLE ABSENT` | the app reads a table this database does not have — those routes 500, and `/q/[slug]` silently prerenders **nothing** rather than erroring, so the build will not warn you |
+| `MISSING IN DB` | the app would query a column that isn't there |
+| `MISSING IN APP` | the loader serves a column the app can't read — this is the `position_direction` case, served for weeks and invisible because only the mirror had drifted |
+| `PostgREST EXPOSED` | `anon`/`authenticated` hold grants on tables carrying PAID payloads, with the anon key in every browser |
+
+**Run it against local, preview and prod.** Every table it checks is required because *this
+checkout's code reads it* — that is a different question from what has merged in `fund_score`, and
+only the first one predicts whether the deployment works.
+
+Expect it to FAIL today on two counts until the merges land, and that is the honest answer, not
+noise:
+
+- `query_canonical_catalog` / `query_canonical_results` — created by **`w3/query-serving-tables`
+  (`89044fb`)**, unmerged. `/search`, `/q/{slug}` and `/lens/{lens_slug}` cannot work without them.
+- `PostgREST EXPOSED` — the revoke lives on **`feat/h1-serving-ddl-authority` (`1f3d91f`)**,
+  unmerged. See the box at the top of this section.
+
+Two named escape hatches exist, `--allow-pending` (a table whose DDL is on an unmerged branch may
+be absent) and `--allow-exposed`. Both print `PASS-RELAXED` and say in plain words that it is not a
+serve-ready verdict. **Neither is appropriate for D1** — they are for someone knowingly inspecting
+an intermediate database mid-merge.
 
 ### 3.2 Auth / entitlements / RLS — from `LAKE`
 
@@ -267,10 +338,17 @@ uv run python scripts/pipeline/apply_auth_schema.py
 (`WEB/src/lib/serving/session.ts:34`) SELECTs from `entitlements` on every signed-in page render.
 If that table does not exist, every signed-in page 500s.
 
-It creates `users`, `entitlements`, `lenses` with own-row RLS; enables RLS + public-read policies on
-`fund_profile_facts` and `serving_manifest`; and installs the `handle_new_user()` /
+It creates `users`, `entitlements`, `lenses` with own-row RLS, and installs the `handle_new_user()` /
 `on_auth_user_created` trigger that provisions a `free` entitlements row for every new auth user.
 Ends with `auth tables: [...]`, an RLS policy summary, and `auth schema + RLS applied.`
+
+⚠️ **On `fund_score` `main` this step still re-opens the §3.1 lockdown.** `apply_auth_schema.py`
+there also enables RLS on `fund_profile_facts` + `serving_manifest` and recreates
+`fpf_public_read` / `sm_public_read` as `FOR SELECT TO public USING (true)` — running *after* §3.1,
+it undoes it, and exposes every paid JSONB section to the browser-shipped anon key. That block is
+removed on **`feat/h1-serving-ddl-authority` (`1f3d91f`)**, so serving access control belongs to
+§3.1 alone — **once that branch is merged**. Check with the `grep -c 'fpf_public_read ON public'`
+command in the §3.1 box before you run this; expect `0`.
 
 Two ordering facts:
 - It **must** run after §3.1 — it references `fund_profile_facts` and `serving_manifest`.
@@ -647,17 +725,30 @@ and manifest equality are a proxy, not a substitute. *Missing capability:* a per
 non-null-count comparison (local vs target) for all `SECTION_COLUMNS`, and a row count + payload
 sanity check for `fund_attribution_blocks`. This is the second most valuable thing to build.
 
-**G4 — The web Drizzle schema is missing `position_direction`.** `HOLDINGS_FULL_COLUMNS`
-(`LAKE/src/fundscore/serving/load.py:72`) includes `position_direction`, and
-`apply_serving_schema.py:136` adds it. `WEB/src/lib/db/schema/serving.ts`'s `fundHoldingsFull`
-(line 159) does not have it, and neither does `WEB/schema.sql` or
-`WEB/drizzle/serving_layer_additive.sql`. Consequence: any Drizzle- or checked-in-SQL-created
-`fund_holdings_full` produces a table the loader's COPY fails against. §3.1 avoids this by using
-`apply_serving_schema.py` as the sole DDL source. *This is a live schema-drift defect worth its own
-backlog item*, independent of D1: the two mirrors are documented as needing to stay in sync
-(`LAKE/docs/context/serving.md:10`) and currently do not. The stale `WEB/schema.sql` /
-`serving_layer_additive.sql` (13 `fund_profile_facts` columns missing, 4 retired ones still present)
-are the same defect, larger.
+**G4 — FIXED, NOT YET MERGED (serving-DDL-authority, 2026-08-07).** The web half is live in this
+checkout; the `fund_score` half is committed on **`feat/h1-serving-ddl-authority` (`1f3d91f`)** and
+is **not** on `main`. Until it merges, the loader still fails open and the RLS hole is still open —
+see the boxed warning in §3.1. The gap was real and larger than written:
+the serving tables had four hand-maintained definitions that silently disagreed, and only
+`apply_serving_schema.py` reproduced the live database. Measured before the fix — `schema.sql` 4
+real columns short with 4 retired ones still present; `drizzle/*.sql` 13 short; both blind to
+`fund_holdings_full` and `fund_attribution_blocks`; the Drizzle mirror missing `position_direction`.
+
+What shipped:
+
+- `apply_serving_schema.py` is now the sole definition, **verifies itself** after applying (it
+  re-reads `information_schema` and fails if any column the loader writes is absent), and owns the
+  tables' access control as well as their shape.
+- The loader **no longer fails open.** `load_to_postgres` used to intersect its column list with
+  whatever the table happened to have and COPY the overlap — a table built from a stale definition
+  simply lost columns and the app served silent NULL sections. It now aborts, before the TRUNCATE,
+  naming the missing columns. Proven: dropping two columns and running a load raises and leaves the
+  target untouched.
+- The stale copies are gone (see the table in §3.1), and `npm run db:check-serving` verifies the
+  surviving read-mirror against any live database.
+
+The residual, now-explicit rule: **change `apply_serving_schema.py` first, mirror into
+`serving.ts` second, and let `db:check-serving` prove it.** Never the other way round.
 
 **G5 — No pre-load backup or restore.** Nothing dumps the target's serving tables before a
 TRUNCATE+COPY, and no restore path is written. Harmless for the first prod load (empty target);

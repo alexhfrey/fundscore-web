@@ -444,6 +444,11 @@ export interface HoldingRow {
   ticker: string | null; // resolved US ticker; null where unresolved
   weight_pct: number | null; // filed pctVal (% of net assets), exactly as filed
   value_usd: number | null; // filed valUSD
+  // Filed long/short marker, as served: "long" | "short" | "derivative_na" are
+  // the only values in the table (measured over all 1.4M rows), but the column
+  // is unconstrained text so the type stays string — the UI matches on "short"
+  // and ignores anything it doesn't recognise rather than mislabelling it.
+  position_direction: string | null;
   country: string | null; // filed invCountry
   sector: string | null; // cusip_reference join; null where unresolved
   asset_cat: string | null; // filed assetCat raw code (labeled in the UI)

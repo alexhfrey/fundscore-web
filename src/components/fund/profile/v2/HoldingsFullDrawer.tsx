@@ -37,6 +37,24 @@ function fmtValue(v: number | null): string {
   return v < 0 ? `−${fmtAum(-v)}` : fmtAum(v);
 }
 
+/** The filed long/short marker, shown ONLY for an explicit "short". A short sale
+ *  is filed with a negative weight, and a bare "−2.68%" next to a familiar name
+ *  reads as a data error rather than a position; this names it. Values other
+ *  than "short" render nothing — "long" needs no label and "derivative_na" is
+ *  already described by the Type column's filed assetCat. Never inferred from
+ *  the sign: only the filed column drives it. */
+function shortMarker(direction: string | null) {
+  if (direction !== "short") return null;
+  return (
+    <span
+      title="Filed as a short position in the fund's N-PORT report"
+      className="ml-1.5 rounded border border-gray-300 px-1 py-px align-middle text-[9.5px] font-semibold uppercase tracking-wide text-gray-500"
+    >
+      Short
+    </span>
+  );
+}
+
 export function HoldingsFullDrawer({
   nPositions,
   asOf,
@@ -171,6 +189,7 @@ export function HoldingsFullDrawer({
                         ) : (
                           <span className="font-semibold text-gray-800">{r.name ?? EM_DASH}</span>
                         )}
+                        {shortMarker(r.position_direction)}
                       </td>
                       <td className="px-2 py-1 text-right text-gray-700">{fmtWeight(r.weight_pct)}</td>
                       <td className="px-2 py-1 text-right text-gray-500">{fmtValue(r.value_usd)}</td>

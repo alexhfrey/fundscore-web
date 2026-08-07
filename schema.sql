@@ -503,89 +503,35 @@ admin_details: {
 */
 
 -- ============================================================================
--- SERVING LAYER (Track 1B) — Value Offering hot path
+-- SERVING LAYER — DELIBERATELY NOT DEFINED HERE
 -- ----------------------------------------------------------------------------
--- These tables replace the legacy predictive-score mock above as the profile
--- page's data source (the mock is retired in Track 1C once the UI is rebuilt).
--- The Python loader (fund_score: scripts/pipeline/build_serving_facts.py) does
--- a full-replace COPY into fund_profile_facts and mirrors the build manifest
--- into serving_manifest. Source of truth: src/lib/db/schema/serving.ts.
+-- fund_profile_facts, fund_holdings_full, fund_attribution_blocks,
+-- serving_manifest, query_canonical_catalog and query_canonical_results have
+-- exactly ONE definition, and it is not this file:
+--
+--     fund_score  scripts/pipeline/apply_serving_schema.py
+--
+-- That script creates the tables, their enums (tier_label,
+-- value_offering_status, data_completeness_state, asset_class_code), their
+-- indexes and their access control, and the serving loader refuses to run
+-- against a database it has not been applied to. Run it against local, preview
+-- and prod before every load — see docs/RUNBOOK-serving-load.md § 3.
+--
+-- WHY THE DDL WAS REMOVED FROM HERE (2026-08-07). This file used to carry its
+-- own copy, and it had silently drifted: 4 columns short (nav_series,
+-- fund_family_panel, positioning_context, te_decomposition) while still
+-- declaring 4 columns retired in 2026-06 (value_offering_score,
+-- value_offering_label, value_offering, fee_gap_bps), and it had never heard of
+-- the two long tables at all. Nothing executed it, so the drift was invisible
+-- until someone created a database from it — and then the load failed, or a
+-- column vanished silently. A second hand-maintained list is not a safety net;
+-- it is the defect. The app's typed read mirror lives in
+-- src/lib/db/schema/serving.ts and is verified against a live database by
+-- `npm run db:check-serving`.
+--
+-- The AUTH / ENTITLEMENTS section below is still real: it is mirrored by
+-- fund_score's scripts/pipeline/apply_auth_schema.py and scripts/apply-lens-schema.mjs.
 -- ============================================================================
-
-CREATE TYPE tier_label AS ENUM ('Strong', 'Mixed', 'Weak');
-CREATE TYPE value_offering_status AS ENUM ('available', 'limited', 'unavailable');
-CREATE TYPE data_completeness_state AS ENUM (
-  'full', 'basic_profile_only', 'missing_passive_match',
-  'missing_holdings', 'missing_expense', 'unsupported'
-);
-
--- One row per series_id. Hot scalars + nested JSONB payload sections matching
--- the FundProfilePayload contract (docs/product/data_contracts/fund_profile.md).
--- Sections with no real data for a fund are SQL NULL (never synthetic). The
--- Phase 2/3 panels (value_offering_reframed/exposure_xray/return_attribution/
--- positioning_changes/alternatives/takeaways/the_take) shipped in Track 1C prep.
-CREATE TABLE fund_profile_facts (
-  series_id               text PRIMARY KEY,
-  canonical_ticker        varchar(12),
-  profile_build_version   text NOT NULL,
-  fund_name               text,                          -- SEC free text; not length-capped
-  fund_family             text,
-  asset_class             asset_class_code,
-  peer_group              varchar(64),
-  management_style        varchar(24),
-  vehicle_type            varchar(32),
-  value_offering_score    integer,                       -- null when unavailable (legacy v0.1)
-  value_offering_label    tier_label,                    -- null when unavailable (legacy v0.1)
-  value_offering_status   value_offering_status NOT NULL,
-  confidence_state        value_offering_status NOT NULL,
-  fee_fairness_label      tier_label,                    -- null when fair_fee null
-  fee_gap_bps             real,
-  net_expense_ratio_bps   real,
-  data_completeness_state data_completeness_state NOT NULL,
-  identity                jsonb NOT NULL,
-  value_offering          jsonb,                         -- legacy 5-leg payload (spec #7 v0.1)
-  value_offering_reframed jsonb,                         -- spec #7 v0.3 badge typology (hero)
-  fees                    jsonb,
-  passive_baseline        jsonb,
-  performance             jsonb,
-  risk_behavior           jsonb,
-  holdings                jsonb,
-  manager_parent          jsonb,                         -- carries skill_evidence + manager_moves
-  source_inventory        jsonb NOT NULL,
-  gates                   jsonb NOT NULL,
-  exposure_xray           jsonb,                         -- spec #4
-  return_attribution      jsonb,                         -- spec #10
-  positioning_changes     jsonb,                         -- spec #12
-  alternatives            jsonb,                         -- spec #6
-  takeaways               jsonb,                         -- spec #8 (3b)
-  the_take                jsonb,                          -- spec #8 (3a)
-  risk_attribution        jsonb,                         -- spec #13 — factor/theme betas + divergence + bias/timing/idio
-  value_score             jsonb,                         -- CURRENT value verdict (the hero, 2026-06-29)
-  value_score_bps         real,                          -- net active value over passive, bps/yr (paid)
-  value_score_100         integer,                       -- anchored 0-100, 50 = breakeven (paid)
-  value_coverage_state    text,                          -- scored | too_new | not_comparable | fee_unavailable
-  updated_at              timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE INDEX fpf_ticker_idx ON fund_profile_facts (canonical_ticker);
-CREATE INDEX fpf_peer_group_idx ON fund_profile_facts (peer_group);
-CREATE INDEX fpf_asset_class_idx ON fund_profile_facts (asset_class);
-CREATE INDEX fpf_vo_status_idx ON fund_profile_facts (value_offering_status);
-
--- Mirrors data/product/fund_profiles/profile_build_manifest.json at the serving
--- boundary (Serving Architecture Decision 4).
-CREATE TABLE serving_manifest (
-  id                    serial PRIMARY KEY,
-  profile_build_version text NOT NULL,
-  built_at              timestamptz NOT NULL DEFAULT now(),
-  active                boolean NOT NULL DEFAULT false,
-  fact_row_count        integer NOT NULL,
-  source_panels         jsonb NOT NULL,  -- [{panel,path,mtime,row_count,method_version}]
-  build_manifest        jsonb NOT NULL
-);
-
-CREATE INDEX sm_build_version_idx ON serving_manifest (profile_build_version);
-CREATE INDEX sm_active_idx ON serving_manifest (active);
 
 -- ============================================================================
 -- AUTH / ENTITLEMENTS (Track 1B follow-on) — per-user tables + RLS
@@ -681,11 +627,19 @@ AS $$
 $$;
 GRANT EXECUTE ON FUNCTION public.get_shared_lens(text) TO anon, authenticated;
 
--- RLS: public read on serving content (loader writes as postgres / bypasses RLS)
-ALTER TABLE fund_profile_facts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE serving_manifest ENABLE ROW LEVEL SECURITY;
-CREATE POLICY fpf_public_read ON fund_profile_facts FOR SELECT USING (true);
-CREATE POLICY sm_public_read ON serving_manifest FOR SELECT USING (true);
+-- RLS on the serving tables is set by fund_score's apply_serving_schema.py, not
+-- here. The `USING (true)` policies this file used to create exposed every PAID
+-- JSONB section (value_score figures, return_attribution, alternatives,
+-- te_decomposition) to anyone holding the browser-shipped anon key, and the two
+-- long tables had no RLS at all. The app reads these tables as the owner role
+-- over DATABASE_URL and never through PostgREST, so the correct posture is:
+-- grants revoked from anon/authenticated, RLS on, no policy.
+--
+-- ⚠️ THAT FIX IS NOT ON fund_score `main` YET — it is committed on
+-- `feat/h1-serving-ddl-authority` (1f3d91f). Until that merges, `main`'s
+-- apply_auth_schema.py still recreates fpf_public_read / sm_public_read and the
+-- exposure is live. `npm run db:check-serving` reports it against any database.
+-- See docs/RUNBOOK-serving-load.md § 3.1.
 
 -- New-user provisioning: every auth.users insert gets a public.users +
 -- entitlements (default 'free') row, regardless of sign-up path. SECURITY

@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-07T04:06-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-07T10:00-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -80,6 +80,16 @@ Worker loops: `IN` = /implement-next (routes by track/lane, reads spec model/eff
 | W5 | V4 serving riders spec (skill strip + effective-positions) — backlog Beta-launch group; spec now, build in L after F1 | SS | opus/med | **done** → `specs/queue/v4-serving-riders-skill-strip-effective-positions.md` |
 | W6 | Pipeline-state hygiene chore (3 rot spots) — backlog Working set (NOT "Hardening sweep"; corrected 2026-08-07) | FB | sonnet/low | **done** |
 
+### Track H — hardening (ADDED 2026-08-07 by owner decision; all UNBLOCKED, all filed by the W1–W6 run)
+Owner chose this over idle-watching when Track W drained. Every item is a real defect found tonight,
+none needs an owner input, and each de-risks D1 or the fences this plan depends on. Ordered by that.
+| # | Item | Worker | Model/effort | STATUS |
+|---|------|--------|--------------|--------|
+| H1 | [in-progress] **Serving-table DDL has 3 disagreeing definitions** — loader COPYs `position_direction`, absent from Drizzle + `schema.sql` + `drizzle/serving_layer_additive.sql`; facts 13 cols short, 4 retired cols present. A fresh prod DB created the obvious way = failed or silently-truncated load. **Directly a D1 trap.** | FB (cross-repo) | opus/high | ready |
+| H2 | [in-progress] **`branch-guard.sh` fail-open** — resolves the target repo from the FIRST `git -C` anywhere in a compound command; mirror case silently APPROVES a `main` commit. **This is F3's own enforcement.** Audit `codex-commit-gate.sh` for the same shape. | FB | opus/high | ready |
+| H3 | **`npm run build` connects to PROD** — `.env.production.local` outranks `.env.local`, so the mandatory build gate opens prod queries on every machine and its prerender output is misleading everywhere. Careful: Vercel runs the same script, so do not "fix" it by forcing local. | FB | opus/high | ready |
+| H4 | **`/api/ops` has no rate limit** — unauthenticated INSERT path on a public site (the one gate exception). Abuse grows a table; no leak, no compute. Needs a throttle before any ungated launch. | FB | sonnet/med | ready |
+
 ### Track C — campaign session (NOT this line's work; listed for sequencing only)
 | C1 | Flat-tail detector fix → cascade resume → deltas → **S1** → local reload → finalize/merge | campaign session | — | in-progress (other session) |
 
@@ -111,7 +121,7 @@ Worker loops: `IN` = /implement-next (routes by track/lane, reads spec model/eff
 ### Track D — deploy + beta
 | # | Item | Worker | Model/effort | STATUS |
 |---|------|--------|--------------|--------|
-| D1 | Execute preview+prod serving loads — **follow `docs/RUNBOOK-serving-load.md` (W2, 2026-08-07)**; prod stays owner-gated. **SCOPE IS WIDER THAN THE ORIGINAL FOUR TABLES** (W2 finding): `apply_auth_schema.py` is MANDATORY — `resolveSession()` SELECTs `entitlements` on every signed-in render, so a missing table 500s every page for a beta user — and `apply-lens-schema.mjs` is mandatory for the live `/api/lens/quota` route. Plus W1's ops step: `node scripts/apply-ops-schema.mjs` on prod `henxcsknsjfadetomjeu` AND preview `yqyyvhcrmcwarxweusbw`, else the beta records nothing. F4 is met via the freeze-and-prove protocol, NOT a replay (see amended F4). Blocked additionally on **P1** (Supabase paid tier). | FD-style gated run | opus/high | blocked(S1,W2✓,P1) |
+| D1 | **⚠ SECURITY PREREQ (H1, 2026-08-07): the serving tables grant `anon` full CRUD+TRUNCATE and two have RLS OFF — D1 MUST apply the fixed `apply_serving_schema.py`, and MUST keep it ordered BEFORE `apply_auth_schema.py` (which used to re-open it). Verify with `npm run db:check-serving` after each target.** Execute preview+prod serving loads — **follow `docs/RUNBOOK-serving-load.md` (W2, 2026-08-07)**; prod stays owner-gated. **SCOPE IS WIDER THAN THE ORIGINAL FOUR TABLES** (W2 finding): `apply_auth_schema.py` is MANDATORY — `resolveSession()` SELECTs `entitlements` on every signed-in render, so a missing table 500s every page for a beta user — and `apply-lens-schema.mjs` is mandatory for the live `/api/lens/quota` route. Plus W1's ops step: `node scripts/apply-ops-schema.mjs` on prod `henxcsknsjfadetomjeu` AND preview `yqyyvhcrmcwarxweusbw`, else the beta records nothing. F4 is met via the freeze-and-prove protocol, NOT a replay (see amended F4). Blocked additionally on **P1** (Supabase paid tier). | FD-style gated run | opus/high | blocked(S1,W2✓,P1) |
 | D2 | Solver snapshot bake + AC1-5 acceptance on preview; **S4** before image push | IN (continuation of W4) | opus/high | blocked(W4,D1) |
 | D3 | **S5** go/no-go + invites (grant via scripts/grant-early-access.mjs) | owner | — | blocked(all blockers, F6, D1, D2) |
 
