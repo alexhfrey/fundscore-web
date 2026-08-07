@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-07T03:46-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-07T04:06-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -300,3 +300,14 @@ legacy `funds` table go — `/screener` is its only consumer.
   Four branches await owner merge: web `feature/crescent-profile-v2` (dfcb513, 49a3e21, 8aa108b,
   c57ed1c, b8006ea + this) · fund_score `w3/query-serving-tables` (89044fb) · `w4/solver-http-service`
   (6dc6dc7, 93a3681). Spec queue is 12 deep — drain, don't add.
+- 2026-08-07 04:06 — **Loop re-armed by owner; nothing had unblocked** (P1/P2 still unanswered;
+  campaign still at `9378de7` with no writes in 60 min; fund_score main still `5973f0c`). Took the one
+  remaining in-scope unit: **corrected the CUTOVER SPEC itself**, which W5 proved carries two false
+  claims Track F would have built from. (1) §06 said effective-positions is "not served — omit"; it IS
+  served and rendered, on the wrong book (30.5 vs 59.8 filed on PRNEX) — spec now says do not omit AND
+  do not render the current value; L10 must land first. (2) §06's top-10 cell was sourced from
+  `Σ holdings.top_holdings[].weight` = 27.2%, the teaser book that drops untickered/private/preferred
+  lines, vs the filed 31.0% — repointed to the same frame as effective-positions. (3) The batch-3(iii)
+  decision framing is annotated as having rested on a false premise (owner's "all three IN" answer
+  stands; only its framing was wrong). Docs-only, codex skipped, `git diff --check` clean.
+  **The line is now genuinely idle: no queue item can advance without S1 (campaign+owner), P1, or S4.**

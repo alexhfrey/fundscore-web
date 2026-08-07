@@ -267,12 +267,26 @@ queued** (spec in queue) · **no backend** (no spec — owner decision or new sp
 ### 06 · Key stats & details (`#stats`)
 - **Grid**: NAV `identity.latest_nav` · AUM `identity.aum_usd` · net ER `net_expense_ratio_bps` ·
   inception `identity.inception_date` · managers `manager_parent.managers` (+ as-of) · holdings
-  `identity.holdings_count` + `holdings.as_of_date` · top-10 concentration = Σ served
-  `holdings.top_holdings[].weight` (top-N teaser; only if N≥10, else omit) · active share
+  `identity.holdings_count` + `holdings.as_of_date` · top-10 concentration —
+  **CORRECTED 2026-08-07 (W5 grounding): do NOT use Σ `holdings.top_holdings[].weight`.** That sums
+  the `holdings_snapshots` book, which silently drops untickered / private / preferred lines, and
+  yields **27.2%** where the FILED book's top-10 is **31.0%** (`exposure_xray.rows[] @
+  concentration::top10_weight` reproduces the filed figure exactly). Two served answers under one
+  claimed basis — filed as its own backlog bug. Source this cell from the same frame as effective
+  positions (the riders spec emits `top10_weight_pct` for exactly this reason), NOT from the teaser.
+  Standing owner decision: product-displayed holding weights use SEC-filed `pctVal`. · active share
   `value_offering_reframed.replicability.active_share` (basis-labeled) · category
   `identity.peer_group` · family rank `fund_family_panel` · twin + twin fee
   `passive_baseline.etf_weights` + `fees.fair_fee.passive_fee_bps` — all served-in-staging.
-  "Effective positions": **not served** — omit (or batch-3 add). Drill-downs referenced by the
+  "Effective positions": **THIS CLAIM IS WRONG — CORRECTED 2026-08-07 (W5 grounding).** It IS
+  served AND already rendered today (`exposure_xray.rows[] @ concentration::effective_positions` →
+  `format.ts:441` → `CurrentPositioning.tsx:422`) — but on the WRONG book: `diversification_panel.
+  eff_n_raw` off `holdings_snapshots.weight` (US-ticker-resolved, equity-renormalised), not the
+  filed `pctVal` basis. Measured on PRNEX: **57 positions used to describe a fund that files 127 →
+  30.5 served vs 59.8 filed**, i.e. every fund reads ~2× more concentrated than it is. Do NOT omit
+  it and do NOT render the current value. It is fixed by item L10
+  (`specs/queue/v4-serving-riders-skill-strip-effective-positions.md`, re-rated to lane `reviewed`),
+  which MUST land before this cutover. Drill-downs referenced by the
   caption: fee history + fee-vs-peers ruler (`FeeFairnessV2` + `fees.peer_percentile`),
   alternatives (`Alternatives`), methodology. Donors: `FeeFairnessV2`, `Alternatives`,
   `RecentChangesTable` (the ranked-changes drill-down once its backend ships).
@@ -393,7 +407,10 @@ with real beta latency data.
 - **(b) Movement-level descopes.** (i) Movement 03 (neighbourhood): no backend exists — file and
   build the small twin-full-life panel pre-cutover, or beta ships 6 movements without the
   neighbourhood. (ii) Movement 04's P(skill) population strip: small serving addition vs
-  triple-only for beta. (iii) Key-stats "effective positions": not served — omit vs add.
+  triple-only for beta. (iii) Key-stats "effective positions": not served — omit vs add. **[The
+  premise of (iii) was FALSE — it is served and rendered, on the wrong book. See the corrected §06
+  grid entry above. Owner answered batch 3b "all three IN" regardless, so the decision stands;
+  only its framing was wrong.]**
 - **(c) The fill-figure basis for the 01 headline + crescent.** Two legitimate numbers exist and
   the mockup's own sources footer flags the choice as open: the served piecewise-historical
   `value_score.replica_r2` (each era vs the twin served at the time; TRNEX 90.6%) vs the
