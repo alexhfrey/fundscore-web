@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-07T03:18-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-07T03:40-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -77,7 +77,7 @@ Worker loops: `IN` = /implement-next (routes by track/lane, reads spec model/eff
 | W2 | Preview+prod load RUNBOOK (write only; execution is D1) — backlog Beta-launch group | SS→IN (lean) | opus/med | **done** |
 | W3 | Screener beta port (default: Postgres-served; see register) — backlog Beta-launch group | SS→IN (standard) | opus/high | **done** (web `feature/crescent-profile-v2`; fund_score `89044fb` on `w3/query-serving-tables` in worktree `fund_score-wt-w3` — **owner merges both**). Uncovered **P2**. |
 | W4 | Solver HTTP service — `specs/done/solver-http-service.md` (code/container/web-swap/deploy-gate BUILT; snapshot bake + AC3 → D2) | IN (reviewed) | opus/high impl; gates session-model + codex --high | **done** (web `feature/crescent-profile-v2`; fund_score `6dc6dc7` on `w4/solver-http-service`, worktree `fund_score-wt-w4` — **owner merges both**) |
-| W5 | V4 serving riders spec (skill strip + effective-positions) — backlog Beta-launch group; spec now, build in L after F1 | SS | opus/med | ready |
+| W5 | V4 serving riders spec (skill strip + effective-positions) — backlog Beta-launch group; spec now, build in L after F1 | SS | opus/med | **done** → `specs/queue/v4-serving-riders-skill-strip-effective-positions.md` |
 | W6 | Pipeline-state hygiene chore (3 rot spots) — backlog Hardening sweep | FB | sonnet/low | ready |
 
 ### Track C — campaign session (NOT this line's work; listed for sequencing only)
@@ -95,7 +95,7 @@ Worker loops: `IN` = /implement-next (routes by track/lane, reads spec model/eff
 | L7 | V-spike price corruption 174 funds (BETA BLOCKER; needs ONE off-cycle L2 re-solve — coordinate with L2/L3 so the re-solve runs ONCE, after all price-touching fixes) | FD | opus/high | blocked(F1) |
 | L8 | Taxonomy misroutes / ALT classification (BETA BLOCKER) | FD | opus/high | blocked(F1) |
 | L9 | Per-stock receipts backend — `specs/queue/per-stock-receipts-backend.md` (**blocked on L1**; contains **S2**; on L1 close, blank its `depends_on:` per the spec's unblock note) | IN (reviewed) | opus/high | blocked(L1) |
-| L10 | Riders build (from W5's spec) | IN (lean) | opus/med | blocked(F1,W5) |
+| L10 | Riders build — `specs/queue/v4-serving-riders-skill-strip-effective-positions.md`. **RE-RATED 2026-08-07 (W5 grounding): lean/opus-med → reviewed/opus-high.** It is NOT two small additions: effective-positions is ALREADY served and rendered on the WRONG book (`holdings_snapshots` US-ticker basis, not filed `pctVal`) — PRNEX used 57 positions to describe a 127-holding fund, serving 30.5 where the filed book gives 59.8, biased so every fund reads ~2× more concentrated than it is. So L10 is a **correctness fix on a live serving fact**, not a rider, and it must land before F6 cutover. Fold in the top-10 27.2/31.0 split (same root cause, filed as its own bug). | IN (**reviewed**) | **opus/high** | blocked(F1,W5✓) |
 | L11 | Superlative-guard check (top_bet_confident consumer check) — Working set | FB | sonnet/med | blocked(F1) |
 
 ### Track F — V4 frontend (movement-by-movement on /preview; needs S1 reload for real data)
@@ -268,3 +268,20 @@ legacy `funds` table go — `/screener` is its only consumer.
   Dispatcher separately confirmed `npm run build` reads the PROD database (filed). Residuals filed, not
   buried: aggregate-vs-per-series in the deploy gate, 53 unchecked never-candidate ETFs, X-Ray
   two-cadence label, SPY ETF-fallback blowing both timeout budgets. Next: W5.
+- 2026-08-07 03:40 — **W5 DONE** → `specs/queue/v4-serving-riders-skill-strip-effective-positions.md`.
+  The story's "two small serving additions, lean lane" framing **did not survive grounding**, and that
+  is the item's value. (1) Effective-positions is NOT an addition — it is ALREADY served and rendered,
+  on the WRONG book: `diversification_panel.eff_n_raw` off `holdings_snapshots.weight` (US-ticker,
+  equity-renormalised) instead of the filed `pctVal` basis the standing owner decision mandates.
+  Measured on PRNEX: **57 positions used to describe a fund that files 127 → 30.5 served vs 59.8
+  filed**, biased so every fund reads ~2x more concentrated than it is. Coverage 44.9% -> 93.4%.
+  L10 **RE-RATED lean/med -> reviewed/high** accordingly: it is a correctness fix on a live serving
+  fact and must land before F6 cutover. (2) The strip's denominator changes the page's own sentence —
+  the mockup's "53% sit below" only reproduces off the raw 8,150-row panel, 61% of which is funds we
+  don't serve; over the 2,714 a reader can look up it is **34.1%**. Worker took the served population
+  (a denominator you can't navigate to isn't checkable) and superseded the mockup copy. Rider A
+  coverage 46.6% served / 66.3% active, remainder honest-missing. Two adjacent defects filed, not
+  absorbed: top-10 concentration serves **27.2% vs 31.0% on the same claimed basis** (and the cutover
+  spec names the understated one), and `fact_assembler.py:2574` folds `is_etf` into `is_passive` so
+  **461 served ACTIVE funds lose their manager-skill read** — the section that most applies to them.
+  **Queue depth is now 12 specs — past the drain threshold; do not spec more before F1 lifts.** Next: W6.
