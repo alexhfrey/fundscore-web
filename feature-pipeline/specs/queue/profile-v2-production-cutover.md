@@ -180,7 +180,7 @@ queued** (spec in queue) · **no backend** (no spec — owner decision or new sp
   `fund_holdings_full` long table + `holdings.top_holdings` — served-in-staging (mockup TRNEX
   as-of 2026-03-31 is the served store; `HoldingsFullDrawer` is the donor for the show-all). Twin
   look-through side = **no backend** — same data product as the receipts (backlog item
-  "Per-stock receipts backend for V4 movement 05", filed 2026-08-06, which explicitly covers the
+  "Per-stock receipts backend for V4 movement 04", filed 2026-08-06, which explicitly covers the
   fixture-only `top10VsIwf` this card replaces). Blocked on the batch-3 owner decision below; if
   receipts are descoped for beta, this card ships fund-side-only cuts (filed book by
   sector/country off `fund_holdings_full.{sector,country}`) with NO twin column — never a
@@ -246,7 +246,7 @@ queued** (spec in queue) · **no backend** (no spec — owner decision or new sp
 - **"The receipts"** (every position vs the twin, avg weight / twin weight / return / impact):
   **no backend** — the mockup's impact column is draft-computed and SAMPLE-chipped; production
   gates the per-stock panel on foreign-holdings coverage. Backlog item "Per-stock receipts backend
-  for V4 movement 05" (filed 2026-08-06). **Batch-3 owner decision (a)** below.
+  for V4 movement 04" (filed 2026-08-06). **Batch-3 owner decision (a)** below.
 - **"The skill read"**: per-fund triple `manager_parent.skill_evidence.{p_skill, p_null,
   p_negative_skill}` + `alpha_ir`/`t_years` (the "for the pros" line) — served-in-staging
   (hierarchical_skill_v2, β-adjusted basis). **Gap**: the population strip (band shares across
@@ -383,7 +383,7 @@ with real beta latency data.
 
 ### Original decision framing (kept for context)
 - **(a) Per-stock receipts: in or out for beta.** Build the "Per-stock receipts backend for V4
-  movement 05" (per-stock holding-period receipts + twin look-through, honest foreign-coverage
+  movement 04" (per-stock holding-period receipts + twin look-through, honest foreign-coverage
   gating) BEFORE cutover — it also unlocks movement 01's holds-differently twin column and the
   holdings agree/disagree sublines — **or** descope the receipts sub-block for beta: movement 04
   ships who-runs-it + skill read only, movement 01 card 2 ships fund-side cuts without a twin
