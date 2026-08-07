@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-06T20:30-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-07T00:10-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -63,7 +63,7 @@ Worker loops: `IN` = /implement-next (routes by track/lane, reads spec model/eff
 ### Track W — web + service code (READY NOW; exempt from F1)
 | # | Item | Worker | Model/effort | STATUS |
 |---|------|--------|--------------|--------|
-| W1 | Beta ops minimum (error tracking + feedback + analytics) — backlog Beta-launch group | SS→IN (lean) | opus/med impl, session-model gate | ready |
+| W1 | Beta ops minimum (error tracking + feedback + analytics) — backlog Beta-launch group | SS→IN (lean→**standard**) | opus/med impl, session-model gate | **done** |
 | W2 | Preview+prod load RUNBOOK (write only; execution is D1) — backlog Beta-launch group | SS→IN (lean) | opus/med | ready |
 | W3 | Screener beta port (default: Postgres-served; see register) — backlog Beta-launch group | SS→IN (standard) | opus/high | ready |
 | W4 | Solver HTTP service — `specs/queue/solver-http-service.md` (build code/container/web-swap/deploy-gate NOW; snapshot bake + AC3 deferred to D2) | IN (reviewed) | opus/high impl; gates session-model + codex --high | ready |
@@ -101,7 +101,7 @@ Worker loops: `IN` = /implement-next (routes by track/lane, reads spec model/eff
 ### Track D — deploy + beta
 | # | Item | Worker | Model/effort | STATUS |
 |---|------|--------|--------------|--------|
-| D1 | Execute preview+prod serving loads (runbook from W2; prod stays owner-gated) | FD-style gated run | opus/high | blocked(S1,W2) |
+| D1 | Execute preview+prod serving loads (runbook from W2; prod stays owner-gated). **Also carries W1's ops-schema step: `node scripts/apply-ops-schema.mjs` against prod `henxcsknsjfadetomjeu` AND preview `yqyyvhcrmcwarxweusbw` — until it runs, ops writes fail soft and the beta records NOTHING.** W2's runbook must include it. | FD-style gated run | opus/high | blocked(S1,W2) |
 | D2 | Solver snapshot bake + AC1-5 acceptance on preview; **S4** before image push | IN (continuation of W4) | opus/high | blocked(W4,D1) |
 | D3 | **S5** go/no-go + invites (grant via scripts/grant-early-access.mjs) | owner | — | blocked(all blockers, F6, D1, D2) |
 
@@ -140,3 +140,17 @@ Worker loops: `IN` = /implement-next (routes by track/lane, reads spec model/eff
 
 ## Run log
 - 2026-08-06 20:30 — plan created; W1–W6 READY; C1 with campaign session; all L blocked on F1.
+- 2026-08-06 23:42 — drain run STARTED (dispatcher session, Opus 5 / high). Backstop cron `11,41 * * * *`
+  registered (job 21ba85aa, session-only). W1 dispatched to a SS→IN lean worker on
+  branch `feature/crescent-profile-v2`; codex gate + commit stay with the dispatcher
+  ([[workflow-finalize-cannot-await-codex]]).
+- 2026-08-07 00:20 — **W1 DONE.** Beta ops minimum shipped first-party (no vendor, no secret, no new
+  dep): `onRequestError`+2 boundaries → `ops_error_events`; chrome `FeedbackWidget` → `ops_feedback`;
+  root-layout beacon → `/api/ops` → `ops_pageviews`; `scripts/ops-report.mjs` readout. Lane
+  reclassified lean→standard (15 files, 3 tables). Gates: build pass (`/` still Static), lint pass,
+  codex --high PASS ×2. Codex's 2 P2s were FIXED not waived (>4KB error reports were 413'd before
+  recording; feedback widget accepted one submission per page load) + dispatcher hardened the
+  same-origin fallthrough on the public write path. Residual `/api/ops` rate-limit gap filed as an
+  Open chore — NOT a beta blocker (abuse grows a table; no leak, no compute). **Owner action lands in
+  D1: `apply-ops-schema.mjs` on prod+preview.** Backlog reconciled, Done trimmed to 3, overflow
+  archived. Next: W2.

@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated local state from `npx supabase start` (gitignored via
+    // supabase/.gitignore). It contains a vendored, minified edge-runtime
+    // bundle, which makes `npm run lint` fail with ~150 errors on any machine
+    // that has run local Supabase — a red build gate that says nothing about
+    // this repo's source.
+    "supabase/.temp/**",
   ]),
 ]);
 

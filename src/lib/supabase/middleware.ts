@@ -32,6 +32,15 @@ function isPublic(pathname: string): boolean {
   // Supabase auth callbacks + Next internals.
   if (pathname.startsWith("/auth/")) return true;
   if (pathname.startsWith("/_next/")) return true;
+  // Beta ops intake (pageviews + client error reports). The ONE /api/ exception
+  // to the gate, and a deliberate one: an error tracker that cannot see the
+  // landing page is blind to exactly where a first-time invitee arrives, and a
+  // pageview counter that only counts allowlisted users cannot tell the owner
+  // whether anyone reached the site at all. It is safe in the way
+  // /api/portfolio/solve is not — no expensive compute, one small capped row,
+  // same-origin only, and it reflects nothing back to the caller (see
+  // src/app/api/ops/route.ts for those guards).
+  if (pathname === "/api/ops") return true;
   return false;
 }
 

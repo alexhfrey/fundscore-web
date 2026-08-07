@@ -303,6 +303,8 @@ Filed in `feature-pipeline/backlog.md` (deploy group):
 | `SOLVER_URL` | 2 | The Fly.io solver service (replaces `FUND_SCORE_REPO` + `UV_BIN`) |
 | `FUND_SCORE_REPO`, `UV_BIN` | local | Only for the `spawn()` path in local dev |
 | `PORTFOLIO_SOLVER_AS_OF` | 2 | Pinned solver as-of. Currently `2026-02-28` — **stale**, revisit. |
+| `OPS_ALERT_WEBHOOK_URL` | beta, **optional** | Slack/Discord incoming webhook. Set = server errors also POST a one-line summary. Unset = silent (§9). |
+| `NEXT_PUBLIC_SUPPORT_EMAIL` | beta, **optional** | Renders the `mailto:` fallback in the feedback widget. Unset = the line is not rendered (no address is hardcoded). |
 
 ---
 
@@ -367,3 +369,55 @@ Do this when you're happy with the site on `fundscore-web.vercel.app`.
 
 **Note:** the site is gated, so the moment DNS resolves, the public sees the landing page and the
 waitlist form. That is the intended launch state.
+
+---
+
+## 9. Beta ops — errors, feedback, pageviews
+
+Wired 2026-08-06 (`feature-pipeline/specs/done/beta-ops-minimum.md`). Before invites go out we
+need to see what beta users see. All three pieces are **first-party** — no Sentry, no PostHog,
+no analytics vendor, no new npm dependency, **and no secret to provision**. The reason is the
+constraint, not purity: the beta had to become observable without the owner creating an account
+or pasting a DSN, and Vercel Hobby log retention is too short to be the only record of a beta
+user's crash.
+
+| Piece | How | Where it lands |
+|---|---|---|
+| **Error tracker** | `src/instrumentation.ts` (`onRequestError`, all server errors) + `src/app/global-error.tsx` and `src/app/(site)/error.tsx` (client boundaries) | `ops_error_events` **and** a structured `[ops:error]` stderr line (Vercel-log backstop) |
+| **Feedback** | `FeedbackWidget` in the `(site)` chrome — a corner button that captures the current path automatically | `ops_feedback` |
+| **Pageviews** | `OpsBeacon` in the ROOT layout (so it covers the landing page too) → `POST /api/ops` | `ops_pageviews` |
+
+### Required step per environment
+
+The tables are **not** created by a deploy. Run once against each database:
+
+```bash
+DATABASE_URL='<prod pooled URI>'    node scripts/apply-ops-schema.mjs   # henxcsknsjfadetomjeu
+DATABASE_URL='<preview pooled URI>' node scripts/apply-ops-schema.mjs   # yqyyvhcrmcwarxweusbw
+```
+
+Idempotent and non-interactive, like the waitlist/allowlist scripts. **Until it is run, ops writes
+fail soft** — the app does not crash and users see nothing wrong, but nothing is recorded either.
+RLS is on with no policies and no grants: only the app's direct connection can read or write, so a
+beta user can never read another's feedback, errors or browsing history.
+
+### Reading the data
+
+```bash
+node scripts/ops-report.mjs --days 7     # pageviews by day + top paths, recent errors, recent feedback
+```
+
+Deliberately a CLI, not an admin page — at beta scale the owner needs the numbers, not a dashboard
+to maintain.
+
+### The one gate exception
+
+`/api/ops` is the **only** `/api/` path added to the pre-launch gate's public list
+(`src/lib/supabase/middleware.ts`). An error tracker that cannot see the landing page is blind to
+exactly where a first-time invitee arrives. It is safe in the way `/api/portfolio/solve` is not:
+no expensive compute, one small capped row, same-origin only, and it reflects nothing back to the
+caller. Verified while gated (`LAUNCHED=false`): `/funds/*` 307, `/api/portfolio/solve` 401,
+`/api/lens/quota` 401, `/api/ops` 204, cross-origin `/api/ops` 403.
+
+**No IP addresses are stored.** The only identity recorded is the signed-in email when a session
+exists — never inferred, never fabricated.
