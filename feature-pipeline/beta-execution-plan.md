@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-07T12:19-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-07T12:02-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -335,7 +335,7 @@ legacy `funds` table go — `/screener` is its only consumer.
   decision framing is annotated as having rested on a false premise (owner's "all three IN" answer
   stands; only its framing was wrong). Docs-only, codex skipped, `git diff --check` clean.
   **The line is now genuinely idle: no queue item can advance without S1 (campaign+owner), P1, or S4.**
-- 2026-08-07 12:19 — **TRACK H DRAINED (H1–H4 + a follow-up).** H1 `1f3d91f`/`00db419` · H2 `c386595`
+- 2026-08-07 12:02 — **TRACK H DRAINED (H1–H4 + a follow-up).** H1 `1f3d91f`/`00db419` · H2 `c386595`
   (harness) · H3 `f7526c0` · H4 `8f44bc7` · guard-placement fix `359cf1a`. Biggest find of the track
   was NOT the filed defect: H1's DDL audit turned up that the serving tables grant `anon` full
   CRUD+TRUNCATE with RLS OFF on two of them — **filed BETA BLOCKER, fixed, and it is a D1 prerequisite**
