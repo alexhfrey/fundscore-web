@@ -112,14 +112,15 @@ So the split is:
 |---|---|---|
 | Next.js app — all pages, RSC, server actions, route handlers | **Vercel** | CDN, preview deploys, image optimisation, zero ops. The landing page is `force-static` and served from the edge. |
 | Postgres + Auth | **Supabase** | Already the app's DB and auth provider. Free tier covers the gated phase outright. |
-| Pricing parquet + query parquet | **Cloudflare R2** | DuckDB reads it over `httpfs`. R2 has **zero egress fees**, which matters a lot when a query scans remote parquet. |
+| Pricing parquet (solver inputs only) | **Cloudflare R2** | R2 has **zero egress fees**, which matters when the solver pulls a large panel. The **query parquets are no longer needed here** — the canonical query surface serves from Postgres as of screener-beta-port (2026-08-07). |
 | Passive-blend solver (Python/CVXPY) | **Fly.io** | A small always-on machine that holds the pricing panel warm in memory and answers `POST /solve` over HTTP. |
 
 ### What we deliberately did NOT do
 
-- **Bundle parquet into the app.** `src/lib/serving/screener.ts` states the rule: *"parquets stay in
-  object storage / the lake, never bundled with the app."* The query parquets are only 1.1 MB and it
-  would have been easy — but it's the wrong boundary, and it rots the moment the lake rebuilds.
+- **Bundle parquet into the app.** The query parquets are only 1.1 MB and it would have been easy —
+  but it's the wrong boundary, and it rots the moment the lake rebuilds. (Superseded 2026-08-07: the
+  query surface is 155 rows, so it just serves from Postgres like every other panel — no parquet on
+  the app host, no object store, no query engine in the request path.)
 - **Run Next.js in a container next to the solver.** One deploy, simpler ops — but it gives up the
   CDN, preview deploys and image optimisation on a page whose entire job is marketing. Wrong trade.
 - **Ship the whole 51 GB lakehouse to the solver host.** The solver reads **four inputs, ~2.2 GB
@@ -221,14 +222,16 @@ Until this lands, a synchronous HTTP solve is not viable and you would need a jo
 
 ### 4.2 Cloudflare R2
 
-Upload the solver's inputs and the query parquets. Create an R2 bucket + an S3-compatible API token.
+Upload the solver's inputs. Create an R2 bucket + an S3-compatible API token.
 
-DuckDB reads R2 over `httpfs` with no query rewrite (`screener.ts` already anticipates this:
-*"v1 swaps the source path for a MotherDuck connection string"*). Point `QUERY_PARQUET_DIR` at the
-bucket to restore build-time prerendering of `/q/[slug]` and its SEO value.
+**The query parquets are NOT uploaded.** As of screener-beta-port (2026-08-07) `/q/[slug]`,
+`/search` and `/lens/[lens_slug]` read the `query_canonical_catalog` / `query_canonical_results`
+serving tables in Postgres; DuckDB, `QUERY_PARQUET_DIR` and the MotherDuck plan are all retired.
+Build-time prerendering of `/q/[slug]` now comes for free on any host whose `DATABASE_URL` reaches a
+loaded serving database — see `docs/RUNBOOK-serving-load.md`.
 
-R2 over S3 specifically because **egress is free** — DuckDB scanning remote parquet is exactly the
-access pattern that makes S3 egress bills unpleasant.
+R2 over S3 specifically because **egress is free** — that is the access pattern that makes S3 egress
+bills unpleasant.
 
 ### 4.3 Fly.io — the solver service
 
@@ -313,7 +316,7 @@ Filed in `feature-pipeline/backlog.md` (deploy group):
 | `NEXT_PUBLIC_SUPABASE_URL` | 1 | Supabase auth client |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 1 | Supabase auth client |
 | `LAUNCHED` | 1 | The gate. Unset/`false` = gated. `true` = public. |
-| `QUERY_PARQUET_DIR` | 2 | DuckDB screener source (local dir, or R2 via httpfs) |
+| ~~`QUERY_PARQUET_DIR`~~ | — | **Retired 2026-08-07 (screener-beta-port).** The query surface serves from Postgres via `DATABASE_URL`; delete this var wherever it is set. |
 | `SOLVER_URL` | 2 | The Fly.io solver service (replaces `FUND_SCORE_REPO` + `UV_BIN`) |
 | `FUND_SCORE_REPO`, `UV_BIN` | local | Only for the `spawn()` path in local dev |
 | `PORTFOLIO_SOLVER_AS_OF` | 2 | Pinned solver as-of. Currently `2026-02-28` — **stale**, revisit. |

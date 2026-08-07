@@ -229,9 +229,17 @@ cd /Users/alexfrey/Projects/fund_score-wt-refresh
 uv run python scripts/pipeline/apply_serving_schema.py
 ```
 
-Creates the four enums, all four serving tables, the additive `ALTER … ADD COLUMN IF NOT EXISTS`
+Creates the four enums, **all six serving tables**, the additive `ALTER … ADD COLUMN IF NOT EXISTS`
 sweep for every JSONB section, the retired-column drops, and the indexes. Ends with
-`tables present: [...]` listing all four, then `serving schema applied.`
+`tables present: [...]` listing all six, then `serving schema applied.`
+
+The six are `fund_profile_facts`, `fund_holdings_full`, `fund_attribution_blocks`,
+`serving_manifest`, and — added 2026-08-07 by **screener-beta-port** —
+`query_canonical_catalog` + `query_canonical_results`, the published-query surface behind
+`/q/{slug}`, `/search` and `/lens/{lens_slug}`. Those two used to be read by the web app straight
+off local parquet through DuckDB, which could not run on Vercel at all; they are tiny (15 + 140
+rows) and now load with everything else. If `tables present:` shows only four, you are running an
+older `LAKE` — stop and re-check §1.1.
 
 **Do not use `npm run db:push` for this.** Three independent reasons:
 
@@ -371,7 +379,7 @@ cd /Users/alexfrey/Projects/fund_score-wt-refresh     # the LAKE from §1.1 — 
 uv run python scripts/pipeline/build_serving_facts.py
 ```
 
-**One command, one transaction, all four tables.** What it does, in order
+**One command, one transaction, all six tables.** What it does, in order
 (`src/fundscore/serving/load.py:235`, `load_to_postgres`):
 
 1. Assembles the fact rows in memory from the gold/product panels (`assemble_fact_rows()`).
@@ -385,10 +393,28 @@ uv run python scripts/pipeline/build_serving_facts.py
    `TRUNCATE fund_profile_facts` → `COPY fund_profile_facts` → `TRUNCATE fund_holdings_full` →
    `COPY` it from `fund_holdings_full_staging.parquet` → **in-transaction coherence check** →
    `TRUNCATE fund_attribution_blocks` → `COPY` it from
-   `fund_attribution_blocks_staging.parquet` → `UPDATE serving_manifest SET active=false WHERE
-   active` → `INSERT` the new manifest row → `commit()`.
+   `fund_attribution_blocks_staging.parquet` → `TRUNCATE`+`COPY`
+   `query_canonical_catalog` and `query_canonical_results` from
+   `data/product/query/query_canonical_{catalog,results}.parquet` (`_load_query_tables`) →
+   `UPDATE serving_manifest SET active=false WHERE active` → `INSERT` the new manifest row →
+   `commit()`.
 
 Any exception propagates out before the commit, so **a failed load commits nothing** — see §7.
+
+The query tables ride in the SAME transaction deliberately: the web reader LEFT JOINs
+`query_canonical_results` to `fund_profile_facts` for each result's Value Score verdict, so loading
+them together means the verdict can never be read against a half-swapped facts table. The loader
+also prints `query_results_orphan_rows` — ranked rows pointing at a series that is not in the served
+facts universe. Those render an honest em-dash verdict rather than a fabricated one, so a non-zero
+count does **not** roll the load back; it means the canonical query panel is stale against the
+current universe and wants re-emitting. It was `0` at the 2026-08-07 local verification.
+
+If the query panels ever need loading **without** touching the four profile tables, there is a
+standalone entry point (same TRUNCATE+COPY-in-one-transaction discipline):
+
+```bash
+uv run python scripts/pipeline/load_query_serving.py            # add --dry-run to validate only
+```
 
 Flags that exist (the complete set — `build_serving_facts.py:93-101`):
 
@@ -493,6 +519,22 @@ parquet and raw store.
 There is **no equivalent readback for `fund_profile_facts` or `fund_attribution_blocks`** — gap
 **G3**. §6.1's counts plus §5.1's column diff are what you have.
 
+### 6.2b The query tables (screener-beta-port)
+
+```sql
+-- against the target
+select (select count(*) from query_canonical_catalog)                       as catalog_rows,
+       (select count(*) from query_canonical_results)                       as result_rows,
+       (select count(distinct query_slug) from query_canonical_results)     as slugs,
+       (select count(*) from query_canonical_results r
+          left join fund_profile_facts f using (series_id)
+        where f.series_id is null)                                          as orphan_rows;
+```
+
+Expect the same numbers the load printed and the same numbers local shows — at the 2026-08-07
+verification: `15 / 140 / 14 / 0`. `orphan_rows > 0` is not a load failure (those rows render an
+em-dash verdict), but it means the canonical query panel is stale against the served universe.
+
 ### 6.3 Web smoke test
 
 Preview (Vercel preview deploy pointed at `yqyyvhcrmcwarxweusbw`), signed in as the §4.1 test user:
@@ -500,8 +542,18 @@ Preview (Vercel preview deploy pointed at `yqyyvhcrmcwarxweusbw`), signed in as 
 - `/funds/FCNTX` renders with fees, passive baseline, holdings, and the value verdict — no empty
   sections where local shows content. An empty section is the §1.3 fail-open, showing up in the UI.
 - "View all N holdings" opens and N matches the teaser.
+- `/q/funds-ai-infrastructure-exposure-above-passive-blend-7bc9f42d` renders 10 ranked cards (not a
+  500 and not an empty list); `/search?q=funds with AI Infrastructure exposure above their passive
+  blend` 307s to that same slug. Both prove the query serving tables landed.
 - `/screener` and `/xray` load (the X-Ray needs `SOLVER_URL`, which is the solver spec's D4/AC3, not
-  this runbook).
+  this runbook). **`/screener` is a known-bad surface** — it still renders the legacy synthetic
+  `funds` table, which no load populates, so on preview/prod it renders an empty screener. That is a
+  filed defect (see the backlog's screener-page item), NOT a symptom of a bad load.
+
+**After the load, redeploy so `/q/[slug]` prerenders again.** `generateStaticParams` reads
+`query_canonical_catalog` at build time; a build that ran before the tables existed logged
+`no query catalog reachable at build` and shipped zero prerendered slugs (they still render on
+demand, correctly — just without the static/SEO benefit). A rebuild after the load restores all 14.
 
 Production, while gated:
 
@@ -528,8 +580,8 @@ Production, while gated:
 ## 7. Rollback, and a load that fails halfway
 
 **A failed load has already rolled itself back.** `load_to_postgres` opens the connection with
-`autocommit=False` and commits once, at the very end. Both `TRUNCATE`s, both `COPY`s, the coherence
-check and the manifest insert are inside that single transaction. Any exception unwinds the
+`autocommit=False` and commits once, at the very end. All six `TRUNCATE`s, all six `COPY`s, the
+coherence check and the manifest insert are inside that single transaction. Any exception unwinds the
 `with psycopg.connect(...)` block before `conn.commit()`, so the target keeps whatever it had
 before. **There is no half-loaded state to clean up, and no "resume" — you re-run the whole thing.**
 
@@ -658,7 +710,7 @@ Variable names, and where they live:
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | same files, and Vercel env | Supabase auth client. Public by design. |
 | `LAUNCHED` | Vercel env, per environment | the gate. **Must stay unset/`false` on production for the whole beta.** Only `"true"` (exact string) opens the site. |
 | `OPS_ALERT_WEBHOOK_URL`, `NEXT_PUBLIC_SUPPORT_EMAIL` | Vercel env, optional | beta ops extras (§9 of `DEPLOYMENT.md`) |
-| `SOLVER_URL`, `PORTFOLIO_SOLVER_AS_OF`, `QUERY_PARQUET_DIR` | Vercel env | solver + screener; owned by the solver spec, not this runbook |
+| `SOLVER_URL`, `PORTFOLIO_SOLVER_AS_OF` | Vercel env | solver; owned by the solver spec, not this runbook. (`QUERY_PARQUET_DIR` was retired 2026-08-07 by screener-beta-port — the query surface serves from Postgres; delete the var wherever it is set.) |
 
 Handling rules:
 

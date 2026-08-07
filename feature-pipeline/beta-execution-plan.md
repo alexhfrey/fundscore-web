@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-07T00:36-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-07T01:05-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -75,7 +75,7 @@ Worker loops: `IN` = /implement-next (routes by track/lane, reads spec model/eff
 |---|------|--------|--------------|--------|
 | W1 | Beta ops minimum (error tracking + feedback + analytics) — backlog Beta-launch group | SS→IN (lean→**standard**) | opus/med impl, session-model gate | **done** |
 | W2 | Preview+prod load RUNBOOK (write only; execution is D1) — backlog Beta-launch group | SS→IN (lean) | opus/med | **done** |
-| W3 | Screener beta port (default: Postgres-served; see register) — backlog Beta-launch group | SS→IN (standard) | opus/high | ready |
+| W3 | Screener beta port (default: Postgres-served; see register) — backlog Beta-launch group | SS→IN (standard) | opus/high | **done** (web `feature/crescent-profile-v2`; fund_score `89044fb` on `w3/query-serving-tables` in worktree `fund_score-wt-w3` — **owner merges both**). Uncovered **P2**. |
 | W4 | Solver HTTP service — `specs/queue/solver-http-service.md` (build code/container/web-swap/deploy-gate NOW; snapshot bake + AC3 deferred to D2) | IN (reviewed) | opus/high impl; gates session-model + codex --high | ready |
 | W5 | V4 serving riders spec (skill strip + effective-positions) — backlog Beta-launch group; spec now, build in L after F1 | SS | opus/med | ready |
 | W6 | Pipeline-state hygiene chore (3 rot spots) — backlog Hardening sweep | FB | sonnet/low | ready |
@@ -165,7 +165,29 @@ either weaken the solver's acceptance evidence or shrink the beta experience you
 and the cost is small next to the campaign work it gates. This is a money question, so the line
 will not decide it. Everything else in D1 is ready to run the moment S1 lands and this is answered.
 
+### P2 — `/screener` is still the pre-pivot demo page, and it is in the beta nav (blocks a full-experience beta)
+**Parked 2026-08-07 by the W3 screener-port worker.** The port itself is done, but it uncovered that
+the story's premise about `/screener` was wrong: that page never read the analysis files. It reads
+the legacy `funds` table — **25 rows of demo seed data** with invented multi-paragraph analyst notes
+("FCNTX earns a FundScore of 78, placing it in the **Strong Buy** tier"), invented NAV/AUM/manager
+figures, and the retired FundScore/Strong-Buy model the product deliberately replaced with the Value
+Score. No serving load populates that table, so on preview and prod the page is simply **empty** —
+behind a "Screener" link in the header that every invited user can see. Locally, or on any database
+that was ever seeded, it shows the fabricated version instead. Fixing it is a product decision, not a
+port: **(a)** rebuild `/screener` on `fund_profile_facts` around the Value Score verdict — real, on
+brand, but it is a page design and it overlaps the queued `exposure-screener` spec (which wants
+exposure, not fees/returns, to be the primary screen key), so it is a genuine build, not a patch;
+**(b)** remove `/screener` from the header for the beta and let `/search` + the published `/q`
+questions carry the browse experience — cheap, honest, but the FULL-experience beta ships without a
+screener; **(c)** ship it as-is — not viable, it either fabricates or is blank.
+**Recommendation: (b) now, (a) as the first post-beta build.** The beta's differentiator is the fund
+page and the X-Ray; a generic fee/return screener adds little and a fabricated one costs credibility
+with exactly the people whose opinion you are buying with the invite. Retiring the link also lets the
+legacy `funds` table go — `/screener` is its only consumer.
+
 ## Run log
+<!-- newest entries appended at the end of this section -->
+
 - 2026-08-06 20:30 — plan created; W1–W6 READY; C1 with campaign session; all L blocked on F1.
 - 2026-08-06 23:42 — drain run STARTED (dispatcher session, Opus 5 / high). Backstop cron `11,41 * * * *`
   registered (job 21ba85aa, session-only). W1 dispatched to a SS→IN lean worker on
@@ -192,3 +214,40 @@ will not decide it. Everything else in D1 is ready to run the moment S1 lands an
   replay. **D1 scope widened**: `apply_auth_schema.py` + `apply-lens-schema.mjs` are mandatory (a
   missing `entitlements` table 500s every signed-in page) — they were absent from the story's
   four-table framing. **P1 PARKED for owner** (Supabase paid tier — a spend call, blocks D1). Next: W3.
+- 2026-08-07 00:56 — **W3 DONE (pending codex + commit).** Screener beta port: owner's Postgres default
+  held, **no hard blocker**. Up-front EDA: the whole query surface is **155 rows / 30 columns**
+  (catalog 15×13, results 140×17 = 14 slugs × 10 + 1 refusal slug with 0) — so DuckDB, R2/httpfs and
+  the MotherDuck "v1" plan were retired outright, not ported, and `@duckdb/node-api` (native binary)
+  left the bundle. **Coverage identical to the DuckDB path**: 15/15 catalog, 140/140 results, 14/14
+  slugs, 110/110 verdicts, 0 orphans — no honest- or recoverable-missing remainder. Two new serving
+  tables (`query_canonical_catalog`, `query_canonical_results`), DDL in `apply_serving_schema.py`,
+  TRUNCATE+COPY inside the SAME transaction as `fund_profile_facts` plus a standalone
+  `load_query_serving.py`. `screener.ts` rewritten over Drizzle with an UNCHANGED exported API, so
+  `/q/[slug]`, `/search` and `/lens/[lens_slug]` needed no edits. **One deliberate change:** the value
+  verdict now LEFT JOINs `fund_profile_facts` instead of the stale `screener_funds.parquet` — the two
+  had drifted, so the screener and a fund's own page could contradict each other; 13 of 140 rendered
+  rows change and the contradiction is now impossible. Gates: parity script PASS (0 failures, every
+  transported column equal to the DuckDB read), lint pass, build pass, `/q/[slug]` still **● SSG with
+  all 14 prerendered paths** against a loaded DB, live `next start` smoke green. Verified against the
+  LOCAL db only; F1/F4 respected (no panel emit, no reload of the four existing tables). **D1 riders:**
+  `apply_serving_schema.py` must run from a LAKE containing this change (else the load fails on the
+  new tables); no extra load command; **redeploy after the load** or `/q/` ships 0 prerendered slugs;
+  delete `QUERY_PARQUET_DIR` from Vercel. **NEW BETA BLOCKER FOUND + PARKED (P2):** `/screener` never
+  read parquet — it renders the legacy 25-row synthetic `funds` table (fabricated analyst notes +
+  retired Strong-Buy model) and is EMPTY on prod, behind a header link. Product call, filed as an Open
+  bug and parked for the owner. Next: W4.
+- 2026-08-07 01:05 — **W3 DONE.** Canonical query surface ported DuckDB→Postgres. Whole surface is
+  155 rows / 30 cols, so DuckDB was RETIRED rather than ported (native `@duckdb/node-api` out of the
+  bundle); R2/MotherDuck plans dropped. Parity exact: 15/15 catalog + 140/140 result rows equal the
+  DuckDB read, 110/110 verdicts, 0 orphans, no coverage shortfall. `/q/[slug]` still SSG ×14.
+  New tables `query_canonical_catalog` + `query_canonical_results`, TRUNCATE+COPY inside the SAME
+  transaction as `fund_profile_facts` (so the verdict join can't read a half-swapped table). Local DB
+  only — F1 and F4 both intact, nothing near preview/prod. Gates: lint pass, build pass, **codex
+  --high PASS on BOTH repos, 0 findings each**. Dispatcher independently verified the one behavioural
+  change: the value verdict now LEFT JOINs `fund_profile_facts` (the row the fund page renders)
+  instead of a 2026-07-11 parquet the two had drifted from — 13 of 140 rendered rows change, which
+  FIXES screener-vs-profile disagreement the old code's own comment called impossible; "verdict free,
+  precision paid" preserved. **P2 PARKED** (`/screener` is pre-pivot demo data in the beta nav —
+  dispatcher independently confirmed `getFundSummaries()` → legacy `funds` table). Also filed: a
+  CONFIRMED fail-open in `branch-guard.sh` (resolves the target repo from the first `git -C` anywhere
+  in a compound command; the mirror case silently approves a `main` commit). Next: W4.

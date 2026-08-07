@@ -229,6 +229,68 @@ export const servingManifest = pgTable(
 );
 
 // ============================================================================
+// query_canonical_catalog / query_canonical_results — the published-query
+// surface behind /q/{slug}, /search and /lens/{lens_slug} (screener-beta-port)
+// ----------------------------------------------------------------------------
+// 1:1 with fund_score's data/product/query/query_canonical_{catalog,results}
+// parquets. Until 2026-08-07 the web app read those files directly through
+// DuckDB, which pinned the whole query surface to a local filesystem and could
+// not run on Vercel; they now serve from Postgres like every other panel.
+//
+// AUTHORITATIVE DDL LIVES IN fund_score's scripts/pipeline/apply_serving_schema.py
+// (see the open serving-DDL-drift bug). These definitions mirror it for typed
+// reads only — Drizzle must NOT create the serving tables.
+//
+// Nothing here is computed: every column is inherited verbatim from the
+// already-validated query panels. The Value Score verdict shown next to a result
+// is NOT stored here — it is LEFT JOINed live from fund_profile_facts, so the
+// screener and the fund's own profile page cannot disagree.
+// ============================================================================
+
+export const queryCanonicalCatalog = pgTable("query_canonical_catalog", {
+  canonicalId: text("canonical_id").notNull(),
+  querySlug: text("query_slug").primaryKey(),
+  queryType: text("query_type").notNull(),
+  parsedQueryText: text("parsed_query_text").notNull(),
+  parsedSpecHash: text("parsed_spec_hash"),
+  referenceFrame: text("reference_frame"),
+  universeSize: integer("universe_size").notNull(),
+  resultCount: integer("result_count").notNull(),
+  primaryMetricLabel: text("primary_metric_label"),
+  refusalReason: text("refusal_reason"),
+  asOf: date("as_of"),
+  rankerVersion: text("ranker_version").notNull(),
+  parserVersion: text("parser_version").notNull(),
+});
+
+export const queryCanonicalResults = pgTable(
+  "query_canonical_results",
+  {
+    rank: integer("rank").notNull(),
+    seriesId: text("series_id").notNull(),
+    ticker: text("ticker"),
+    fundName: text("fund_name"),
+    wrapperLabel: text("wrapper_label"),
+    relevanceScore: integer("relevance_score"),
+    primaryMetricValue: doublePrecision("primary_metric_value"),
+    primaryMetricLabel: text("primary_metric_label"),
+    expenseRatioBps: doublePrecision("expense_ratio_bps"),
+    badge: text("badge"),
+    whyBasisText: text("why_basis_text"),
+    whyBasisSourceFields: text("why_basis_source_fields"),
+    holdingsAsOf: date("holdings_as_of"),
+    fundProfileHref: text("fund_profile_href"),
+    canonicalId: text("canonical_id"),
+    querySlug: text("query_slug").notNull(),
+    queryType: text("query_type"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.querySlug, t.rank] }),
+    index("qcr_series_idx").on(t.seriesId),
+  ],
+);
+
+// ============================================================================
 // AUTH / ENTITLEMENTS (Track 1B follow-on)
 // ----------------------------------------------------------------------------
 // Per-user tables keyed off Supabase `auth.users(id)`. RLS (own-row) is applied
