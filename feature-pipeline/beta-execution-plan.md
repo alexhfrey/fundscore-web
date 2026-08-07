@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-07T11:32-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-07T12:19-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -88,7 +88,7 @@ none needs an owner input, and each de-risks D1 or the fences this plan depends 
 | H1 | **done** (fund_score `1f3d91f` on `feat/h1-serving-ddl-authority`; web `00db419`) **Serving-table DDL has 3 disagreeing definitions** — loader COPYs `position_direction`, absent from Drizzle + `schema.sql` + `drizzle/serving_layer_additive.sql`; facts 13 cols short, 4 retired cols present. A fresh prod DB created the obvious way = failed or silently-truncated load. **Directly a D1 trap.** | FB (cross-repo) | opus/high | ready |
 | H2 | **done** (harness `c386595` on `fix/commit-hook-target-resolution`; committed over a blocked gate by owner decision — 4 shapes filed) **`branch-guard.sh` fail-open** — resolves the target repo from the FIRST `git -C` anywhere in a compound command; mirror case silently APPROVES a `main` commit. **This is F3's own enforcement.** Audit `codex-commit-gate.sh` for the same shape. | FB | opus/high | ready |
 | H3 | **done** (web `f7526c0`) **`npm run build` connects to PROD** — `.env.production.local` outranks `.env.local`, so the mandatory build gate opens prod queries on every machine and its prerender output is misleading everywhere. Careful: Vercel runs the same script, so do not "fix" it by forcing local. | FB | opus/high | ready |
-| H4 | [in-progress] **`/api/ops` has no rate limit** — unauthenticated INSERT path on a public site (the one gate exception). Abuse grows a table; no leak, no compute. Needs a throttle before any ungated launch. | FB | sonnet/med | ready |
+| H4 | **done** (web `8f44bc7`; guard-placement follow-up `359cf1a`) **`/api/ops` has no rate limit** — unauthenticated INSERT path on a public site (the one gate exception). Abuse grows a table; no leak, no compute. Needs a throttle before any ungated launch. | FB | sonnet/med | ready |
 
 ### Track C — campaign session (NOT this line's work; listed for sequencing only)
 | C1 | Flat-tail detector fix → cascade resume → deltas → **S1** → local reload → finalize/merge | campaign session | — | in-progress (other session) |
@@ -335,3 +335,16 @@ legacy `funds` table go — `/screener` is its only consumer.
   decision framing is annotated as having rested on a false premise (owner's "all three IN" answer
   stands; only its framing was wrong). Docs-only, codex skipped, `git diff --check` clean.
   **The line is now genuinely idle: no queue item can advance without S1 (campaign+owner), P1, or S4.**
+- 2026-08-07 12:19 — **TRACK H DRAINED (H1–H4 + a follow-up).** H1 `1f3d91f`/`00db419` · H2 `c386595`
+  (harness) · H3 `f7526c0` · H4 `8f44bc7` · guard-placement fix `359cf1a`. Biggest find of the track
+  was NOT the filed defect: H1's DDL audit turned up that the serving tables grant `anon` full
+  CRUD+TRUNCATE with RLS OFF on two of them — **filed BETA BLOCKER, fixed, and it is a D1 prerequisite**
+  (dispatcher re-verified against the live local DB; not a live breach only because those tables exist
+  on no deployed database yet). **One incident, disclosed:** the H4 worker ran `npx next start`,
+  bypassing H3's wrapper, and sent ~290 requests at PROD; zero rows persisted (auth failed AND prod has
+  no ops tables) — root cause was H3's guard sitting on the npm script, now moved to `next.config.ts`.
+  **The pattern that bit three times today: a guard on the convenience wrapper only guards the
+  convenience wrapper** (drizzle-kit push → drizzle.config.ts; the commit hooks' cheap pre-filter that
+  could `exit 0` before the parser; next build → next.config.ts). **P1-prod ANSWERED** (paid tier) →
+  D1 now blocked on S1 alone. Owner queue: preview tier (+$10/mo, measured), P2, web-merge go/no-go,
+  and a `git merge` permission rule (merges are classifier-blocked for this session).
