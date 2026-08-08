@@ -250,6 +250,10 @@ export interface FamilyFundRow {
   name: string | null;
   value_bps: number | null; // vs the fund's OWN passive alternative (SI, Value Score)
   value_bps_3y?: number | null; // realized 3Y after-fee β-adj excess (nav-series basis)
+  /** Set by applyGates below the paid tier: did this row have a 3Y figure BEFORE
+   *  gating? Lets a gated cell render a lock while a fund with no 3Y matched
+   *  window keeps its honest em-dash. Presence-only — carries no figure. */
+  value_bps_3y_present?: boolean;
   aum_usd: number | null;
   aum_as_of_date?: string | null;
   passive_alt_label: string | null;
@@ -284,6 +288,10 @@ export interface FundFamilyPanel {
   value_as_of_date_min?: string | null;
   value_as_of_date_max?: string | null;
   method_version?: string | null;
+  /** Set by applyGates below the paid tier: names the 3Y fields it nulled, so a
+   *  gated cell can render a LOCK while a genuinely missing 3Y window still
+   *  renders an honest em-dash. Without this the two are indistinguishable. */
+  locked_fields?: string[];
 }
 
 // --- ai_summary (spec: ai-summary-generation) --------------------------------

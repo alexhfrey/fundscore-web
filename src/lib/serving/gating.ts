@@ -969,6 +969,48 @@ export function applyGates(row: FactRow, userState: UserState): FactRow {
     };
   }
 
+  // Field-level: the fund-family panel's 3Y column is the SAME statistic that
+  // nav_series gates at 'paid' — realized after-fee β-adjusted excess over the
+  // fund's passive alternative. Two gates disagreed about one statistic; OWNER
+  // DECISION 2026-08-08: nav_series's paid gate is the deliberate contract, so
+  // this surface was the wrong side. Strip the per-fund column below paid.
+  //
+  // The 3Y AGGREGATES are stripped WITH it, and that is not belt-and-braces:
+  // 167 of the 416 served families have n_funds_3y == 1, and for those
+  // `avg_value_bps_3y` is byte-identical to that single member's paid figure
+  // (measured on the live panel) — the "aggregate" IS the per-fund number for
+  // 40% of families, so leaving it free would hand back exactly what the column
+  // gate removes. Neither aggregate renders on any surface today, so gating them
+  // costs no product. `n_funds_3y` stays free: a member count reconstructs
+  // nothing once the aggregates are gone.
+  const famPanel = o.fundFamilyPanel;
+  if (famPanel && typeof famPanel === "object" && !isLocked(famPanel) && rank < TIER_RANK.paid) {
+    const fp = famPanel as AnyObj;
+    const members: AnyObj[] = Array.isArray(fp.funds) ? fp.funds : [];
+    o.fundFamilyPanel = {
+      ...fp,
+      avg_value_bps_3y: null,
+      aum_weighted_value_bps_3y: null,
+      // Per-ROW original-presence marker. Nulling every `value_bps_3y` makes a
+      // gated cell and a fund that simply HAS no 3Y matched window
+      // indistinguishable downstream, so the table would render an upgrade
+      // prompt over data nobody has (codex P2 — the same class as the delivered
+      // leg's raw-presence fix). This crosses a BOOLEAN only; the figure itself
+      // is gone. Absent/false must fail toward the honest em-dash, never toward
+      // a lock we cannot prove.
+      funds: members.map((m) => ({
+        ...m,
+        value_bps_3y: null,
+        value_bps_3y_present: m.value_bps_3y != null,
+      })),
+      locked_fields: [
+        "funds.value_bps_3y",
+        "avg_value_bps_3y",
+        "aum_weighted_value_bps_3y",
+      ],
+    };
+  }
+
   // Field-level: Manager Moves direction-of-impact label is public, but the
   // annualized bps figure is paid-tier (spec #10/#11 + contract ManagerMoves).
   // manager_parent section gate is already 'free'; this strips bps below 'paid'.

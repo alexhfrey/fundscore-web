@@ -13,6 +13,24 @@ import { fmtSignedBps, fmtAum, EM_DASH } from "@/lib/serving/format";
 import { ChapterHeader, Panel, PanelHead, PanelNote } from "./primitives";
 import { Unavailable, LockedNotice } from "../primitives";
 
+/** A paid-gated numeric cell. Deliberately NOT a bare em-dash: this table also
+ *  renders an em-dash for funds with no 3Y matched window ("never an estimate"),
+ *  and a reader must be able to tell "we don't have this" from "you can't see
+ *  this yet". Holds no value — applyGates nulled it server-side. */
+function LockedCell() {
+  return (
+    <span
+      title="Realized 3-year value is part of a paid plan."
+      className="inline-flex items-center gap-1 font-normal text-gray-400"
+    >
+      {EM_DASH}
+      <span className="rounded border border-gray-200 bg-gray-50 px-1 py-px text-[9px] font-semibold uppercase tracking-wide text-gray-400">
+        paid
+      </span>
+    </span>
+  );
+}
+
 const bpsCls = (v: number | null | undefined) =>
   v == null ? "text-gray-400" : v > 0 ? "text-emerald-700" : v < 0 ? "text-rose-700" : "text-gray-500";
 
@@ -79,6 +97,8 @@ export function FundFamily({
 
   const display = family.family_display ?? family.family ?? "This family";
   const ranked = family.family_rank != null;
+  // applyGates nulls the 3Y column below paid and records it here.
+  const threeYearLocked = (family.locked_fields ?? []).includes("funds.value_bps_3y");
   const aumRange =
     family.aum_as_of_date_min != null && family.aum_as_of_date_max != null
       ? family.aum_as_of_date_min === family.aum_as_of_date_max
@@ -249,7 +269,17 @@ export function FundFamily({
                     </td>
                     <td className="px-5 py-2.5 text-gray-600">{fund.passive_alt_label ?? EM_DASH}</td>
                     <td className={`px-5 py-2.5 font-bold ${bpsCls(fund.value_bps_3y)}`}>
-                      {fmtSignedBps(fund.value_bps_3y)}
+                      {/* Lock ONLY where a value existed pre-gate. A fund with
+                          no 3Y matched window keeps the plain em-dash at every
+                          tier — offering an upgrade for data nobody has would
+                          contradict this table's own note. */}
+                      {fund.value_bps_3y != null ? (
+                        fmtSignedBps(fund.value_bps_3y)
+                      ) : threeYearLocked && fund.value_bps_3y_present === true ? (
+                        <LockedCell />
+                      ) : (
+                        EM_DASH
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -262,7 +292,15 @@ export function FundFamily({
             because the signal is mostly noise); <b>3Y α</b> is the realized
             beta-adjusted excess over the fund&apos;s passive alternative across the
             last three years, after fees — a raw realized read, not a shrunk score.
-            Funds without a 3Y matched window show {EM_DASH}, never an estimate.
+            {threeYearLocked ? (
+              <>
+                The 3Y column is part of a paid plan: those cells read{" "}
+                {EM_DASH} <b>paid</b>. A plain {EM_DASH} is different — it means the fund has no
+                3Y matched window at all, and we never estimate one.
+              </>
+            ) : (
+              <>Funds without a 3Y matched window show {EM_DASH}, never an estimate.</>
+            )}
             Values are vs each fund&apos;s own closest passive alternative (named per
             row).
           </PanelNote>

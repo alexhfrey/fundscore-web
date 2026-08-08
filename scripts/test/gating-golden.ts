@@ -240,7 +240,10 @@ const FCNTX_ROW = {
     method_version: "positioning_context_v0.1",
   },
   // fund_family_panel gate=free — the adviser-level family panel. Whole section
-  // must lock for anon and open for free (no field-level strip, no projector).
+  // must lock for anon and open for free. It DOES carry a field-level strip:
+  // the 3Y realized β-adjusted figures (per-fund + both aggregates) are paid,
+  // matching nav_series's gate on the same statistic (owner decision
+  // 2026-08-08). No projector.
   fundFamilyPanel: {
     family: "fidelity management and research company llc",
     family_display: "Fidelity Management & Research Company LLC",
@@ -261,6 +264,20 @@ const FCNTX_ROW = {
         aum_usd: 140604345484,
         passive_alt_label: "IWF",
         is_this_fund: true,
+      },
+      // A member with NO 3Y matched window — value_bps_3y is genuinely absent
+      // upstream, not gated. The gate must leave this row indistinguishable
+      // from an un-gated missing window, so the UI renders an em-dash and NOT
+      // an upgrade prompt. (4 such mixed families exist in the live panel:
+      // MEPAX, BBHLX, BBLIX, LSLTX.)
+      {
+        ticker: "FNOWX",
+        name: "Fidelity Too-New Fund",
+        value_bps: -5,
+        value_bps_3y: null,
+        aum_usd: 1000000000,
+        passive_alt_label: "IWF",
+        is_this_fund: false,
       },
     ],
     as_of: "2026-05-09",
@@ -478,6 +495,85 @@ check(
     !isLocked(applyGates(rowSansFamGate, "free").fundFamilyPanel),
   );
 }
+
+// --- fund_family_panel 3Y field-gate (owner decision 2026-08-08) -------------
+// The family panel's 3Y column is the SAME statistic nav_series gates at 'paid'
+// (realized after-fee β-adjusted excess). Two gates disagreed about one number;
+// the nav_series paid gate is the deliberate contract, so the family surface is
+// brought into line. The AGGREGATES go with the column because they reconstruct
+// it: 167 of 416 served families have n_funds_3y == 1, where avg_value_bps_3y is
+// byte-identical to that single member's paid figure.
+{
+  type FamPanel = {
+    locked_fields?: string[];
+    avg_value_bps_3y?: number | null;
+    aum_weighted_value_bps_3y?: number | null;
+    funds?: { value_bps?: number | null; value_bps_3y?: number | null }[];
+  } | null;
+
+  const freeFam = applyGates(FCNTX_ROW, "free").fundFamilyPanel as FamPanel;
+  const paidFam = applyGates(FCNTX_ROW, "paid").fundFamilyPanel as FamPanel;
+
+  check(
+    "fund_family_panel: per-fund value_bps_3y is STRIPPED for free",
+    (freeFam?.funds ?? []).every((f) => f.value_bps_3y == null),
+  );
+  check(
+    "fund_family_panel: 3Y aggregates are STRIPPED for free (they reconstruct the column)",
+    freeFam?.avg_value_bps_3y == null && freeFam?.aum_weighted_value_bps_3y == null,
+  );
+  check(
+    "fund_family_panel: free payload NAMES the locked 3Y fields (so a gated cell can render a lock, not a bare dash)",
+    (freeFam?.locked_fields ?? []).includes("funds.value_bps_3y") &&
+      (freeFam?.locked_fields ?? []).includes("avg_value_bps_3y") &&
+      (freeFam?.locked_fields ?? []).includes("aum_weighted_value_bps_3y"),
+  );
+  check(
+    "fund_family_panel: the SI-basis columns SURVIVE for free (different statistic, still free)",
+    freeFam?.funds?.[0]?.value_bps === 10,
+  );
+  // Positive control — the gate must not be a blanket delete.
+  check(
+    "fund_family_panel: per-fund value_bps_3y present for paid",
+    paidFam?.funds?.[0]?.value_bps_3y === 472.15,
+  );
+  check(
+    "fund_family_panel: 3Y aggregates present for paid",
+    paidFam?.avg_value_bps_3y === 202.94 && paidFam?.aum_weighted_value_bps_3y === 369.02,
+  );
+  check(
+    "fund_family_panel: paid payload carries no locked_fields",
+    paidFam?.locked_fields === undefined,
+  );
+
+  // Per-ROW original presence: a gated row and a row that never had a 3Y window
+  // must render DIFFERENTLY. Nulling the column alone loses that distinction and
+  // turns a genuinely-missing window into upgrade-bait (codex P2).
+  type FamRow = { ticker?: string; value_bps_3y?: number | null; value_bps_3y_present?: boolean };
+  const freeRows = (freeFam?.funds ?? []) as FamRow[];
+  const freeHad = freeRows.find((f) => f.ticker === "FCNTX");
+  const freeNever = freeRows.find((f) => f.ticker === "FNOWX");
+
+  check(
+    "fund_family_panel: free row that HAD a 3Y value is marked present (renders a lock)",
+    freeHad?.value_bps_3y == null && freeHad?.value_bps_3y_present === true,
+  );
+  check(
+    "fund_family_panel: free row with NO 3Y window is marked absent (renders an em-dash, not upgrade-bait)",
+    freeNever?.value_bps_3y == null && freeNever?.value_bps_3y_present === false,
+  );
+  check(
+    "fund_family_panel: the presence marker is a BOOLEAN only — no 3Y figure rides along",
+    typeof freeHad?.value_bps_3y_present === "boolean" &&
+      !JSON.stringify(freeFam ?? {}).includes("472.15"),
+  );
+  // Anon holds the whole section locked, so the 3Y figures cannot appear at all.
+  check(
+    "fund_family_panel: no 3Y figure anywhere in the anon payload",
+    !JSON.stringify(anon.fundFamilyPanel ?? {}).includes("472.15") &&
+      !JSON.stringify(anon.fundFamilyPanel ?? {}).includes("202.94"),
+  );
+}
 // positioning_context (free): the cohort percentiles must lock for anon.
 check(
   "positioning_context (free) is {locked} for anon",
@@ -674,9 +770,18 @@ check(
   (freeRow.riskBehavior as { beta_3y?: number | null })?.beta_3y === null,
 );
 check("fund_family_panel unlocked for free", !isLocked(freeRow.fundFamilyPanel));
+// SUPERSEDED 2026-08-08 (owner decision). This assertion used to require
+// `value_bps_3y` to be PRESENT for free — it encoded the contract that was found
+// to be the wrong side of the nav_series paid gate on the same statistic. The
+// free-tier positive control is now the SI-basis column, which really is free;
+// the 3Y strip is asserted in the fund_family_panel 3Y field-gate block above.
 check(
-  "fund_family_panel 3Y member value present for free (positive control)",
-  hasLiveNumber(freeRow.fundFamilyPanel, "value_bps_3y"),
+  "fund_family_panel SI-basis member value present for free (positive control)",
+  hasLiveNumber(freeRow.fundFamilyPanel, "value_bps"),
+);
+check(
+  "fund_family_panel 3Y member value is ABSENT for free (superseded contract)",
+  !hasLiveNumber(freeRow.fundFamilyPanel, "value_bps_3y"),
 );
 
 // te_decomposition: the paid tier holds the full per-bet table, and the negative
