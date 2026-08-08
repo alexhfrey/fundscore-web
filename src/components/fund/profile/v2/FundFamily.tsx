@@ -16,11 +16,25 @@ import { Unavailable, LockedNotice } from "../primitives";
 const bpsCls = (v: number | null | undefined) =>
   v == null ? "text-gray-400" : v > 0 ? "text-emerald-700" : v < 0 ? "text-rose-700" : "text-gray-500";
 
+/** Outer wrapper. V4 (movement 05) passes `headless`, so the movement chrome
+ *  owns the <section> and its #family anchor and the v2-era `id="s8"` is not
+ *  emitted a second time. Declared at module scope so it is a stable component
+ *  type across renders. */
+function Shell({ headless, children }: { headless: boolean; children: React.ReactNode }) {
+  if (headless) return <div className="space-y-4">{children}</div>;
+  return (
+    <section id="s8" className="scroll-mt-24">
+      {children}
+    </section>
+  );
+}
+
 export function FundFamily({
   family,
   present,
   free,
   demoted = false,
+  headless = false,
 }: {
   // `family` is passed only when the caller is free-entitled (gated data never
   // reaches an anon client); `present` says the served section exists so the
@@ -34,27 +48,32 @@ export function FundFamily({
   // as its own numbered chapter. Default false = unchanged standalone-chapter
   // behavior.
   demoted?: boolean;
+  // V4 (movement 05): the movement chrome owns the <section> and its #family
+  // anchor, so this renders as a plain <div> and drops the v2-era `id="s8"`
+  // rather than emitting a second, unreferenced anchor. Default false keeps the
+  // v2 markup byte-identical.
+  headless?: boolean;
 }) {
   if (!present) {
     return (
-      <section id="s8" className="scroll-mt-24">
-        <ChapterHeader index={8} title="Fund family" demoted={demoted} />
+      <Shell headless={headless}>
+        <ChapterHeader index={8} title="Fund family" demoted={demoted || headless} />
         <Unavailable>
           A family-level value comparison isn&apos;t served for this fund yet.
         </Unavailable>
-      </section>
+      </Shell>
     );
   }
 
   if (!free || !family) {
     return (
-      <section id="s8" className="scroll-mt-24">
-        <ChapterHeader index={8} title="Fund family" demoted={demoted} />
+      <Shell headless={headless}>
+        <ChapterHeader index={8} title="Fund family" demoted={demoted || headless} />
         <LockedNotice tier="free">
           See how this fund&apos;s family ranks among fund families on after-fee
           value, and where the fund sits among its family&apos;s largest funds.
         </LockedNotice>
-      </section>
+      </Shell>
     );
   }
 
@@ -68,11 +87,11 @@ export function FundFamily({
       : null;
 
   return (
-    <section id="s8" className="scroll-mt-24">
+    <Shell headless={headless}>
       <ChapterHeader
         index={8}
         title="Fund family"
-        demoted={demoted}
+        demoted={demoted || headless}
         asOf={
           [family.as_of ? `value as of ${family.as_of}` : null, aumRange]
             .filter(Boolean)
@@ -249,6 +268,6 @@ export function FundFamily({
           </PanelNote>
         </Panel>
       )}
-    </section>
+    </Shell>
   );
 }

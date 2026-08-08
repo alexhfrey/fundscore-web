@@ -38,11 +38,18 @@ export function GrowthChart({
   passiveLabel,
   beta,
   showComparison,
+  base = BASE,
 }: {
   points: ChartPoint[];
   passiveLabel: string | null;
   beta: number | null;
   showComparison: boolean;
+  /** Starting stake to display. The served series is growth of $1,000; this is
+   *  a pure unit change (×base/1000) applied identically to every leg, so no
+   *  relationship between the lines is altered. Default keeps the v2 behaviour
+   *  byte-identical; the V4 page passes 10_000 to match its page-wide
+   *  "per $10,000" money convention. */
+  base?: number;
 }) {
   const [period, setPeriod] = useState<Period>("SI");
   const pass = passiveLabel ?? "the index";
@@ -58,11 +65,12 @@ export function GrowthChart({
     if (points.length === 0) return [];
     const start = period === "SI" ? 0 : Math.max(0, points.length - 1 - MONTHS[period]);
     const win = points.slice(start);
-    const rebase = (v: number | null | undefined, base: number | null | undefined) => {
+    const rebase = (v: number | null | undefined, anchor: number | null | undefined) => {
       if (v == null) return null;
-      if (period === "SI") return v;
-      if (base == null || base === 0) return null;
-      return (v / base) * BASE;
+      // SI is the served series itself, scaled only by the display stake.
+      if (period === "SI") return (v / BASE) * base;
+      if (anchor == null || anchor === 0) return null;
+      return (v / anchor) * base;
     };
     const f0 = win[0].fund;
     const p0 = win[0].passive;
@@ -73,7 +81,7 @@ export function GrowthChart({
       passive: showComparison ? rebase(pt.passive, p0) : null,
       betaAdj: showComparison ? rebase(pt.beta_adj_passive, b0) : null,
     }));
-  }, [points, period, showComparison]);
+  }, [points, period, showComparison, base]);
 
   const last = data[data.length - 1];
 
@@ -136,7 +144,7 @@ export function GrowthChart({
               labelStyle={{ color: "#374151", fontWeight: 600 }}
               contentStyle={{ borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 12 }}
             />
-            <ReferenceLine y={BASE} stroke="#cbd5e1" strokeDasharray="3 3" />
+            <ReferenceLine y={base} stroke="#cbd5e1" strokeDasharray="3 3" />
             {showComparison && (
               <Line
                 type="monotone"
@@ -176,7 +184,7 @@ export function GrowthChart({
       </div>
 
       <p className="px-1 pt-2 text-[12.5px] leading-relaxed text-gray-500">
-        Growth of <span className="font-semibold text-gray-700">$1,000</span>
+        Growth of <span className="font-semibold text-gray-700">{usd(base)}</span>
         {period === "SI"
           ? ` over the full paired series${data.length ? ` (from ${data[0].t})` : ""}`
           : ` over the last ${period}`}
