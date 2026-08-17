@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-10T14:56-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-17T12:09-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -106,8 +106,8 @@ Worker loops: `IN` = /implement-next (routes by track/lane, reads spec model/eff
 |---|------|--------|--------------|--------|
 | W1 | Beta ops minimum (error tracking + feedback + analytics) — backlog Beta-launch group | SS→IN (lean→**standard**) | opus/med impl, session-model gate | **done** |
 | W2 | Preview+prod load RUNBOOK (write only; execution is D1) — backlog Beta-launch group | SS→IN (lean) | opus/med | **done** |
-| W3 | Screener beta port (default: Postgres-served; see register) — backlog Beta-launch group | SS→IN (standard) | opus/high | **done** (web `feature/crescent-profile-v2`; fund_score `89044fb` on `w3/query-serving-tables` in worktree `fund_score-wt-w3` — **owner merges both**). Uncovered **P2**. |
-| W4 | Solver HTTP service — `specs/done/solver-http-service.md` (code/container/web-swap/deploy-gate BUILT; snapshot bake + AC3 → D2) | IN (reviewed) | opus/high impl; gates session-model + codex --high | **done** (web `feature/crescent-profile-v2`; fund_score `6dc6dc7` on `w4/solver-http-service`, worktree `fund_score-wt-w4` — **owner merges both**) |
+| W3 | Screener beta port (default: Postgres-served; see register) — backlog Beta-launch group | SS→IN (standard) | opus/high | **done** (web `feature/crescent-profile-v2`; fund_score `89044fb` on `w3/query-serving-tables` in worktree `fund_score-wt-w3` — **MERGED, verified 2026-08-17**: `git branch --merged main` lists it, 0 commits ahead, both repos). Uncovered **P2**. |
+| W4 | Solver HTTP service — `specs/done/solver-http-service.md` (code/container/web-swap/deploy-gate BUILT; snapshot bake + AC3 → D2) | IN (reviewed) | opus/high impl; gates session-model + codex --high | **done** (web `feature/crescent-profile-v2`; fund_score `6dc6dc7` on `w4/solver-http-service`, worktree `fund_score-wt-w4` — **MERGED, verified 2026-08-17**, both repos) |
 | W5 | V4 serving riders spec (skill strip + effective-positions) — backlog Beta-launch group; spec now, build in L after F1 | SS | opus/med | **done** → `specs/queue/v4-serving-riders-skill-strip-effective-positions.md` |
 | W6 | Pipeline-state hygiene chore (3 rot spots) — backlog Working set (NOT "Hardening sweep"; corrected 2026-08-07) | FB | sonnet/low | **done** |
 
@@ -116,7 +116,7 @@ Owner chose this over idle-watching when Track W drained. Every item is a real d
 none needs an owner input, and each de-risks D1 or the fences this plan depends on. Ordered by that.
 | # | Item | Worker | Model/effort | STATUS |
 |---|------|--------|--------------|--------|
-| H1 | **done** (fund_score `1f3d91f` on `feat/h1-serving-ddl-authority`; web `00db419`) **Serving-table DDL has 3 disagreeing definitions** — loader COPYs `position_direction`, absent from Drizzle + `schema.sql` + `drizzle/serving_layer_additive.sql`; facts 13 cols short, 4 retired cols present. A fresh prod DB created the obvious way = failed or silently-truncated load. **Directly a D1 trap.** | FB (cross-repo) | opus/high | ready |
+| H1 | **done** (fund_score `1f3d91f` on `feat/h1-serving-ddl-authority` — **MERGED, verified 2026-08-17**; web `00db419`) **Serving-table DDL has 3 disagreeing definitions** — loader COPYs `position_direction`, absent from Drizzle + `schema.sql` + `drizzle/serving_layer_additive.sql`; facts 13 cols short, 4 retired cols present. A fresh prod DB created the obvious way = failed or silently-truncated load. **Directly a D1 trap.** | FB (cross-repo) | opus/high | ready |
 | H2 | **done** (harness `c386595` on `fix/commit-hook-target-resolution`; committed over a blocked gate by owner decision — 4 shapes filed) **`branch-guard.sh` fail-open** — resolves the target repo from the FIRST `git -C` anywhere in a compound command; mirror case silently APPROVES a `main` commit. **This is F3's own enforcement.** Audit `codex-commit-gate.sh` for the same shape. | FB | opus/high | ready |
 | H3 | **done** (web `f7526c0`) **`npm run build` connects to PROD** — `.env.production.local` outranks `.env.local`, so the mandatory build gate opens prod queries on every machine and its prerender output is misleading everywhere. Careful: Vercel runs the same script, so do not "fix" it by forcing local. | FB | opus/high | ready |
 | H4 | **done** (web `8f44bc7`; guard-placement follow-up `359cf1a`) **`/api/ops` has no rate limit** — unauthenticated INSERT path on a public site (the one gate exception). Abuse grows a table; no leak, no compute. Needs a throttle before any ungated launch. | FB | sonnet/med | ready |
@@ -137,16 +137,16 @@ none needs an owner input, and each de-risks D1 or the fences this plan depends 
 | L8 | Taxonomy misroutes / ALT classification (BETA BLOCKER) | FD | opus/high | **ready** |
 | L9 | Per-stock receipts backend — `specs/queue/per-stock-receipts-backend.md` (contains **S2**; L1 closed 2026-08-09 → blank its `depends_on:` when dispatched) | IN (reviewed) | opus/high | **ready** (L1 closed) |
 | L10 | Riders build — `specs/queue/v4-serving-riders-skill-strip-effective-positions.md`. **RE-RATED 2026-08-07 (W5 grounding): lean/opus-med → reviewed/opus-high.** It is NOT two small additions: effective-positions is ALREADY served and rendered on the WRONG book (`holdings_snapshots` US-ticker basis, not filed `pctVal`) — PRNEX used 57 positions to describe a 127-holding fund, serving 30.5 where the filed book gives 59.8, biased so every fund reads ~2× more concentrated than it is. So L10 is a **correctness fix on a live serving fact**, not a rider, and it must land before F6 cutover. Fold in the top-10 27.2/31.0 split (same root cause, filed as its own bug). | IN (**reviewed**) | **opus/high** | **ready** |
-| L11 | Superlative-guard check (top_bet_confident consumer check) — Working set | FB | sonnet/med | **done** (fund_score `06ae57a` on `l11/superlative-guard` — **owner merges**; 2 deferred advisories → Open chore) |
+| L11 | Superlative-guard check (top_bet_confident consumer check) — Working set | FB | sonnet/med | **done** (fund_score `06ae57a` on `l11/superlative-guard` — **MERGED, verified 2026-08-17**; 2 deferred advisories → Open chore) |
 | L12 | Twin-label/basis-metadata fix (record's passive leg is a PIT twin cascade mislabeled as one current ETF; 204/218 blends) — **REQUIRED BEFORE F6**; backlog item filed 2026-08-07 | FD | opus/high | **ready** |
 | L13 | Active-share fail-open: propagate `method`+`lookthrough_resolved_weight` to serving + gate (17 funds at 0.5-vs-empty-benchmark, confidence high) — restores the stat F1 gated closed; NOT cutover-blocking | FD | opus/med | **ready** |
 | L14 | **Domicile-routing rule (promoted 2026-08-09 from the Segment-1b follow-up — now FIVE symptoms of one root cause**: 2 unrestored 1c pairs · 15-ISIN/$7.4B split cohort · 481 positioning quarters · S7-4 dual-sector contradiction 20 ISINs/$8.2B **served-on-next-reload** · part of the $3.51B recall chore). **MUST LAND BEFORE THE NEXT SERVING RELOAD** (S7-4 is a same-security contradiction that would reach the product) | FD (reviewed) | opus/high | **ready** (after L1 closes) |
-| L15 | **D3: `benchmark_nav.py:146` imputes 0% return for unpriced blend sleeves + serves unrenormalized at >50% coverage** (found 2026-08-09 by L5's coherence gate; reviewer re-sized the TRUE blast radius: **51 of 1,449 neighbourhood-served funds >1bp/day, median max 44bps/day, worst SLMCX 304bps/day** — size the fix on `passive_alt_daily_nav`'s FULL universe, not the 41 both-movements funds; SLMCX's 47.4% SOXX sleeve held flat unrenormalized). **PRE-RELOAD, P1**; F2's flip decides whether affected funds gate movement 03 closed until this lands | FD (reviewed) | opus/high | **ready** |
+| L15 | **D3: `benchmark_nav.py:146` imputes 0% return for unpriced blend sleeves + serves unrenormalized at >50% coverage** (found 2026-08-09 by L5's coherence gate; reviewer re-sized the TRUE blast radius: **51 of 1,449 neighbourhood-served funds >1bp/day, median max 44bps/day, worst SLMCX 304bps/day** — size the fix on `passive_alt_daily_nav`'s FULL universe, not the 41 both-movements funds; SLMCX's 47.4% SOXX sleeve held flat unrenormalized). **PRE-RELOAD, P1**; F2's flip decides whether affected funds gate movement 03 closed until this lands | FD (reviewed) | opus/high | **done 2026-08-17** (`c159f9a` on `l15/benchmark-nav-renorm` — **owner merges**; three adjudication rounds. Round 3 caught a v6 REGRESSION its own check surfaced: terminal truncation anchored two served charts ON fabricated prints, MMTMX serving +60.06% vs a +0.80% baseline with four sibling classes at +0.74–0.78%, sign-flipping the headline verdict in all three periods. Fixed by anchoring on evidence via the existing `LOG_BRIDGE_SUSPECT` — no new threshold. All 6 verification items PASS; determinism byte-identical incl. all 10 hygiene ledgers; both `/check-data` 0 blocking; `method_version` → `v3_2026-08-17`. Codex: 2×P1 + 1×P2 fixed, clean pass. Follow-ups filed: thread (c) 32-ticker liquidation class, SPAX run-selection, W3 quarantine-vs-score, ratchet slack 584 vs 563, td-cache absent) |
 
 ### Track F — V4 frontend (**the reload S1 gated has HAPPENED — 2026-08-07 05:44.** Movement-by-movement, then cutover = the new finish line)
 | # | Item | Worker | Model/effort | STATUS |
 |---|------|--------|--------------|--------|
-| F1 | Movements 00/01/02/05/06(partial) — served-after-reload fields; flip protocol per movement (5 conditions incl. methodology anchor + critic pass) — `specs/queue/profile-v2-production-cutover.md` | IN (reviewed, frontend) | opus/xhigh impl; sonnet craft critics; session-model data critics | **done** (web `6190a96` on `f1/v4-movements-00-06` — **owner merges**) |
+| F1 | Movements 00/01/02/05/06(partial) — served-after-reload fields; flip protocol per movement (5 conditions incl. methodology anchor + critic pass) — `specs/queue/profile-v2-production-cutover.md` | IN (reviewed, frontend) | opus/xhigh impl; sonnet craft critics; session-model data critics | **done** (web `6190a96` on `f1/v4-movements-00-06` — **MERGED, verified 2026-08-17**) |
 | F2 | Movement 03 (neighbourhood) | IN | opus/high | blocked(web mirror per L5 §12 handoff + local serving reload, which is fenced behind L14+L15) |
 | F3 | Recent Changes section flip | IN | opus/high | blocked(L6) |
 | F4 | Movement 04 receipts + 01 twin-diff card | IN | opus/high | blocked(L9) |
@@ -1137,3 +1137,43 @@ unchanged pending your call; the F1 progress file's leak-check claim was correct
   pending that adjudication — final-checkpoint question. replica_quality now twin-coherent by
   construction. Remaining: determinism → M4 chain → consumers → gates → /check-data → report
   corrections.
+- 2026-08-17 12:09 — **L15 CLOSED (`c159f9a`), and it closed on a defect its own check found.**
+  The dispatcher run died 2026-08-10 ~21:00 on a weekly usage limit with L15 one step short:
+  the fresh `/check-data` on `profile_nav_series` was in flight and never landed. Resuming it
+  was the whole job, and the check came back **FAIL** — v6's terminal-tail truncation anchored
+  each series after its last observation that SURVIVED excision, so where a bad print's
+  *reversion* was excised instead of the print, the print survived and truncation **promoted it
+  to the series' final value** — the endpoint of every period-table window. **MMTMX served
+  +60.06% for its terminal month against a +0.80% baseline while its four identical MassMutual
+  share classes served +0.74–0.78%**, flipping the headline verdict in all three periods
+  (1Y `diff_bps` −343 → **+5,956**). A fix shipping the exact wrongness it was built to remove.
+  Owner adjudicated (anchor on evidence, all three threads in scope); the fix walks the anchor
+  back using the **existing** `LOG_BRIDGE_SUSPECT` — no new threshold, band, allowlist or
+  exemption — and unconverged series go to a new ledger untouched rather than a fallback. That
+  ledger is **empty**: every terminal bridge converged. All six verification items measured on
+  the served artifact: MMTMX reproduces the independent pre-L15 build to 1e-9 (a value not
+  fitted to, corroborated by four siblings); **all 45 truncated tickers diffed per-series** —
+  17 anchors moved one day, 2 charts changed, **0 regressed, 0 left the panel**; fabrication
+  metric 24/18 → 23/17; both `/check-data` **0 blocking**; determinism **byte-identical incl.
+  all 10 hygiene ledgers** (the anchor DECISIONS are deterministic, not just the arithmetic).
+  Three side-quests worth the record: the rebuild died twice on a **16GB host** (swap thrash,
+  then an OS kill) — resolved by stopping a two-week-old idle Supabase stack and making the NAV
+  write **atomic**, after the worker correctly killed run 1 to avoid leaving a truncated
+  `passive_alt_daily_nav.parquet` in the shared lakehouse; codex raised **2×P1** — a
+  `build_l2_replica_quality` delete of `risk_decomp_td.parquet` that is dead only to ITS OWN
+  builder while **five** scripts reference it (the consumer-audit-≠-literal-grep lesson again,
+  and the cache is **already gone** — four risk builders will fail until it is regenerated),
+  and `price_hygiene_census` registered as a permanently-red default gate. The census now
+  **separates blocking from reporting** (ETF leg + ratchet + reason-requirement block; the
+  unexplained count WARNs with cohort attribution) — and both naive versions of that change
+  would have been silently self-defeating: the self-test asserted on the blocking flag so it
+  would have passed **vacuously**, and a bare exit-0 WARN is **suppressed** by `run_checks`.
+  Both caught and fixed. **Owner merges `l15/benchmark-nav-renorm` into fund_score main.**
+  Parked for adjudication: thread (c) — the terminal one-way basis-break class is **~32 tickers,
+  not 6** (11 KP* classes on 2020-12-07/09 + AQLGX; the terminal-position face of the known
+  December capital-gain item, and RIMHX **+28.8%** against a benchmark that moved −1.4% is the
+  tell) · SPAX run-selection (a new 14-month feed hole makes "most recent contiguous run" keep a
+  1-month stub over a good 28-month run) · W3 quarantine-vs-score, now **tracking** (MSVSX moved
+  −130 → −150 while chart-withheld) · **21 steps of ratchet slack** (ceiling 584, actual 563) ·
+  the absent td cache. **Next READY: L2** (with L7 needing its single off-cycle L2 re-solve
+  coordinated after all price-touching fixes).
