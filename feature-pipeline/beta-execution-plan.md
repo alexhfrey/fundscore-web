@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-17T12:09-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-17T20:58-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -95,6 +95,41 @@ both vendors, pick cheaper, report actual.
   drift rather than preventing it; that is the honest strength of the guard, and D1 must not
   describe it as a replay.
 
+## ⇢ S3 CRITICAL PATH (owner directive 2026-08-17) — this OVERRIDES strict rank order
+
+**Owner's stated goal: reach S3 — the product review of the built V4 page — as directly as
+honestly possible.** Work the critical path below first; items outside it are deprioritized, and
+every such deprioritization is named in § Run log rather than left implicit.
+
+    U1  L5 web-mirror handoff (web repo)              →  F2 prereq #1        ✅ DONE 2026-08-17
+    U2  capital-gain / basis-break item               →  reload fence #1
+    U3  L14 domicile-routing rule                     →  reload fence #2
+    U4  L6 recent-changes-te-ranked                   →  F3
+    U5  L9 per-stock receipts backend (**S2** inside) →  F4
+    U6  ONE serving reload (freeze-and-prove)         →  F2 + F3 + F4
+    U7  F2 · F3 · F4  →  F5 critic panel  →  **S3**
+
+**Dispatcher sequencing call — ONE reload, not three (recorded because it is a real decision).**
+The owner's brief fenced the reload behind L14 + the capital-gain item and listed F3←L6, F4←L9
+without a reload dependency. But L6 and L9 both write panels that must reach Postgres before the
+web can render them, so F3 and F4 need a reload too. Reloading after each backend item would mean
+three fenced freeze-and-prove runs; holding one reload until U2–U5 all land costs nothing but
+ordering and is the honest read of the dependency graph. **U6 therefore waits for U4 and U5 as well
+as the two owner fences.** If the owner would rather see movement 03 early, an interim reload after
+U2+U3 is available on request — it is a scheduling choice, not a correctness one.
+
+**Deprioritized, and why.** L2, L3, L4, L7, L8, L10, L12, L13 remain BETA BLOCKERs and stay in the
+queue at their ranks, but none of them blocks S3 — they are wrongness the owner will be looking AT,
+not machinery the review needs. They are worked after S3 unless the owner reorders. **This means the
+S3 review is of a page carrying known-wrong data; F5's handoff MUST list which defects are still
+live so the owner reads the page in that light** (see § Run log at the F5 entry).
+
+**Price-path sequencing (owner's call, 2026-08-17).** L2, L3, L7 and three of the five newly-filed
+items all touch the price path, and L7's off-cycle re-solve must run ONCE, after ALL price-touching
+fixes. Order: **capital-gain/basis-break → L2 → L3 → ratchet re-tighten to the new count → THEN
+L7's single re-solve.** Do not start L7 before that point. Note the head of this chain (capital-gain)
+is also reload fence #1, so it is on the S3 path too — the two orderings agree on what comes first.
+
 ## The queue (rank order; work top-down; skip BLOCKED, take the next READY)
 
 Legend: STATUS ∈ ready / blocked(<on>) / in-progress / parked:owner / done.
@@ -147,7 +182,7 @@ none needs an owner input, and each de-risks D1 or the fences this plan depends 
 | # | Item | Worker | Model/effort | STATUS |
 |---|------|--------|--------------|--------|
 | F1 | Movements 00/01/02/05/06(partial) — served-after-reload fields; flip protocol per movement (5 conditions incl. methodology anchor + critic pass) — `specs/queue/profile-v2-production-cutover.md` | IN (reviewed, frontend) | opus/xhigh impl; sonnet craft critics; session-model data critics | **done** (web `6190a96` on `f1/v4-movements-00-06` — **MERGED, verified 2026-08-17**) |
-| F2 | Movement 03 (neighbourhood) | IN | opus/high | blocked(web mirror per L5 §12 handoff + local serving reload, which is fenced behind L14+L15) |
+| F2 | Movement 03 (neighbourhood) | IN | opus/high | blocked(serving reload only) — **web mirror DONE 2026-08-17** (`5c052f2`: `serving.ts` column + `gating.ts` GATED_SECTIONS entry + methodology anchor + cutover-spec §03 rewrite; `db:check-serving` exit 0). L15 closed, so the reload now fences on **L14 + the capital-gain item**, and this line holds it further for L6+L9 so ONE reload serves F2/F3/F4 (see § S3 CRITICAL PATH). The read path is a bare `.select()`, so F2 is a RENDER-only job. |
 | F3 | Recent Changes section flip | IN | opus/high | blocked(L6) |
 | F4 | Movement 04 receipts + 01 twin-diff card | IN | opus/high | blocked(L9) |
 | F5 | Full-page critic panel `/critique-funds` → fix round → **S3** | critique pipeline | per-agent pins | blocked(F1-F4) |
@@ -1200,3 +1235,46 @@ unchanged pending your call; the F1 progress file's leak-check claim was correct
   not the builder. Re-measure with the builder's own trim before touching a rule that governs all
   9,238 series. **Serving reload remains fenced** behind L14 + the capital-gain item; L15 landing
   did not lift either. **Next READY: L2.**
+- 2026-08-17 20:58 — **DISPATCHER RESUMED on the owner's S3 CRITICAL PATH; U1 DONE (`5c052f2`).**
+  Queue state re-verified against the owner's description before taking anything: both repos match
+  (`fund_score` main `75980a3`, web main `aa10daf`), the five owner decisions sit at the top of
+  backlog.md's Working set, Supabase is up (12 containers), 5,819 fact rows intact.
+  **DEPRIORITIZED, explicitly: L2 — the strict-rank next-READY item.** It is a BETA BLOCKER but it
+  does not block S3; the same is true of L3, L4, L7, L8, L10, L12, L13. New ordering recorded in
+  § S3 CRITICAL PATH above. **First unit taken was the cheapest thing on that path**, not the
+  largest: L5's web-mirror handoff is the only S3-critical item that was small, fully unblocked and
+  in the WEB repo, and it is the gate every later serving step gets measured against — doing it
+  first also de-risked the DB before four hours of backend work land on it.
+  **The known `db:check-serving` red is CLEARED, and it took two fixes, not one.** (i) Re-applying
+  `apply_serving_schema.py` from post-H1 fund_score main revoked the anon/authenticated
+  CRUD+TRUNCATE grants and turned RLS ON for all six serving tables — verified against a pre-apply
+  snapshot, and the script was read first to confirm it is idempotent (CREATE TABLE IF NOT EXISTS +
+  ADD COLUMN IF NOT EXISTS + four DROP COLUMN IF EXISTS on already-retired columns; **no data path**)
+  rather than trusted. Row counts unchanged: 5,819 / 1,398,380 / 2,104 / 55 / 15 / 140.
+  (ii) That apply then exposed the SECOND failure the owner's brief did not predict: it added
+  `neighbourhood` (40 → 41 columns), so the check flipped from `postgrest-exposure` to mirror DRIFT.
+  The two are coupled — the schema apply and the web mirror had to land together, which is exactly
+  what L5 §12.2 said ("only then is a Postgres reload safe"). All four handoff items shipped:
+  `serving.ts` column, `gating.ts` GATED_SECTIONS registration (**a missing entry there is
+  fail-OPEN** — registered for that reason, not for its tier, which is `public`), a `neighbourhood`
+  methodology anchor written from the shipped builder + L5's measured numbers, and the cutover
+  spec's §03 "no serving source" claim retired with its render contract recorded (hypothetical
+  chip is mandatory; BND is US investment-grade, not global bonds).
+  **Behaviourally inert today and said so plainly:** every served row has `neighbourhood` NULL and
+  applyGates skips a null section, so nothing changes until the reload. One thing verified rather
+  than assumed — the read path is a bare `.select()`, so the column reaches the page automatically
+  and **F2 is a render-only job**, no data-layer work. Gates: `db:check-serving` **exit 0** (41
+  columns match, no anon/authenticated grants anywhere) · gating-golden all assertions · lint 0
+  errors · build clean and **resolving 127.0.0.1:54322, not prod** (H3's guard doing its job) ·
+  **codex --high PASS, 0 findings**.
+  **Two facts filed for the record, neither an owner decision.** (a) L6's spec `depends_on`
+  includes `unify-te-decomposition-global-basis`, still `status: queued` — checked rather than
+  assumed: segments 1, 2 and 3 are shipped and merged (`0037a23`, `0c30cda`), only segment 4 (the
+  fail-closed gates, incl. the anchor-alignment gate that suppresses the 94 stale-window funds) is
+  outstanding. L6's stated dependency is on the BASIS, which segments 1–3 established, so L6 is
+  buildable; its segment-0 EDA must confirm that and decide whether the alignment gate rides along.
+  (b) **Disk is at 98% — 18 GiB free.** The v6 snapshot is ~1.6 GB and a v7 snapshot before the
+  capital-gain rebuild costs about the same, on top of an 828 MB tmp NAV write. It fits, but after
+  RAM killed the L15 rebuild twice this is the next resource tripwire, so it is being watched rather
+  than discovered. **Next: U2, the capital-gain / basis-break item** — reload fence #1 and the head
+  of the owner's price-path order.
