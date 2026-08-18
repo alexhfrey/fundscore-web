@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-17T22:56-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-17T23:02-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -1798,3 +1798,23 @@ Sharadar SEP store.
   stats, and one wording overstatement ("those rows are not smaller" — 53 vs 61 bps is 12% smaller;
   "comparable" is what the data supports, and the claim survives on that wording).
   **Seven decisions are now parked across P5/P6/P7. Consolidated sheet going to the owner.**
+- 2026-08-17 23:02 — **U5 (L9, per-stock receipts) DISPATCHED — the last backend item on the S3
+  path, and the one carrying owner stop S2.** Worktree `fund_score-wt-l9` on
+  `feat/l9-per-stock-receipts`; Segment 0 is EDA, no writes, so the F2 one-writer fence still holds
+  with four read-only worktrees on the shared lakehouse. Its `depends_on: foreign-holdings-enrichment`
+  was blanked per the queue row — L1 closed 2026-08-09.
+  **Dispatched deliberately WHILE three items sit parked, rather than idling.** Every other S3-path
+  item now waits on an owner ruling; L9's EDA needs none to start, and doing it now means that when
+  the owner rules, all four backend items can enter Segment 1 in parallel instead of serially. It
+  also front-loads **S2**, which the owner has already said will fire and wants briefed CPO-level.
+  The S2 mandate is the segment's centre of gravity and was framed to measure the thing an owner is
+  least likely to be told: not just how many funds clear each candidate priced-NAV floor (0.50 /
+  0.65 / 0.80), but **which KINDS of fund each floor excludes** — foreign-heavy funds keep an
+  unpriced sleeve by construction, so the floor silently decides who gets the product's most
+  persuasive card. It must also spot-check the raw source at the misses to separate a genuinely
+  unpriceable foreign line from a recoverable extraction failure, since a large recoverable miss is
+  a DEFECT rather than "partial coverage".
+  Two traps were named up front from this session's own record: the spec mixes bases DELIBERATELY
+  (fund side renormalized-priced-book, twin side un-renormalized so its unresolved sleeve shows as
+  missing weight) — the same commensurability class L6 nearly shipped a ranking on — and the totals
+  row must never read as "what the fund did" when it is "what the priced book did".
