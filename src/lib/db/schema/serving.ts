@@ -120,6 +120,15 @@ export const fundProfileFacts = pgTable(
     // + after-fee period table. Section gate is public (fund-only chart); the
     // vs-passive legs + full period table are stripped field-level below paid.
     navSeries: jsonb("nav_series"),
+    // neighbourhood-panel — V4 movement 03. The TWIN's full-life growth vs US
+    // stocks / world stocks / US bonds (IVV/VT/BND), plus capture, the worst
+    // three drawdowns and calendar-year bars. Keyed by blend, not by fund: two
+    // funds on the same twin share one computed history. The twin leg is a
+    // CURRENT-mix backcast and therefore HYPOTHETICAL — every non-null payload
+    // carries `hypothetical: true` + `mix_as_of`, which the web chip depends on.
+    // Suppression is honest and fail-closed upstream (no twin, below fit floor,
+    // no fit winner, sub-36-month window, or a blend/panel desync all serve null).
+    neighbourhood: jsonb("neighbourhood"),
     riskBehavior: jsonb("risk_behavior"),
     holdings: jsonb("holdings"),
     managerParent: jsonb("manager_parent"), // carries skill_evidence + manager_moves

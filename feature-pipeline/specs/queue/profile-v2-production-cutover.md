@@ -225,15 +225,29 @@ queued** (spec in queue) · **no backend** (no spec — owner decision or new sp
 
 ### 03 · The neighbourhood (`#twin`)
 - **All four cards** (full-life log growth vs VT/IVV/BND, capture triple, drawdown/recovery table,
-  year-by-year bars): **no backend** — no serving source and no queued spec. The mockup computed
-  these from daily adjusted closes (twin constituents, IVV, VT, BND, Jun 2008 →; note: SPY has
-  ZERO rows in `fund_daily_adj_close.parquet`, IVV is the S&P line). This is a small, deterministic
-  gold panel + serving section (per-twin, not per-fund: keyed by the served blend), but it is
-  backend work in `fund_score` and must be specced there. **Batch-3 owner decision (b): file that
-  backend spec pre-cutover, or descope movement 03 for beta.** Never compute return series in the
-  web tier. Donor: `GrowthChart` mechanics only. Canon: window doctrine — this movement is an
+  year-by-year bars): **SERVED — `fund_profile_facts.neighbourhood`** (L5, `neighbourhood_v1_2026-08-09`,
+  fund_score `009b872`). *Superseded 2026-08-17: the original "no backend — no serving source and no
+  queued spec" text below was true when written and is kept for provenance; batch-3 owner decision (b)
+  was answered by FILING the spec, and it has since shipped.* The panel is keyed by BLEND, not by
+  fund (two funds on the same twin share one history); the serving layer resolves
+  series_id → primary_ticker → blend components → blend_key. Section gate is `public`; the web mirror
+  landed 2026-08-17 (`serving.ts` column + `gating.ts` GATED_SECTIONS entry — a missing entry there is
+  fail-OPEN — + the `neighbourhood` methodology anchor). Render contract, all upstream-enforced:
+  the twin leg is a **current-mix backcast and therefore hypothetical**, so the payload's
+  `hypothetical` + `mix_as_of` MUST drive the "HYPOTHETICAL · MIX-AS-OF <refit>" chip — never render
+  this shape without both; **BND is US investment-grade, not global bonds** (label it as such — BNDW
+  starts 2018 and reaching 2008 would need a splice the panel forbids); the window is per-twin with
+  `binding_ticker` naming what bound it; `n_days_dropped` is emitted where the all-legs-priced grid
+  skipped a day. Suppression is honest and fail-closed upstream (`neighbourhood: null` for no twin,
+  `below_fit_floor`, no fit winner, sub-36-month window, or a blend/panel desync) — render nothing,
+  never a substitute. Coverage: 3,079 of 5,819 served (52.9%); 3,079 of the 3,689 that show a
+  passive twin at all (83.5%); **0 recoverable-missing**. Never compute return series in the web
+  tier. Donor: `GrowthChart` mechanics only. Canon: window doctrine — this movement is an
   asset-class question and uses the twin's full life; state the distinction from the graded window
   once.
+  <br>*Original text (pre-L5, retained):* "no backend — no serving source and no queued spec. The
+  mockup computed these from daily adjusted closes (twin constituents, IVV, VT, BND, Jun 2008 →;
+  note: SPY has ZERO rows in `fund_daily_adj_close.parquet`, IVV is the S&P line)."
 
 ### 04 · The manager and their names (`#manager`)
 - **"Who runs it"**: `manager_parent.managers[]` (`{name, role, start_date, tenure_years,

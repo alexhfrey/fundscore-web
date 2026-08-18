@@ -288,6 +288,40 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     ],
   },
   {
+    anchor: "neighbourhood",
+    title: "The Neighbourhood (Your Passive Alternative's Full Life)",
+    tagline:
+      "What the fund's passive alternative would have done over its whole available history, next to US stocks, world stocks and US bonds — a hypothetical backcast of today's mix, never a track record.",
+    methodVersion: "neighbourhood_v1_2026-08-09",
+    asOf:
+      "Monthly growth from each twin's own window start through 2026-07 (the final calendar year is marked partial). The window is per-twin, not shared: it starts where every leg is genuinely priced.",
+    measures: [
+      "Growth of $10,000 in the fund's passive alternative — the twin — over the longest window where the twin and all three comparators are genuinely priced, shown against IVV (US stocks, the S&P 500), VT (world stocks) and BND (US investment-grade bonds). All four legs come from adjusted closes, so each is already net of its own ETF fee.",
+      "Alongside the chart: up- and down-capture against world stocks, the twin's three deepest drawdowns, and calendar-year bars. This section describes the NEIGHBOURHOOD the fund lives in — how its passive alternative behaves — not the fund's own record, which is the Growth & After-Fee Returns section.",
+    ],
+    method: [
+      "The twin leg holds TODAY'S matched weights fixed and backcasts them across the window. That is hypothetical by construction — the mix was fit at the refit date shown on the chip and did not exist historically — so every payload carries the hypothetical flag and its mix-as-of date, and the page labels it.",
+      "The window starts at the LATEST first-price date across the twin's own holdings plus IVV, VT and BND (world stocks, first priced 2008-06-26, bind most twins; a younger holding binds later and the page names what bound it), and ends at the earliest last-price date across those legs. No proxy is ever spliced in to reach further back and nothing is backfilled — a twin holding a young ETF honestly gets a shorter window.",
+      "Capture is computed on monthly returns with world stocks as the reference: down-capture is the twin's average return across the months world stocks fell, divided by their average return in those same months (up-capture is the mirror). Drawdowns are measured on the twin's DAILY closes — peak is the last day at the running high, recovery is the first day that high is regained, depth is never clamped — and an unrecovered episode is marked ongoing rather than closed early.",
+      "On the handful of days where a leg has no price, that day is skipped for every leg rather than filled: compounding across the gap yields the true multi-day return. The effect is bounded and visible — at most 2 skipped days on any twin, 51 of 6,202 twins affected — and the build fails outright above 5.",
+    ],
+    sources: [
+      "Canonical daily adjusted closes (fund_daily_adj_close) for every leg",
+      "The L2 passive-blend weights — the same twin shown in the Passive Alternative section",
+      "The L2 candidate-fit panel (the refit date behind the mix-as-of chip)",
+    ],
+    notMeaning: [
+      "The twin line is NOT a track record and nobody earned it: it applies today's mix to the past. It shows what that combination of index funds would have done, which is a different claim.",
+      "This is not the fund's own history. Nothing here says whether the manager beat the alternative — that comparison lives in the Value Score and the Growth & After-Fee Returns section.",
+      "“US bonds” means exactly that: BND is Vanguard Total Bond Market, a US investment-grade fund, not a global bond fund. The honest global vehicle only begins in 2018 and reaching 2008 with it would require splicing, which this panel forbids.",
+    ],
+    limitations: [
+      "Coverage is 3,079 of 5,819 served funds (52.9%). The right denominator is funds that show a passive alternative at all: of those 3,689, this serves 3,079 — 83.5%. There is no recoverable gap.",
+      "The funds without a neighbourhood are honestly without one: 2,130 have no twin to speak of (1,705 of them ARE passive vehicles, where a twin is meaningless), 608 have a twin below our fit floor — we will not present a match we don't trust as “the neighbourhood” — and 2 fail closed for want of a fit row.",
+      "The history belongs to the twin, not the fund. Two funds matched to the same alternative see the same neighbourhood, and a twin can be far older than the fund holding it.",
+    ],
+  },
+  {
     anchor: "nav-series",
     title: "Growth & After-Fee Returns (Matched Windows)",
     tagline:

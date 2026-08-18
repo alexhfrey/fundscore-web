@@ -365,6 +365,12 @@ const GATED_SECTIONS: { col: string; gate: string; defaultGate?: string }[] = [
   { col: "passiveBaseline", gate: "passive_baseline" },
   { col: "performance", gate: "performance" },
   { col: "navSeries", gate: "nav_series" },
+  // neighbourhood-panel (V4 movement 03) — contract gate is "public": the twin's
+  // identity is already public in passive_baseline and the rest is asset-class
+  // history (IVV/VT/BND), so no fund-level performance lives here. Registered
+  // even though it is public because a section MISSING from this list is never
+  // touched by applyGates at all — i.e. fail-OPEN, the section-flip lesson.
+  { col: "neighbourhood", gate: "neighbourhood" },
   { col: "riskBehavior", gate: "risk_behavior" },
   { col: "holdings", gate: "holdings" },
   { col: "managerParent", gate: "manager_parent" },
