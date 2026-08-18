@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-17T22:37-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-17T22:56-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -472,19 +472,36 @@ Hyperscalers −6.3pp, Financials −7.7pp, Mag-7 −4.6pp. **Serving BRK.B +1.0
 **DECISION D-1 (blocks the serving step, not the build): the surfacing rule.** Options R0–R6 are
 measured in the report's §9. Recommended **R1** — keep the magnitude floors, **retire `|z|` and
 persistence as FILTERS but keep them as displayed attributes**, and let `te_rank` do the selecting:
-**3,277 funds served (+866), median 6 rows/fund, median 91 bps**, versus today's 2,411 / 3 rows /
-75 bps. Dependency: **R1 makes D8-3 servable, so D8-3 must be fixed first** (27 rows in 26 funds
-claim "entered IVV/SPYM/VOO at ~99pp" with `lookthrough_coverage = 1.0` — an unresolved wrapper or a
-mislabelled flag; harmless while unsurfaced, a launch blocker the moment it is surfaced).
+**3,277 funds served, +866** (this headline is cut-independent and reproduced exactly).
+**CORRECTED after checkpoint:** the report's payload cells were computed under a **top-6** cut while
+the serving path cuts at **8** (`fact_assembler.py:140`, `TOP_POSITIONING = 8` — dispatcher-verified).
+At the real cut, R1 ships **20,968 rows, median 8 rows/fund, median 84 bps** — not 16,770 / 6 / 91.
+Option ordering is unchanged, but the payload is ~25% LARGER and slightly lower-bps-per-row than the
+first brief said. Dependency: **R1 makes D8-3 servable, so D8-3 must be fixed first — and the checkpoint found
+it WORSE than filed.** The mechanism is **both** causes, adjudicated: SPYC's current-endpoint
+lookthrough book is literally **1 row, IVV at weight 1.000, against 503-504 resolved constituents at
+prior and mid** — the wrapper is unresolved AND `lookthrough_coverage = 1.0` is mislabelled. **8 of
+the 10 worst rows are already `available` + `sustained`, held back today ONLY by the null-z gate**,
+and **97 further spurious "exited AAPL/MSFT/..." rows ride in the same funds.** So approving R1
+without fixing this first would surface a fund as having "entered IVV at 99pp" and exited Apple.
+
+**DECISION D-3 (raised by the checkpoint, not by the worker): may a filing more than a year old
+headline a section that promises "lately"?** Bears on the **457 funds (9.0%)** whose current endpoint
+is older than 365 days. Not measured as options yet; the worker has been asked to frame it.
 
 **DECISION D-2 (blocks the build): where theme volatility comes from.** The shared Σ is
 `global_basis_v0.2_nothemes` — **sector 11/11 have a σ, theme 0/28.** Either compute theme σ through
 the shared `orthogonalize_levels` call (recommended; reproduces `sqrt(diag(Σ))` to **4.4e-16**, so it
 is the same basis, not a new recipe) or serve `te_impact_bps = null` for all **1,416** surfaced theme
-rows. **The dispatcher has asked the checkpoint to settle one thing before this goes up: the basis is
-literally named `_nothemes`, so it must be established whether themes were DELIBERATELY excluded by a
-prior decision or merely never computed** — that is the difference between "apply existing machinery"
-and "re-open a settled call", and it changes what is actually being asked.
+rows. **ANSWERED by the checkpoint, and it changes how to read the ask.** The exclusion is a
+**deliberate, documented decision of 2026-06-25** (`docs/research/global_clustered_basis_spec.md`,
+git `3120e05`, dispatcher-verified): themes were dropped from the idio-skill basis because the
+alpha-persistence study showed they add nothing to idio persistence and are sector subsets, and the
+no-themes variant is *the headline idiosyncratic-skill measure*. **But the same document keeps themes
+in production for theme-bet attribution and exposure betas, and a 57-factor themes-inclusive basis
+was explicitly retained for research.** So computing theme σ for TE ranking is **applying existing
+machinery to a NEW consumer, not reopening the skill decision** — it does not touch the idio-skill
+headline. That is the line's read; the owner should have the citation to judge it.
 
 **Two silent traps the EDA caught before they were built on.** (1) **A 100× error waiting to happen**:
 the panel emits pp of NAV while the exposure path uses `decimal_weight`, so the mapping is Δpp/100 —
@@ -1741,3 +1758,43 @@ Sharadar SEP store.
   "entered IVV/SPYM/VOO at ~99pp" with `lookthrough_coverage = 1.0`. Plus `BK` missing from the whole
   Sharadar SEP store, the manifest's absent `as_of` key, and style rows serving null as-of stamps
   against a contract that says both are mandatory.
+- 2026-08-17 22:56 — **U4 (L6) checkpoint: PASS-WITH-CORRECTIONS. Core story UNBROKEN; two
+  owner-facing numbers corrected — including one the dispatcher had already relayed to the owner.**
+  The reviewer re-derived every decision-driving number with its own code (own gate reconstruction
+  from source constants, own σ pipeline from Sharadar SEP + `orthogonalize_levels`, own staging JSON
+  parse) and nearly everything reproduced **to the digit**: the whole FCNTX specimen including
+  BRK.A's null-z kill at 96.59 bps, the null-z analysis, the unit triad, all 33 σ ratios, the
+  staleness picture, all of coverage, and the **4.4e-16 basis identity matched exactly** at
+  `sector::energy`. The negative control was confirmed genuinely falsifiable in BOTH directions
+  (4,564 dropping sustained, 1,270 dropping z).
+  **C1 — the R-table was computed at a top-6 cut while serving cuts at 8.** Dispatcher verified the
+  constant directly (`fact_assembler.py:140`, `TOP_POSITIONING = 8`). The report contradicted itself
+  internally — its D5 counts today's payload at 8,818 rows (`head(8)`) while its R0 row says 8,013
+  (`head(6)`). **R1 actually ships 20,968 rows, median 8/fund, median 84 bps — not 16,770 / 6 / 91**,
+  which the owner had already been told. The **+866 funds headline is cut-independent and reproduced
+  exactly**, so the recommendation stands; only the payload description was wrong.
+  **C2 — the flagship non-degenerate check did not trace to its stated source.** "median 0.26, 81 of
+  3,475 funds > 1.0 vs `te_current`" cannot be reconstructed: across all four `value_score.parquet`
+  vintages plus three sibling TE columns, non-null `te_current` covers at most 2,270 funds — fewer
+  than the claimed n. Independent recomputation: **2,217 funds, median 0.228, 23 (1.0%) > 1.0** — the
+  conclusion survives and is MORE conservative, but Segment 1's G4 gate bound is specified as
+  "derived from the measured distribution", so the distribution must be restated before that gate can
+  be written.
+  **C3 — the `_nothemes` question the dispatcher added is ANSWERED, and it defuses D-2.** The
+  exclusion is a documented 2026-06-25 production decision (themes add nothing to idio persistence
+  and are sector subsets), **but the same spec keeps themes live for theme-bet attribution and
+  retains a 57-factor themes-inclusive basis for research** (dispatcher-verified in the source doc).
+  So theme σ for TE ranking is a **new consumer of existing machinery, not a reopening of the
+  skill decision**. The owner still gets the citation.
+  **C4 — D8-3 is worse than filed and its count was wrong.** The mechanism is BOTH causes, now
+  adjudicated: SPYC's current-endpoint book is **1 row, IVV at 1.000, versus 503-504 resolved
+  constituents at prior/mid**. **8 of the 10 worst rows are `available` + `sustained`, held back only
+  by the null-z gate**, with **97 more spurious "exited AAPL/MSFT" rows in the same funds** — so
+  "R1 requires fixing D8-3 first" is verified and was understated.
+  **A THIRD decision surfaced that the worker had not raised (D-3): may a filing over a year old
+  headline a section promising "lately"?** — the 457 funds (9.0%) beyond 365 days. Bounced back to be
+  framed and measured, not decided.
+  Also corrected: three small count slips, an unstated including-zeros definition behind F5's gap
+  stats, and one wording overstatement ("those rows are not smaller" — 53 vs 61 bps is 12% smaller;
+  "comparable" is what the data supports, and the claim survives on that wording).
+  **Seven decisions are now parked across P5/P6/P7. Consolidated sheet going to the owner.**
