@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-18T07:45-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-18T07:51-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -148,6 +148,7 @@ either way.
 | P7-D1b | **Leave the serving cut at 8.** | Status quo. No evidence was offered for lowering it; a cut change would be a new rule with nothing behind it. |
 | P7-D1 | **Adopt R1 as the design target — but it MUST NOT ship until D8-3 is fixed.** | Today's rule is a live *misdescription*, not a preference: FCNTX serves BRK.B +1.0pp while hiding BRK.A −6.2pp. Fixing a defect is the line's job. The precondition is enforced, not advisory. |
 | P5 BRIEF-C | **Drop the `NO_FACTOR` hypothesis** (Segment 1; provisional on its checkpoint). | It is 12 events and it carries **the only path by which this rule could zero a real market crash**. Dropping it is the do-less direction: those 12 keep serving exactly what they serve today, and the rule's worst failure mode disappears. |
+| P7 D-4 | **Exclude `style` rows from Recent Changes** (option c; provisional on checkpoint). | It resolves THREE filed defects at once — D-4 (no valid `classification`), D8-6 (no as-of stamps), and the dispatcher's own finding that **35 funds serve 50 undated rows and every one is `style`**. Style rows are RETURNS-derived: no holdings basis, so they cannot honour the section's mandatory-stamp contract. Removing structurally incoherent rows is the honest-data direction, and the 35 funds affected are 0.6 pct. Reversible; blocks nothing either way. |
 | all four | **Segment 1 authorized as MEASUREMENT ONLY** — sample outputs to a distinct `data/_tmp/<slug>/` prefix, **zero canonical writes**, no Postgres, no serving. | Produces the numbers the held decisions need. Nothing reaches a user. |
 
 **HELD for the owner (mission-critical — these change served financial figures at scale):**
@@ -1961,3 +1962,46 @@ Sharadar SEP store.
   (2 reports + the new module, which nothing imports).
   **Line ruling: BRIEF-C TAKEN — drop `NO_FACTOR`** (provisional on the checkpoint). **DECISION 1, 1a
   and BRIEF-B remain the owner's**; Segment 2 is blocked on them and stays non-canonical when it runs.
+- 2026-08-18 07:51 — **U4 (L6) SEGMENT 1 COMPLETE, measurement only; checkpoint RUNNING. And its R15 forced the
+  dispatcher to audit ITS OWN verification method — which held.**
+  Report: `fund_score-wt-l6/reports/l6_recent_changes_te_ranked.md` §S1.0-S1.11. Three additive files,
+  four outputs under `data/_tmp/l6/`; the sample runner **refuses any `--out-dir` without `_tmp` in
+  its path**, which is the right way to make a constraint structural instead of remembered.
+  **Gates: 7 PASS, and 10 seeded defects ALL turned RED.** Both traps flagged at dispatch were caught
+  **two independent ways each**: the 100x unit error trips G1 (7,257/7,257 violations) *and* G4
+  (median ratio 23.7 against an IQR of [0.157, 0.355]); the raw-vs-residual sigma swap trips G2 at
+  exactly `sector::technology`, the 2.69x factor. G4's bound is read off the CORRECTED reference
+  table (n=2,217) — no invented number.
+  **Coverage 85.6 pct of sample rows / 93.6 pct of surfaced rows, and recoverable-missing = 0** — all
+  335 sigma-missing tickers adjudicated against raw SEP: 294 have zero SEP rows, 39 have <100 weeks
+  in-window, and **0 have a full in-window history**. That last bucket is the only one that would
+  indict the pipeline, and proving it empty is the right way to close a coverage claim.
+  **R14 is the catch of the segment, and it is the wrong-company class again.** Its own filed defect
+  D8-1 was wrong: `BK` the TICKER is absent from SEP, but BNY Mellon the SECURITY is present as
+  **`BNY`** — price-verified as the bank, not the same-ticker BlackRock muni trust. **And the obvious
+  fix is a trap**: `cusip_reference` maps **`BNY` -> BLACKROCK NEW YORK MUNICIPAL INCOME TRUST** while
+  still mapping `BK` -> BNY Mellon, so a resolver built on it **would have bound a bank's prices to a
+  muni fund**. cusip6 recovers 0/294. L6 serves an honest null and attempts no resolution — correct.
+  **R15 made the dispatcher audit its own session-long non-mutation proof, and the audit is worth
+  recording.** The worker claimed BSD `find -newermt` returned zero rows *including its own
+  just-written files*, i.e. vacuously green, and switched to a Python `st_mtime` walk with a
+  self-test. **The dispatcher tested `find -newermt` directly with four timestamp formats, including
+  the exact seconds-precision form: all four correctly caught a just-written probe.** So the tool is
+  not broken here and **every non-mutation proof this session stands.** The likely real cause is that
+  the worker searched `data/{gold,product,...}` — which legitimately EXCLUDES its own writes under
+  `data/_tmp/l6/` — making that zero *correct* rather than vacuous. The self-test discipline should
+  stand regardless; the recorded root cause is with the checkpoint to adjudicate, because a false one
+  would send someone "fixing" `find` across the repo for no reason.
+  **New stop-and-brief D-4:** the serving contract enum (`profile-v2.ts:222`) is closed and
+  **five-valued** while the panel has **six** change_types — **`style` has no valid classification**
+  (14 rows in-sample, 164 universe-wide). The worker emitted NULL and made G3 **fail-closed** so the
+  unmapped set cannot grow silently. It also framed D-4 and D8-6 as one question, which is right.
+  **Line ruling: D-4 TAKEN, option (c) — exclude `style` rows** (provisional on the checkpoint). It
+  closes D-4, D8-6 and the dispatcher's undated-rows finding together: style rows are returns-derived,
+  have no holdings basis, therefore cannot carry the mandatory as-of stamps, and are exactly the 50
+  undated rows the 35 affected funds serve today. Serving structurally incoherent rows is worse than
+  serving none. Reversible, and it blocks nothing either way.
+  Segment 2 is scoped and pinned to `--eval-date 2026-04-30` (frontier re-detection shifts every
+  downstream join and is explicitly left as an owner call), with a pre-state snapshot, a per-fund
+  regression diff over all 142,216 rows asserting zero change to pre-existing columns, and
+  rebuild-twice determinism. **R1 stays unshipped; D8-3 remains a Segment-3 precondition.**
