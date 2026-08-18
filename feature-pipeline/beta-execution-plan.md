@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-17T22:12-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-17T22:23-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -383,6 +383,60 @@ case, so the dividend-backfill remedy does not apply to it.
 **Ratchet:** 563 today, of which 162 are attributable to this defect; a complete fix lands ≈401.
 **Open:** the "55" cohort boundary is explained as an entity-vs-event confusion (33 tickers / 55
 steps) but that explanation is plausible, not established.
+
+### P6 — L14 domicile routing: TWO decisions, not one rule (filed 2026-08-17; **U3 is `parked:owner`**; reviewer-verified PASS-WITH-CORRECTIONS)
+**The second fence on the serving reload, and therefore on S3.** Evidence:
+`fund_score-wt-l14/reports/l14_domicile_routing.md`. The checkpoint re-derived every load-bearing
+number from the raw lakehouse **using none of the worker's own scripts**; five corrections were
+returned, none of which flips the direction or materially the size of any decision.
+
+**Plain English.** For US-listed companies incorporated abroad — Carnival, Ichor, Scorpio Tankers —
+**the sector we serve depends on which country the fund's lawyer typed on the filing line.** That is
+one root cause with two separable consequences, and the item's own spec was wrong to say one rule
+closes both (**retracted, and the retraction verified**).
+
+**DECISION A — the FILL.** ~**\$6.06B across ~745 funds** carries an honest blank where Sharadar
+demonstrably knows the sector. The blank exists because one expression
+(`_fill_sector_from_fmp`) throws away a CUSIP-derived sector for any non-US ISIN **even while it
+keeps that same row's ticker, name and industry**. So this is **not a novel rule — it is widening an
+exemption we already grant to `US`-prefix ISINs on the identical "the ISIN contains the CUSIP"
+argument** (verified in code). Recommended option **B+G1**: require the ISIN to literally embed the
+identifier AND the filed name to still corroborate — **1,290 rows / \$6.013B / 733 funds**, holdout
+identity **99.16%**, sector **96.64%**.
+**Two honest caveats that must not be buried.** (1) That 99.16% is measured on a **proxy
+population** — ISINs that already have FMP sectors, i.e. exactly where the production rule never
+fires; it licenses the *mechanism*, not the rate on the 73 ISINs the fill actually acts on, which
+were hand-checked at small n. (2) The name map it leans on is **frozen at 2026-02-25**, which
+deflates measured recall and conditions the precision, so production must harvest names fresh.
+Also: the "0 positive controls admitted" result is **vacuous by construction** (all 14 controls have
+zero NULL rows) — the case rests on the **probe**, which is sound: removing the guard flips
+**1,260 rows / \$3.3162B** (Navigator Industrials→Energy, Cango Technology→Consumer Cyclical).
+Rejected alternative **A (trust the filed cusip)** reaches slightly more but opens the same trust
+surface as the live Patrizia→Celator wrong-company bind.
+
+**DECISION B — the PRECEDENCE.** For **14 securities** both vendors know the company and simply
+**classify it differently** — verified per-ISIN as a **pure taxonomy disagreement with no identity
+defect**. The largest cluster is **\$1.86B of tankers** (Scorpio + Teekay + DHT): GICS-style schemes
+file oil/product tanker owners under Energy, ICB-style under Industrials. **Neither is an error**, so
+someone must simply pick. **P1 (US/Sharadar wins)** relabels 1,359 rows / **\$2.92B**; P2 (FMP wins)
+touches only 259 rows / \$941M **but re-breaks the LION fix segment 1c shipped**; P3 (honest null)
+withdraws sector from 1,618 rows / \$3.86B across 514 funds. **Recommend P1** — consistent with every
+prior L1 adjudication.
+
+**Why it fences the reload — corrected, and it cuts both ways.** The plan previously said this was
+"served-on-next-reload". Querying the live DB directly: **8 securities ALREADY serve two sectors**
+(1,462 rows / 914 funds), including SharkNinja, Shift4 and Genie Energy. But decomposed, **every
+majority side is correct and the wrong side is only 26 rows / 26 funds / \$37.0M** — not the
+"\$8.2B" the queue row quotes, which is gross value across both sides. The real fence argument is
+that **the reload would swap today's small live footprint for the current build's larger S7-4a one
+(1,290 rows / 514 funds) unless precedence is settled first.**
+**Scope retraction:** symptom (e), the \$3.51B name-bridge recall, is **not reachable by domicile
+routing** — removed from L14. **S7-4b (6 securities) stays a separate item**; routing cannot fix it.
+**Corrected before this brief:** the staging fill headline is **963 rows / 592 funds / \$5,752.4M**
+on one stated definition (the worker's "632 funds / \$5,781.6M" triple was assembled from different
+computations and reproduces under none); the "21 quarter-to-quarter sector flips" are **not
+time-series flips at all** but same-quarter dual-domicile double-filings serving two sectors at once
+— which strengthens the precedence case; and the fill buys ~164–169 regressed fund-quarters, not 202.
 
 ## Run log
 <!-- newest entries appended at the end of this section -->
@@ -1520,3 +1574,35 @@ steps) but that explanation is plausible, not established.
   Lakehouse re-verified untouched: nothing under `data/` newer than 21:00, NAV still inode 77680801
   at 827,741,516 bytes. **U2 stays `parked:owner` on DECISION 1 + 1a. U4 (L6) dispatched and
   running; U3's checkpoint still running.**
+- 2026-08-17 22:23 — **U3 (L14) checkpoint: PASS-WITH-CORRECTIONS; filed as P6. Both reload fences
+  are now parked on the owner.** The reviewer re-derived every load-bearing number from raw
+  artifacts **using none of the worker's scripts** — decision framework, both retractions, root
+  cause, dev/holdout table, probe and all three precedence counts reproduced, most to the exact row
+  and dollar (P1 1,359/\$2,915.5M; P2 259/\$941.0M; P3 1,618/\$3,856.6M; staging S7-4a
+  1,290/514/\$3,795.5M; the 481 regressed fund-quarters exactly, with the report-vs-spec one-off
+  explained as a weight-vs-pct_nav basis choice). Five corrections went back to the worker.
+  **The one that matters most inverted a mechanism, in the item's favour:** the "21 within-fund
+  quarter-to-quarter sector flips" are **not time-series flips — 0 of 21 flip between quarters**.
+  All 21 are the same security filed TWICE IN ONE QUARTER under two domiciles, serving two sectors
+  simultaneously (the worker's own DHT example was wrong: both rows are `2026-03-31`). That makes it
+  a same-as-of within-fund contradiction, which argues harder for settling precedence, and the
+  Segment-4 gate was renamed from "time-series flips → 0" to "dual sectors per (series, ISIN,
+  quarter) → 1".
+  **Also caught: an owner-facing headline that reproduced under no definition** — "963 rows / 632
+  funds / \$5,781.6M" was assembled from different scratch computations; ~12 natural definitions
+  were tested and none yields all three coordinates jointly. Magnitude survives (~950–1,050 rows,
+  ~\$5.7–5.9B), so the conclusion stands, but the brief now quotes **963 / 592 / \$5,752.4M** on
+  one stated definition. This is the second time this session a worker's own arithmetic was the
+  weakest link in an otherwise sound report — the checkpoint is earning its cost.
+  **And the reviewer's own closing paragraph needed correcting against the dispatcher's live-DB
+  measurement**: it repeated "nothing is live in Postgres yet". L1's *fixes* are not loaded, true —
+  but *contradictions* are already served (8 securities, wrong side \$37.0M / 26 funds). The
+  reconciliation went back to the worker.
+  Two further reviewer findings carried into Segment 1: the "0 positive controls admitted" result is
+  **vacuous by construction** (all 14 controls have zero NULL rows) so the case rests on the probe,
+  which is sound; and **W1, a real implementation trap** — "stop discarding a CUSIP-derived layer
+  sector" must be keyed on the EMBEDDED-NSIN check plus name corroboration, because for CINS ISINs
+  the filed cusip differs from `isin[2:11]` (Cimpress: filed `G2143T103` vs embedded `00BKYC3F7`) and
+  a loose reading would smuggle in Option A — filer trust, the Patrizia→Celator surface — by accident.
+  Lakehouse unmutated: **zero files under `data/` modified since 2026-08-10.**
+  **U4 (L6) still running — the only item on the S3 path that needs no owner ruling.**
