@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-17T22:58-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-17T23:07-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -485,9 +485,27 @@ the 10 worst rows are already `available` + `sustained`, held back today ONLY by
 and **97 further spurious "exited AAPL/MSFT/..." rows ride in the same funds.** So approving R1
 without fixing this first would surface a fund as having "entered IVV at 99pp" and exited Apple.
 
-**DECISION D-3 (raised by the checkpoint, not by the worker): may a filing more than a year old
-headline a section that promises "lately"?** Bears on the **457 funds (9.0%)** whose current endpoint
-is older than 365 days. Not measured as options yet; the worker has been asked to frame it.
+**~~DECISION D-3~~ — WITHDRAWN 2026-08-17. It is not a decision; it is a defect already filed, and
+the dispatcher measured this independently on the served payload rather than accept either the
+worker's or the reviewer's framing.** The question raised was "may a filing more than a year old
+headline a section promising *lately*?", pointed at the **457 panel funds (9.0%) beyond 365 days**
+(a panel figure the reviewer independently reproduced — that part is sound). But the panel is not
+what ships. Measured on `serving_facts_staging.parquet`, ages relative to 2026-08-17:
+**of 2,411 funds serving a section, 2,376 are DATED — median 139d, p90 170d, MAX 199d, 15 over 180d,
+and ZERO over 365 days.** The remaining **35 funds serve 50 rows carrying NO
+`holdings_as_of_current` at all — and every one of those 50 rows is `change_type: 'style'`.** The
+four funds the worker named as the stale served cohort (EAPDX, ACTV, COHOX, VVPSX) are in that
+undated set, not in a stale-but-dated one.
+So D-3 collapses into **D8-6, which the worker had already filed**: style rows are returns-derived,
+have no holdings basis, and are served into a section whose contract makes both as-of stamps
+mandatory. **Nothing served today is a year-old filing headlining "lately" — the honest defect is 35
+funds showing undated rows.** Fix, do not adjudicate. One residual for Segment 1, not for the owner:
+R1 widens the served set, so re-measure whether it admits panel-stale funds carrying *holdings*-dated
+rows.
+
+**DECISION D-1b (kept separate, correctly, by the worker): leave the serving cut at 8 or lower it to
+6?** R1@8 = 20,968 rows / median 8 / 84 bps; R1@6 = 16,770 / 6 / 90 bps. A real rule change, so it is
+owned explicitly rather than folded into D-1.
 
 **DECISION D-2 (blocks the build): where theme volatility comes from.** The shared Σ is
 `global_basis_v0.2_nothemes` — **sector 11/11 have a σ, theme 0/28.** Either compute theme σ through
@@ -1818,3 +1836,26 @@ Sharadar SEP store.
   (fund side renormalized-priced-book, twin side un-renormalized so its unresolved sleeve shows as
   missing weight) — the same commensurability class L6 nearly shipped a ranking on — and the totals
   row must never read as "what the fund did" when it is "what the priced book did".
+- 2026-08-17 23:07 — **U4 (L6) corrections applied; D-3 WITHDRAWN after the dispatcher measured it
+  independently. Decision count drops from nine to eight, and a defect takes its place.**
+  The worker applied all seven corrections and root-caused C2 honestly rather than just restating it:
+  the unreproducible scale-bound figures came from **its own first, RETRACTED raw-σ script** leaking
+  into the final report — wrong basis, position rows excluded, and the >1.0 count divided by 3,475
+  inner-join rows instead of the 2,210 with a non-null `te_current`. Rebuilt with the join spelled
+  out, it now matches the reviewer's independent recomputation exactly (n=2,217, median 0.228, 23
+  funds / 1.0% > 1.0), and **Segment 1's G4 gate bound now points at this table instead of the
+  retracted one**. It also removed the "higher-quality list, not a noisier one" framing that the
+  cut-6 arithmetic had flattered — at the real cut R1 still has the higher median TE (84 vs 72) but
+  the list is **~2.4x longer**, which the owner should see — and it did **not** fold a cut change into
+  D-1, raising **D-1b** as a separately-owned ask instead. That is the right instinct.
+  **D-3, however, does not survive contact with the served data.** The worker narrowed it to "4 funds
+  serve a section today"; the dispatcher measured the served staging payload directly rather than
+  accept a convenient narrowing. Result: **of 2,411 served sections, 2,376 are DATED with median
+  139d, p90 170d, MAX 199d and ZERO beyond 365 days** — while **35 funds serve 50 rows with NO
+  `holdings_as_of_current` at all, every one of them `change_type: 'style'`**, and the four named
+  funds are in that undated set. The panel figure (457 funds > 365d) is real and the reviewer
+  reproduced it, but **the panel is not what ships.** So the question "may a year-old filing headline
+  *lately*?" has no live instance; the honest defect is **35 funds showing undated rows**, which is
+  exactly **D8-6, already filed**. Converted from an owner decision into a fix. Within-fund stamps
+  were also checked and are consistent (0 funds disagree across their own rows).
+  Lakehouse untouched — `find data/ -newermt "2026-08-17 12:00"` still returns nothing.
