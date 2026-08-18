@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-17T23:07-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-17T23:14-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -129,6 +129,40 @@ items all touch the price path, and L7's off-cycle re-solve must run ONCE, after
 fixes. Order: **capital-gain/basis-break → L2 → L3 → ratchet re-tighten to the new count → THEN
 L7's single re-solve.** Do not start L7 before that point. Note the head of this chain (capital-gain)
 is also reload fence #1, so it is on the S3 path too — the two orderings agree on what comes first.
+
+## ⇢ LINE RULINGS 2026-08-17 (owner: "for non-mission critical items just go with your recommendation for now")
+
+**Principle applied, stated so it can be audited or reversed:** the line took every decision that is
+**reversible and changes nothing a user sees**, and held every decision that **changes served
+financial figures at scale or ratifies a new permanent rule into serving**. Holding those costs no
+schedule, because all four backend items must build and gate Segment 1 before a reload is possible
+either way.
+
+**TAKEN by the line (provisional — reversible on the owner's word):**
+| id | ruling | why it is not mission-critical |
+|---|---|---|
+| P5-2 | Leave the 7 event-free terminal funds; file a dividend-coverage item. | Do-nothing + file. No served value changes. |
+| P5-3 | Scope acknowledged: regression surface is `value_score` + `l2_replica_quality` + the chart. | A fact, not a choice. |
+| P5-1 (floor) | **Drop the `y >= 0.10` scan floor to 0 and re-measure.** | A measurement choice, and the option that keeps "no new tunable" honestly true rather than adopting an undisclosed constant. |
+| P7-D2 | **Theme σ via the shared `orthogonalize_levels` call.** | No new constant; reproduces the shared basis to 4.4e-16; a NEW consumer that leaves the idio-skill headline untouched, and the same spec already keeps themes live for theme-bet attribution. |
+| P7-D1b | **Leave the serving cut at 8.** | Status quo. No evidence was offered for lowering it; a cut change would be a new rule with nothing behind it. |
+| P7-D1 | **Adopt R1 as the design target — but it MUST NOT ship until D8-3 is fixed.** | Today's rule is a live *misdescription*, not a preference: FCNTX serves BRK.B +1.0pp while hiding BRK.A −6.2pp. Fixing a defect is the line's job. The precondition is enforced, not advisory. |
+| all four | **Segment 1 authorized as MEASUREMENT ONLY** — sample outputs to a distinct `data/_tmp/<slug>/` prefix, **zero canonical writes**, no Postgres, no serving. | Produces the numbers the held decisions need. Nothing reaches a user. |
+
+**HELD for the owner (mission-critical — these change served financial figures at scale):**
+| id | decision | line recommendation, for when you get to it |
+|---|---|---|
+| **P5-1** | Ratify the new evidence-based trigger class into serving. | Yes — with the floor dropped to 0 and re-measured first. |
+| **P5-1a** | Repair vs excise. | None yet by design; Segment 1 measures the flat-vs-superimposed split. |
+| **P6-A** | Ratify the sector fill (~$6.06B / ~745 funds) into serving. | B+G1, after the fresh harvest replaces the proxy-population measurement. |
+| **P6-B** | The precedence winner ($2.92B of served labels either way). | P1. No correctness answer exists — it is a vendor tie-break — but it is a large relabelling and the owner should own it. |
+
+**Fence reading for concurrent Segment 1s (dispatcher's call, stated explicitly):** F2 forbids more than
+one lakehouse-**writing** session. Sample builds writing ONLY to disjoint `data/_tmp/<slug>/` prefixes
+mutate no canonical artifact, so the fence's purpose is preserved. Each worker is required to write
+nowhere under `data/{gold,product,silver,bronze,reference}` and to prove canonical mtimes unchanged at
+the end. If any worker cannot honour that, it stops instead.
+
 
 ## The queue (rank order; work top-down; skip BLOCKED, take the next READY)
 
