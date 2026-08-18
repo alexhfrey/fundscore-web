@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-18T07:51-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-18T08:02-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -149,6 +149,8 @@ either way.
 | P7-D1 | **Adopt R1 as the design target — but it MUST NOT ship until D8-3 is fixed.** | Today's rule is a live *misdescription*, not a preference: FCNTX serves BRK.B +1.0pp while hiding BRK.A −6.2pp. Fixing a defect is the line's job. The precondition is enforced, not advisory. |
 | P5 BRIEF-C | **Drop the `NO_FACTOR` hypothesis** (Segment 1; provisional on its checkpoint). | It is 12 events and it carries **the only path by which this rule could zero a real market crash**. Dropping it is the do-less direction: those 12 keep serving exactly what they serve today, and the rule's worst failure mode disappears. |
 | P7 D-4 | **Exclude `style` rows from Recent Changes** (option c; provisional on checkpoint). | It resolves THREE filed defects at once — D-4 (no valid `classification`), D8-6 (no as-of stamps), and the dispatcher's own finding that **35 funds serve 50 undated rows and every one is `style`**. Style rows are RETURNS-derived: no holdings basis, so they cannot honour the section's mandatory-stamp contract. Removing structurally incoherent rows is the honest-data direction, and the 35 funds affected are 0.6 pct. Reversible; blocks nothing either way. |
+| S2-b (partial) | **The gate basis and the displayed basis MUST be the same number.** The owner still picks worst-sub-period vs mean; the line rules out serving one while gating the other. | Not a preference — a coherence requirement. Two different "priced coverage" figures on one page is a self-contradiction, which is the defect class this project treats as worse than a gap. |
+| L9 recoverable | **Fix the +30-fund extraction defect** (the pricing path never calls `fmp_isin_us_ticker_bridge`, which already resolves Linde, CNH, Fabrinet, Garmin). | Doctrine: a recoverable miss is a DEFECT, not "partial coverage". No new rule — the resolver exists and is simply not called. |
 | all four | **Segment 1 authorized as MEASUREMENT ONLY** — sample outputs to a distinct `data/_tmp/<slug>/` prefix, **zero canonical writes**, no Postgres, no serving. | Produces the numbers the held decisions need. Nothing reaches a user. |
 
 **HELD for the owner (mission-critical — these change served financial figures at scale):**
@@ -574,6 +576,54 @@ is 164 returns-derived `style` rows with no holdings basis (filed as a contract 
 **Coverage:** 41.4% of served funds (2,411) get a section today; **94.2% of surfaced rows get a TE
 estimate**; recoverable-missing **0.24%** — one ticker, `BK` (BNY Mellon), absent from the entire
 Sharadar SEP store.
+
+### S2 — Receipts display-floor sign-off (**OWNER STOP, now FIRED**; filed 2026-08-18; checkpoint RUNNING — do not act on these numbers until it returns)
+Evidence: `fund_score-wt-l9/reports/l9_per_stock_receipts.md`. **It is four decisions, not one.**
+
+**The headline you did not ask for but need.** Lowering the floor does **not** open receipts to
+international funds. Served share by *measured* foreign share of the filed book: **under 5 pct
+foreign -> 47 pct served; 60 pct-or-more foreign (n = 1,013) -> ZERO at EVERY floor**, median priced
+coverage 3.6-20 pct. By mandate, moving 0.80 -> 0.50 takes **INTL from 0 to 9 of 714** and **EM from
+0 to 1 of 336**, while GLOBAL goes 32 -> 259. **The 0.50 floor opens receipts to global /
+part-international US-majority books, not to international ones.** Only a future foreign-pricing path
+reaches the other 1,013. Any framing of "0.50 helps international funds" is wrong.
+
+**S2-a — the floor.** 0.80 -> 1,947 funds (36.1 pct) · 0.65 -> 2,148 (39.8 pct) · 0.50 -> 2,312
+(42.9 pct). **The mockup's hero fund decides itself here: TRNEX/PRNEX measures 0.593** — it clears
+0.50 and fails both 0.65 and 0.80.
+**The argument AGAINST 0.50, which is strong and is a data fact rather than taste:** on the
+historical book the receipts window must use, twin look-through for international ETFs is **IEFA
+0.35 pct, IEMG 1.97 pct, VEA 28.7 pct**. At 0.80 that barely bites (median 0.997; only 19 of 1,951
+below 0.50), but **the 0.50-0.80 band has median 0.705 with 40 of 365 below 0.50 and 33 below 0.30**
+(GSIB 0.19 pct). There, an un-renormalized twin yields **false 0.00 pct twin weights** and subtracts
+a COMPLETE twin NAV return against an ALMOST-EMPTY twin book. **Lowering the floor concentrates the
+defect it would need to survive.**
+
+**S2-b — worst sub-period or mean?** A **53-fund difference at 0.80**. Note this is not free-form:
+serving one basis while gating on the other would put **two different "priced coverage" numbers on
+one page**. *(Line ruling below removes the incoherent combinations; the owner still picks which.)*
+
+**S2-c — the twin basis** (how to handle the un-renormalized twin in the band). Three options, **all
+new rules**, so the worker stopped. Blocking for any floor below 0.80.
+
+**S2-d — ADR pricing.** Worth **+59 funds**, but only under a **new pricing-basis rule**. Separable
+and deferrable.
+
+**Exclusion is honest, and the recoverable part is small and mechanical.** For excluded cohorts
+**68-74 pct of the filed book has no US-listed instrument at all** (Roche, Bayer, BNP, Schneider,
+Reckitt, Kering). Recoverable without any new rule: **+30 funds** — `fmp_isin_us_ticker_bridge`
+already resolves US-primary listings (Linde, CNH, Fabrinet, Garmin) and **the pricing path simply
+never calls it**. That is a plain extraction defect, not a decision.
+
+**A pre-existing defect that resizes the spec's own denominator:** shipped spec-#10 **silently drops
+1,387 funds at 1Y (2,404 at 5Y)** — present in **neither the panel nor the suppressions**, so
+invisible to every coverage check. The spec's "4,002 in-universe" figure IS that hole; **the honest
+served share is 36.1 pct, not 48.5 pct.**
+
+**Three spec claims were stale and are corrected in the report** (twin book has no `security_name`
+to display; the window twin reads a different ETF book than the spec names; **L1 delivered
+classification, not priceability**, and the foreign-inclusive book is latest-quarter only so it
+cannot serve a 5-year window at all).
 
 ## Run log
 <!-- newest entries appended at the end of this section -->
@@ -2005,3 +2055,42 @@ Sharadar SEP store.
   downstream join and is explicitly left as an owner call), with a pre-state snapshot, a per-fund
   regression diff over all 142,216 rows asserting zero change to pre-existing columns, and
   rebuild-twice determinism. **R1 stays unshipped; D8-3 remains a Segment-3 precondition.**
+- 2026-08-18 08:02 — **U5 (L9) SEGMENT 0 COMPLETE — OWNER STOP S2 HAS FIRED and is filed above. Checkpoint
+  RUNNING. Zero writes under `data/`.**
+  **S2 is four decisions, not one** (floor · worst-sub-period-vs-mean · twin basis · ADR pricing),
+  and the worker refused all four rather than bundle them — correct.
+  **The finding that most changes the decision is the one the dispatch brief asked for: WHICH KINDS
+  of fund each floor excludes.** Lowering the floor does **not** open receipts to international
+  funds. Under 5 pct foreign: 47 pct served. **60 pct-or-more foreign (n = 1,013): ZERO at every
+  floor.** Moving 0.80 -> 0.50 takes INTL from **0 to 9 of 714** and EM from **0 to 1 of 336**, while
+  GLOBAL goes 32 -> 259. So 0.50 buys *global/part-international US-majority* books, not
+  international ones — and any framing of "0.50 helps international funds" is simply wrong.
+  **And the floor decides the mockup's own hero fund: TRNEX/PRNEX measures 0.593**, clearing 0.50 and
+  failing 0.65 and 0.80.
+  **A strong data-based argument AGAINST 0.50 that nobody had:** on the historical book the receipts
+  window must use, twin look-through for international ETFs is IEFA 0.35 pct, IEMG 1.97 pct, VEA
+  28.7 pct. At 0.80 that barely bites (median 0.997, 19/1,951 below 0.50); **in the 0.50-0.80 band the
+  median is 0.705 with 40/365 below 0.50 and 33 below 0.30**, where an un-renormalized twin produces
+  **false 0.00 pct twin weights** and subtracts a complete twin NAV return against an almost-empty
+  twin book. **Lowering the floor concentrates the very defect it would then have to survive.**
+  **Method validated non-degenerately, after failing twice:** the floor model reproduces the shipped
+  panel at **FP = 0, FN = 0 across all three periods** and cross-checks to raw N-PORT at median
+  absolute error **0.00000**. The worker also **discarded its own first cohort derivation** on
+  discovering a fixed-calendar cut sampled only June-fiscal filers (2,385 of 5,395) and re-derived at
+  the pipeline's own nearest-snapshot rule.
+  **A pre-existing silent-drop defect that resizes the spec's own denominator:** shipped spec-#10
+  drops **1,387 funds at 1Y (2,404 at 5Y)** into **neither the panel nor the suppressions** — funds
+  invisible to every coverage check. The spec's "4,002 in-universe" IS that hole; **honest served
+  share is 36.1 pct, not 48.5 pct.** A fund that is neither served nor suppressed is the worst shape
+  a coverage gap can take, because nothing can see it.
+  **Three spec claims were stale and are corrected**, the sharpest being that **L1 delivered
+  classification, not priceability** — it never touched `holdings_snapshots.parquet` and shipped no
+  ADR crosswalk, and the foreign-inclusive book is latest-quarter only, so it cannot serve a 5-year
+  window at all. Three retractions in writing, including its own BK->BNY "smoking gun" (+3 funds,
+  immaterial) — and notably a sibling agent independently found the deeper trap in that same
+  identifier, which the checkpoint is asked to confirm L9 did not repeat.
+  **Line rulings taken:** (i) **gate basis == displayed basis** — the owner still picks which, but
+  serving one while gating the other is a self-contradiction, not an option; (ii) **fix the +30-fund
+  extraction defect** — `fmp_isin_us_ticker_bridge` already resolves those listings and the pricing
+  path simply never calls it, which is a defect by doctrine, not a coverage choice.
+  **S2-a, S2-c and S2-d remain the owner's**, and S2-c blocks any floor below 0.80.
