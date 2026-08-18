@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-18T13:05-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-18T15:32-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -2336,3 +2336,51 @@ them.
   independent of the web now defending itself.
   **§ KNOWN-WRONG DATA ON THE PAGE added above** — 10 numbered items with sizes, to be handed to the
   F5 critic panel up front so it does not spend findings rediscovering known defects.
+- 2026-08-18 15:32 — **F2 SHIPPED (`f69b6d5`) and L6 SEGMENTS 0-2 COMMITTED (`29c3d22` on
+  `feat/l6-recent-changes-te-ranked`). Canonical writes this session remain ZERO outside the one
+  authorised reload.**
+  **F2 — movement 03 is live on the page the owner is reviewing.** Render-only. The honesty contract
+  is enforced **structurally, not by convention**: `buildNeighbourhood` returns null unless the
+  payload carries BOTH `hypothetical === true` AND `mix_as_of`, so **an unlabelled backcast cannot
+  physically reach the page**. Chip reads `HYPOTHETICAL · MIX-AS-OF 30 JUN 2026`; the card leads with
+  "The gold line is a backcast, not a track record." BND is labelled from the served label with the
+  caption spelling out US investment-grade — **zero user-facing "global bonds" anywhere in `src/`**,
+  and the mockup's own label was wrong and deliberately not reproduced. Null payload renders
+  **nothing** (verified on VOO): no section, no nav entry, no placeholder — omission chosen over a
+  vague notice because the payload carries no reason code. Verified across PRNEX / FCNTX / MCHFX
+  (ongoing 65-month drawdown) / TAN (singular-drawdown copy path) / VOO, and the tier matrix walked
+  at anonymous / free / paid.
+  **Two dispatcher errors corrected in the same commit.** The methodology registry the dispatcher
+  wrote in U1 said coverage was **3,079 / 52.9 pct**; the served table says **3,094 / 53.2 pct**
+  (83.9 pct of the 3,689 with a twin). And it claimed the skipped-day count is "**visible**" — it is
+  **not emitted at all** (0 of 3,094 rows), so the page cannot disclose it per fund. Both fixed.
+  Also corrected to the owner: **TRNEX does not exist in `fund_profile_facts`** — it had been offered
+  as a fund to look at.
+  **L6 Segment 2 is the most rigorous unit of the run, and its value is in what it refused to round.**
+  Diffed against canonical over all 142,216 rows: **every DECISION column is bit-identical**
+  (`is_surfaced`, `surfaced_rank`, `persistence_state`, both as-of stamps), but **104,320 float cells
+  differ at <=4.3e-14 and the worker declined to call that "zero"**. Determinism: two builds are not
+  byte-identical **and it is NOT row order** — sorting on the key still differs. **Attribution
+  exonerated its own change**: a `--no-te-impact` rebuild, with none of the new code invoked, already
+  produces 85,725 cell-diffs, so the root cause is **pre-existing non-associative float reduction in
+  `cross_sectional_z`**. Then the question that actually matters was MEASURED rather than argued:
+  `is_surfaced` gates at `|change_z| >= 1.0`, the **minimum margin across 118,165 rows is 7.489e-06**
+  — eight orders of magnitude clear of the drift — so **0 rows can flip**. Headroom is not a
+  guarantee, so it is filed as **D8-7** rather than dismissed.
+  Gates: 21 base + 6 TE PASS, **10 seeded defects all RED**; the 100x trap fires two independent
+  gates and the sigma swap fires a third at exactly `sector::technology`. **G4 was wired to read
+  `value_score` rather than left skipped — "a skipped gate is not a gate"** — and its own limitation
+  is stated honestly: it is a regression check, not independent validation. Coverage 86.8 pct of rows
+  / 94.2 pct of surfaced, **recoverable-missing = 0** proven by adjudicating all 2,233 sigma-missing
+  tickers against raw SEP with the only indicting bucket empty. The reviewer's probe finding is now
+  written into the module next to G5: **delete a whole factor from the sigma table and every gate
+  stays green** — the gates prove arithmetic, not completeness.
+  **R15's root cause is now settled and matches the dispatcher's own measurement:** `data` is a
+  symlink and BSD `find` will not descend it, so `find data/...` returns 0 **vacuously**. The
+  non-mutation proof now uses `os.walk(followlinks=True)` plus **a canary file written seconds before
+  the walk** — a self-test that must see the prover's own writes.
+  **Codex gate remains UNRUNNABLE (vendor quota until 2026-08-19 22:52). Three commits now carry an
+  explicitly disclosed `SKIP_CODEX_GATE=1` with the gate recorded as OWED: `c0c13bd`, `f69b6d5`,
+  `29c3d22`.** None overrode a finding; there is no finding, only an unavailable reviewer.
+  **L6 Segment 3 is blocked on owner rulings D-4 and D-1/D8-3, and it writes `serving_facts_staging`
+  — a canonical path needing its own explicit authorisation.**
