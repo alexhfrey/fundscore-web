@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-18T12:49-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-18T12:50-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -607,6 +607,25 @@ coverage 3.6-20 pct. By mandate, moving 0.80 -> 0.50 takes **INTL from 0 to 9 of
 part-international US-majority books, not to international ones.** Only a future foreign-pricing path
 reaches the other 1,013. Any framing of "0.50 helps international funds" is wrong.
 
+**CHECKPOINT VERDICT 2026-08-18: PASS-WITH-CORRECTIONS, NO BLOCKING ISSUES — S2 is ready to sign
+once three numbers are fixed (below).** The gate model was reproduced by a **second, fully
+independent implementation** that also matched the shipped panel at **FP=0 / FN=0 across all three
+periods**, and which produced wildly different counts under probe variants — so the validation is
+non-degenerate. The asymmetry finding, the honest-exclusion verdict, the commensurability defect, all
+three stale-spec claims and the #10 silent-drop defect (**1,387 / 2,013 / 2,404 — exact**) all
+reproduce.
+**Corrections that do not change the decision content:** (i) S2-b's absolutes, below; (ii) **GSIB and
+MIOFX are not band funds** — they fail a different gate and are suppressed even at 0.50, so the
+worked example must be ARTYX/BRAZ/DWLD or TPMN/JHAAX (the band point itself stands: **36 of 361 below
+0.50, 29 below 0.30**); (iii) **"no US-listed instrument at any price" is too strong** for part of the
+excluded class — several have OTC ADRs the pipeline's price source simply cannot price, so the true
+claim is "unpriceable **by our price source** until EODHD/OTC".
+**One caveat worth reading before signing:** the "measured foreign share" cut is the **non-US-ticker**
+share, which is **partially tautological with coverage**. On an **issuer-country** basis the >=60 pct
+cohort is **1,313 funds and 18 DO clear 0.50**. The headline conclusion survives because it rests on
+the **mandate cross-tab, which is basis-free** (INTL 714, EM 336, GLOBAL 32->259 exact) — but the
+"zero at every floor" edge is slightly softer than first written.
+
 **S2-a — the floor.** 0.80 -> 1,947 funds (36.1 pct) · 0.65 -> 2,148 (39.8 pct) · 0.50 -> 2,312
 (42.9 pct). **The mockup's hero fund decides itself here: TRNEX/PRNEX measures 0.593** — it clears
 0.50 and fails both 0.65 and 0.80.
@@ -618,7 +637,10 @@ below 0.50), but **the 0.50-0.80 band has median 0.705 with 40 of 365 below 0.50
 a COMPLETE twin NAV return against an ALMOST-EMPTY twin book. **Lowering the floor concentrates the
 defect it would need to survive.**
 
-**S2-b — worst sub-period or mean?** A **53-fund difference at 0.80**. Note this is not free-form:
+**S2-b — worst sub-period or mean? CORRECTED 2026-08-18 after checkpoint.** The brief's original
+"53-fund difference" rested on absolutes that reproduced under **none of 10 tried definitions** (and
+contradicted the report's own gate figure). Correct pair: **min 1,947 vs mean ~2,003 = +~56 funds at
+0.80, widening to ~+210 at 0.90.** The qualitative point is **confirmed and was understated**. Note this is not free-form:
 serving one basis while gating on the other would put **two different "priced coverage" numbers on
 one page**. *(Line ruling below removes the incoherent combinations; the owner still picks which.)*
 
@@ -2228,3 +2250,32 @@ cannot serve a 5-year window at all).
   Non-mutation re-verified: NAV inode 77680801, 827,741,516 bytes, **link count still 2**; zero files
   under `data/{gold,product,silver,bronze,reference}`; still exactly 7 files in `data/_tmp/capgain/` —
   the correction round wrote no new data.
+- 2026-08-18 12:50 — **U5 (L9) checkpoint: PASS-WITH-CORRECTIONS, NO BLOCKING ISSUES. S2 is the one item on
+  this run that is fully verified and ready for signature.** The gate model was rebuilt from scratch
+  by the reviewer — its own universe, coverage formula, degeneracy gate and twin-NAV requirement, not
+  importing the builder — and **reproduced the shipped panel at FP=0/FN=0 on first evaluation across
+  all three periods**, while probe variants gave wildly different counts (3,147 without the twin
+  requirement). Two independent implementations agreeing to within +/-4 funds on every counterfactual
+  is the strongest validation any item has produced this run.
+  Verified exactly and needing no change: **TRNEX/PRNEX 0.593** (clears 0.50, fails 0.65/0.80); the
+  mandate cross-tab (GLOBAL 32->259 exact, EM 0->1, INTL 714 / EM 336); **all 7 atomic N-PORT filed
+  lines against raw `data/nport/holding/`** with FCNTX Sigma-EC = 96.277 exact; the historical twin
+  look-through (IEFA **0.35 pct / 5 names**, IEMG 1.97 pct / 31, VEA 28.7 pct / 414); **the pricing
+  path never calls the bridge** (consumers enumerated); and the **#10 silent-drop defect reproduced
+  exactly** at 1,387 / 2,013 / 2,404, with the report's line citations corrected (506 not 508, 699
+  not 719).
+  **Three corrections to the brief already with the owner, none changing decision content:** S2-b's
+  "53-fund difference" rested on absolutes reproducible under **none of 10 definitions** and
+  contradicting the report's own gate figure — correct pair **1,947 vs ~2,003 (+~56 at 0.80, ~+210 at
+  0.90)**, so the point was **understated, not overstated**; **GSIB/MIOFX are not band funds** (they
+  fail passive-side degeneracy and are suppressed even at 0.50) so the worked example must change,
+  though the band finding itself holds at 36/361 and 29 below 0.30; and **"no US-listed instrument at
+  any price" is too strong** — several excluded names have OTC ADRs our price source cannot price.
+  **One caveat that softens the headline slightly and the owner should see before signing:** the
+  "measured foreign share" cut is the **non-US-ticker** share, which is **partially tautological with
+  coverage** — on an issuer-country basis the >=60 pct cohort is 1,313 funds and **18 do clear 0.50**.
+  The conclusion survives because it rests on the **basis-free mandate cross-tab**, but "zero at every
+  floor" is a shade softer than first written.
+  Non-mutation confirmed a fourth independent way — the reviewer scanned the real lakehouse path
+  directly AND ran a symlink-following `find -L` **with a must-see self-test** (it saw
+  `gold/l2_replica_quality.parquet`, Aug 17 11:59): **0 canonical writes since 2026-08-17 12:00**.
