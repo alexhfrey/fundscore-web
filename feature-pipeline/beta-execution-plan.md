@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-17T21:02-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-17T21:38-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -1309,3 +1309,61 @@ unchanged pending your call; the F1 progress file's leak-check claim was correct
   model while implementers are pinned to opus. This session is Opus 5, so reviewer == implementer —
   the weaker margin the plan flags. It satisfies the rule but does not exceed it; Track L is where
   that would cost something, so this is surfaced rather than absorbed silently.
+- 2026-08-17 21:38 — **U2 Segment 0 LANDED and it OVERTURNS the owner's own discriminator; U2 →
+  `parked:owner`. U3 (L14) DISPATCHED in its place so both reload fences reach the owner together.**
+  Report: `fund_score-wt-capgain/reports/capital_gain_basis_breaks.md` (F1–F30, DECISION 1–3).
+  Lakehouse verified unmutated — NAV inode 77680801 identical to the v7 snapshot's, worktree carries
+  only the report.
+  **The root cause is INVERTED relative to the backlog item, and the dispatcher confirmed it
+  independently from raw vendor fields the `adj_close` pipeline never sees.** The item says
+  "`adj_close` records the drop but is never back-adjusted". The truth is the opposite: the vendor
+  carries the distribution adjustment IN ADVANCE and releases it on the ex-date while the price has
+  not moved, fabricating a **spike UP** equal to the distribution yield; the real drop then lands
+  the next day **unadjusted**. AQLGX 2025-12-01, from `data/vendors/tiingo/daily_pricing/`:
+  `close_price` flat at 18.10 while the factor snaps 0.684243 → 1.0 (= `P/(P+D)` → none),
+  `adj_ret` **+46.147%** ≡ `dividend/close` = 8.3526/18.10 to 6 dp; next day 18.10 → 9.75,
+  **−46.13%** straight through. **True two-day total return +0.014%; served −21.3%.**
+  **The evidence needed to detect this is thrown away one stage upstream of hygiene, and that is
+  the real defect**: the raw vendor files carry `ticker, date, close_price, adj_close, dividend,
+  split_factor`, and `build_fund_daily_adj_close.py` selects **only `ticker, date, adj_close`**
+  (its output schema is exactly those three). Dispatcher-verified by reading the builder, not the
+  report. This also supplies the NON-degenerate check the review needs: the two-day total return
+  reconstructed from `close_price` + `dividend` is a path the classifier never sees.
+  **The owner's discriminator ("a one-way step whose own matched benchmark did NOT move") is
+  reported FALSIFIED on three counts; the dispatcher independently confirmed one and a half.**
+  CONFIRMED: `clean_price_panel` is applied per-leg inside `benchmark_nav.py:110` under the explicit
+  contract "ONE shared price-hygiene rule, both legs, same parameters" — and an ETF leg has no "own
+  benchmark", so a benchmark-conditioned rule cannot be that one shared rule. **Recorded as weaker
+  than the report frames it:** the blend WEIGHTS (`passive_alt_blend.parquet`) do exist as an input,
+  so a fund-leg-only rule is not strictly impossible — the honest statement is that one-rule-both-
+  legs is lost, not that the data is unreachable. NOT yet independently confirmed, and left to the
+  reviewer: the "inert" claim (cohort 30 → 30 with the benchmark clause deleted, i.e. the work is
+  really being done by a new 25% magnitude bar — which would defeat the very reason the owner chose
+  this discriminator) and the **92% false-positive rate** (23/25 sampled of 211 firings, including
+  **PFFA 2020-03-12, which `price_hygiene`'s own docstring already names as a REAL crisis close**).
+  **Blast radius resized upward and it is no longer a tail-only defect:** 1,489 events / 1,237
+  tickers panel-wide, of which **922 events / 730 tickers are untouched by any existing rule**;
+  mid-series **132 served tickers / 149 events** (not BIAGX alone) which SUBSUMES open backlog
+  Item 1; and **52 scored `value_score` rows (25 HIGH), not 4** — `build_value_score.py` reads
+  `passive_alt_daily_nav.parquet` directly. The report also asserts **QMGAX is NOT in this cohort**
+  (ambiguous event; belongs to W3), which contradicts the owner's own list of four — flagged to the
+  reviewer as needing careful verification precisely because it contradicts an owner statement.
+  D1 cohort boundary: the L15 predicate reproduces the L15 table on all five rows on v6 and gives
+  31 on v7 (31st = GRTVX; v6→v7 delta is exactly MMTMX + QDVIX, the two the v7 anchor fix
+  de-fabricated). **The "55" was NOT closed** — reported as an entity-vs-event confusion (33
+  tickers / 55 steps over the final 22 observations) rather than a reproduced ticker count.
+  **Adversarial data-reviewer checkpoint RUNNING** with a priority instruction that the headline
+  `served_return == D/P` identity is **degenerate by construction if the vendor's dividend field is
+  itself derived from the adjustment factor** ([[verification-metric-must-be-non-degenerate]]) —
+  it must be corroborated from `close_price` + `dividend` instead.
+  **U3 (L14) dispatched in parallel — read-only EDA, so the F2 one-writer fence holds.** Rationale
+  recorded because it is a dispatch judgement: L14 *also* needs a NEW rule (segment-7 §7 states it
+  outright — "may a foreign-filed row inherit the Sharadar label its US-filed sibling carries?"),
+  and **the current refusal is what blocks cusip collisions**, so relaxing it trades coverage for
+  identity risk in a project whose doctrine is *a wrong sector is worse than an honest null*. Both
+  reload fences therefore end in an owner decision; running them concurrently gets both briefs onto
+  one owner sitting instead of two round trips. Its mandate is to frame — never decide — with
+  measured yield AND measured risk per option on a **dev/holdout split scored once**, using the 6
+  known wrong-company binds as positive controls a candidate rule must NOT admit. It was also told
+  to verify a refinement the plan's own one-line L14 summary lacks: the "20 ISINs / $8.2B" splits
+  into **S7-4a (14, this item)** and **S7-4b (6, a separate item domicile routing cannot fix)**.
