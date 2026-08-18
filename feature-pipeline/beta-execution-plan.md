@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-18T12:50-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-18T13:05-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -665,6 +665,24 @@ served share is 36.1 pct, not 48.5 pct.**
 to display; the window twin reads a different ETF book than the spec names; **L1 delivered
 classification, not priceability**, and the foreign-inclusive book is latest-quarter only so it
 cannot serve a 5-year window at all).
+
+## ⇢ KNOWN-WRONG DATA ON THE PAGE THE OWNER IS REVIEWING (as of the 2026-08-18 reload)
+**Read the S3 review in this light. Every item here is measured, filed, and being worked — none is a
+surprise.** Give this list to the F5 critic panel UP FRONT so it does not spend findings rediscovering
+them.
+
+| # | What is wrong | Size | Status |
+|---|---|---|---|
+| 1 | **Capital-gain / basis breaks** — a vendor adjustment artifact fabricates a one-day gain; some charts show a cliff that never happened, and some headline verdicts are computed off it. | **52 scored verdicts** (25 high-confidence), 151 served tickers | U2 parked on owner; remedy not yet choosable (only 8 pct of the class shows the assumed mechanism) |
+| 2 | **4 funds with large fabricated-looking steps and NO remedy path** — BRLIX, **CSIUX (+62.7 pct)**, JOPSX, SMGAX — adjudicated out of the capital-gain rule's scope. | 4 funds | filed as a bad-dividend-record item |
+| 3 | **Same-security sector contradictions** — 8 securities serve two different sectors; the minority side is wrong. Includes Genie Energy served under the GE-Aerospace identifier. | **26 rows / 26 funds / \$37.0M** | U3 parked on owner (fill + precedence) |
+| 4 | **Recent Changes hides the freshest and most distinctive trades** — the surfacing rule demands a move be both a crowd outlier and already half-finished. FCNTX serves "entered BRK.B +1.0pp" while hiding "BRK.A −6.2pp". | **1,092 funds (18.8 pct)** serve "none available" over 25,030 usable rows | U4; R1 adopted as design target, not yet shipped |
+| 5 | **35 funds serve undated rows** in Recent Changes (all `style` rows, no holdings basis). | 35 funds / 50 rows | line ruled: exclude style rows; not yet shipped |
+| 6 | **Receipts (movement 04) is not built** — the section is absent, not wrong. | — | U5; **S2 awaiting owner sign-off** |
+| 7 | **Return-attribution top-4 was arbitrary** — the component sliced raw array order. | 38 funds | **FIXED 2026-08-18** (`c0c13bd`) |
+| 8 | **Effective-positions + top-10 concentration are gated CLOSED** (wrong book upstream). | all funds | L10, deliberately withheld — absence is correct |
+| 9 | Holdings data is **~3.6 months old** (frontier 2026-04-30); 9 pct of funds older than a year. | universe | honest, disclosed on-page via as-of stamps |
+| 10 | Still-live BETA BLOCKERs not on the S3 path: **L2** wrong price series (WMSIX tracks a muni index), **L3** nondeterministic named ETFs, **L4** ~139 stale-fee scores, **L7** V-spike corruption (174 funds), **L8** taxonomy misroutes, **L12** twin-label, **L13** active-share. | see backlog | deprioritized by owner directive, not fixed |
 
 ## Run log
 <!-- newest entries appended at the end of this section -->
@@ -2279,3 +2297,42 @@ cannot serve a 5-year window at all).
   Non-mutation confirmed a fourth independent way — the reviewer scanned the real lakehouse path
   directly AND ran a symlink-following `find -L` **with a must-see self-test** (it saw
   `gold/l2_replica_quality.parquet`, Aug 17 11:59): **0 canonical writes since 2026-08-17 12:00**.
+- 2026-08-18 13:05 — **SERVING RELOAD EXECUTED (owner authorised the decouple: reload now, review in parallel,
+  fixes continue). Manifest id=56 active. The neighbourhood section is LIVE for the first time.**
+  Pre-flight per the runbook: fund_score main clean at `75980a3` with L5 + L15 emitters confirmed
+  ancestors, and — the check that catches the silent failure — **zero unmerged emitters across all
+  four worktrees**, so no section could be NULLed by loading from an incomplete branch
+  ([[serving-db-ahead-of-branches]]). Prior state frozen and fingerprinted for rollback.
+  Dry run first (`--staging-only`): 5,819 rows, clobber guard silent. **Two sections shrank and were
+  chased rather than waved through** — 14 funds lost `nav_series`, 2 lost the value badge. 13 of the
+  14 are the L15 quarantine; **AWEG and MGLYX have zero nav rows in gold and are `too_new`**, so
+  serving nothing is the correct honest null. Nothing collapsed, nothing fabricated.
+  Load committed in ONE transaction: **5,819 facts + 1,398,380 holdings + 2,104 attribution**.
+  Verified after: served == staging on all six sections (**neighbourhood 3,094, was 0**), and
+  `db:check-serving` **PASS** (41 columns, no anon/authenticated exposure).
+  **The §5.3 determinism proof FAILED, and chasing it found a real user-visible defect.** Two
+  assemblies of identical gold produced different bytes; a third produced a third hash. Per
+  [[rebuild-twice-proves-determinism]] the report diffed column by column instead of assuming row
+  order: **`return_attribution.rows` is emitted in a nondeterministic ARRAY ORDER for 38 of 5,819
+  funds** — ranks and values are **identical** across same-gold builds (0 funds differ on
+  `(row_id -> rank, contribution)`), so the backend defect is cosmetic.
+  **It was not cosmetic on the page.** `ReturnAttributionTiles` did `.slice(0, 4)` over the raw array
+  and never sorted, so **which four stocks displayed as top contributors and top detractors depended
+  on emit order**, as did the as-of dates via `scoped[0]`, as did the displayed PERIOD via
+  `ra.rows[0].period` for funds with no stock rows. The payload has carried `rank_within_dimension`
+  all along and **the component's own type did not declare it**. Fixed in `c0c13bd`.
+  **A dispatcher error worth recording, because it was caught by re-testing rather than by luck:** an
+  intermediate comparison concluded the fix did NOT stabilise the display — that comparison was
+  against the **8-day-old** staging built from pre-L15 gold, so the moved values were L15's, not
+  nondeterminism. Re-run correctly against a same-gold build, rank and value differences are **zero**.
+  The wrong conclusion was retracted before it reached the owner.
+  **Codex gate UNRUNNABLE — vendor account over quota until 2026-08-19 22:52.** The commit hook
+  correctly refused; committed with `SKIP_CODEX_GATE=1` **disclosed, not waived on merit** — there is
+  no finding, only an unavailable reviewer — with substituted evidence (rank semantics verified
+  against served data; old-vs-new selection logic replayed over two builds). **The gate is OWED on
+  `c0c13bd`.**
+  **Filed for the backend: `return_attribution` array-order nondeterminism** — same class as the
+  l2_blend_etfs dedup lesson; the emitter should sort before writing so the artifact is reproducible,
+  independent of the web now defending itself.
+  **§ KNOWN-WRONG DATA ON THE PAGE added above** — 10 numbered items with sizes, to be handed to the
+  F5 critic panel up front so it does not spend findings rediscovering known defects.
