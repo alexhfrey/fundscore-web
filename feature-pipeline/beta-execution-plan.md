@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-18T07:25-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-18T07:45-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -147,6 +147,7 @@ either way.
 | P7-D2 | **Theme σ via the shared `orthogonalize_levels` call.** | No new constant; reproduces the shared basis to 4.4e-16; a NEW consumer that leaves the idio-skill headline untouched, and the same spec already keeps themes live for theme-bet attribution. |
 | P7-D1b | **Leave the serving cut at 8.** | Status quo. No evidence was offered for lowering it; a cut change would be a new rule with nothing behind it. |
 | P7-D1 | **Adopt R1 as the design target — but it MUST NOT ship until D8-3 is fixed.** | Today's rule is a live *misdescription*, not a preference: FCNTX serves BRK.B +1.0pp while hiding BRK.A −6.2pp. Fixing a defect is the line's job. The precondition is enforced, not advisory. |
+| P5 BRIEF-C | **Drop the `NO_FACTOR` hypothesis** (Segment 1; provisional on its checkpoint). | It is 12 events and it carries **the only path by which this rule could zero a real market crash**. Dropping it is the do-less direction: those 12 keep serving exactly what they serve today, and the rule's worst failure mode disappears. |
 | all four | **Segment 1 authorized as MEASUREMENT ONLY** — sample outputs to a distinct `data/_tmp/<slug>/` prefix, **zero canonical writes**, no Postgres, no serving. | Produces the numbers the held decisions need. Nothing reaches a user. |
 
 **HELD for the owner (mission-critical — these change served financial figures at scale):**
@@ -1911,3 +1912,52 @@ Sharadar SEP store.
   to the web repo — filed as a harness note.)
   All three workers resumed via **SendMessage**, never relaunched, so their context survives
   ([[interruption-resilient-agent-runs]]).
+- 2026-08-18 07:45 — **U2 SEGMENT 1 COMPLETE — measurement only, the strongest work of the run. Checkpoint
+  RUNNING. Non-mutation independently re-verified by the dispatcher, not taken on report.**
+  Report: `fund_score-wt-capgain/reports/capital_gain_segment1.md` (449 lines, written incrementally
+  as instructed after this run lost workers to usage limits twice).
+  **Repair-vs-excise is now answered by a threshold-free measurement instead of an argument.** The
+  worker defined a **destruction ratio** — how much real return excision would delete as a fraction
+  of the artifact it removes — computed against raw `close_price`, a field the classifier never
+  consumes, and **adopted no cut**, reporting five. For the median event the raw same-day move is
+  **0.0000 pct**: excision is *exactly* free. It stays free or near-free for ~96 pct of the class
+  (rho >= 0.10 is 50 events, 3.7 pct). Hand-adjudicated 14/14 flat and 14/14 superimposed — and the
+  superimposed ones are ordinary 2-5 pct days, not crises. **BRIEF-A therefore recommends repair for
+  all coherent verdicts, which needs no rho cut and so adds no threshold at all.**
+  **An unplanned second falsifier arrived, and it is the finding that matters most.** Every verdict
+  makes a directly observable claim about what the vendor's factor did, so coherence is testable with
+  no threshold. `EARLY_FACTOR` is **1,416/1,416 coherent** (median deviation 3.7e-12). `NO_FACTOR` is
+  **only 12/36** — the other 24 are self-contradictory and are **real crashes** (VENAX 2020-03-09,
+  HIPS 2020-03-18, PSSAX/PSSCX 2008-12, SDSCX 2000-12). And the 12 survivors are **exactly** the set
+  Segment 0 hand-verified by a completely different route. Two independent paths, same funds — the
+  checkpoint is asked to confirm that is genuine cross-validation rather than shared filtering.
+  **The line's zero-floor ruling paid for itself, but not the way expected.** The 30 extra events it
+  exposed were **0/30 genuine defects**. What it actually surfaced was a **degeneracy**: **75 verdicts
+  are decided SOLELY by the excursion floor**, recovering "true moves" of 9-17 pct; it concentrates
+  below y = 0.10 but also lives at 3.5-4 pct in the high-yield bands the old floor hid. It also named
+  a clean false-positive class — **8 MAPOX events that are exact 2:1 SPLITS** (exp(s) = 2.0009) with
+  a coincidental 1.2 pct dividend, where the rule would claim a **+97 pct real return**. A rule that
+  mistakes a share split for a distribution artifact is a serious defect, and it was invisible while
+  the floor was in place.
+  **GATE 2b is the adversarial gate that earned its place:** the worker seeded a dividend onto real
+  crisis days and **proved its own rule vulnerable** — RSXJ 2022-03-03 misfires at a yield as small as
+  **0.5 pct** — then showed every such misfire is `NO_FACTOR` and every one is caught by coherence.
+  **So coherence is load-bearing safety, not an optimisation.** Residual risk stated rather than
+  papered over: coherence cannot protect "dividend stamped + factor genuinely not applied + real
+  crash the same day".
+  **BRIEF-B changes what DECISION 1 actually ratifies and the owner must see it:** the rule as
+  originally framed **would ship 145 false positives**. Two filters remove them, **neither adds a
+  threshold**, and both must sit INSIDE the ratification rather than be bolted on later. One of them,
+  coherence, **requires `close_price` — which `build_fund_daily_adj_close.py` discards** — so the fix
+  necessarily includes retaining that column upstream.
+  **Blast radius after adjudication: served tickers 155 -> 151, and the scored `value_score` rows are
+  UNCHANGED at 52** (25 high / 27 limited) — the 145 removed false positives were almost all dead
+  tickers. Segment 0's sizing stands.
+  Two further self-retractions (R4: a 1e-6 tolerance mislabelled ~30 rounding cases as
+  contradictions; R5: the destruction ratio is meaningless for `NO_FACTOR`, ~1.0 by construction).
+  **Non-mutation re-verified independently:** NAV still inode **77680801 at 827,741,516 bytes, mtime
+  2026-08-17 11:03**; `find` over gold/product/silver/bronze/reference/vendors since 07:20 returns
+  **empty**; all **7** outputs under `data/_tmp/capgain/`; the worktree carries only 3 untracked files
+  (2 reports + the new module, which nothing imports).
+  **Line ruling: BRIEF-C TAKEN — drop `NO_FACTOR`** (provisional on the checkpoint). **DECISION 1, 1a
+  and BRIEF-B remain the owner's**; Segment 2 is blocked on them and stays non-canonical when it runs.
