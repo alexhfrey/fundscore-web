@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-18T12:45-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-18T12:49-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -2189,3 +2189,42 @@ cannot serve a 5-year window at all).
   behind it. The trade was stated plainly: acceptable for a PRODUCT review if the critic panel is
   told what is known-wrong up front; **not** acceptable for a launch. This collapses the owner's
   immediate decision load from ~10 to **one**.
+- 2026-08-18 12:49 — **U2 report corrected against the FAIL; the worker WITHDREW its own recommendation and
+  downgraded Segment 2 from a build to another MEASUREMENT pass. This materially moves the
+  capital-gain item further from shipping, and it sharpens the decouple recommendation.**
+  The correction round is a model of the behaviour this run has been asking for: it ran the
+  corroboration/T+1 census **on the class it had KEPT** — the test it had only ever applied to the
+  class it excluded — and every number reproduces the reviewer's independently.
+  **The census reframes the defect.** Of the final 1,362 events, only **101 (8.0 pct)** show the clean
+  T+1 drop the early-factor story predicts; **497 (39.5 pct)** show the distribution **never leaving
+  the price at all**; **660 (52.5 pct)** show neither, and `corr_ratio < 0.50` for **598 (43.9 pct)**.
+  Its own flagship "real return" — **PRMTX 1996-12-31 +18.54 pct** — is confirmed as the **rebound leg
+  of an unadjusted −29.64 pct drop the day before**. **FRSGX**: only **33.0 pct** of the stamped
+  dividend ever left the price. And **516 of the 1,362 carry the project's own `suspect_yield=True`**,
+  unmentioned in the first draft.
+  **The honest position is now: the DEFECT is real and the DETECTION is sound, but the true return is
+  not established for most of the class — which is precisely what makes a remedy unchoosable today.**
+  AQLGX and the fabricated-gain mechanism stand; the median event is still exactly price-flat.
+  **A boundary defect that must be fixed before anything touches served data:** AMCGX is KEPT
+  (|rec| 0.138000 vs an 11-sigma bar of 0.141993) while its sister class **AMGAX is EXCLUDED**
+  (0.136966 vs 0.135625) — **same family, same day, same dividend, 0.4 pct apart in the bar, opposite
+  adjudications**. A rule that splits share classes of one fund cannot serve.
+  **R7 is the R3 defect committed a SECOND time** — an undisclosed `|recovered| > 0.05` constant — now
+  disclosed, with measured bimodality (0.001154 vs 0.668003, a 578.8x gap) and a comparison-form
+  replacement `|recovered| > log(1+y)` **verified to reject the identical 8 of 54**. That is the right
+  fix: it removes the constant rather than documenting it.
+  **GATE 2b corrected with a full sweep**: PFFA 2020-03-18 first misfires at **y = 0.397** and TREMX at
+  **0.463** — the original "never" came from a 7-point sweep that stopped at 0.20 — and **539 of 1,519
+  events (35.5 pct) carry y >= 0.50**, so **no crisis day is structurally safe**. Safety headline
+  narrowed to what it actually has.
+  **W8 filed as S1-F14**: BRLIX, **CSIUX (+62.72 pct)**, JOPSX and SMGAX remain SERVED with no remedy
+  path, filed as a bad-dividend-record item alongside the ~40 pct uncorroborated class and the 516
+  `suspect_yield` events. Six new retractions (R6-R11).
+  **Schedule consequence, stated plainly:** U2 now needs a further measurement segment before any
+  build, so **the capital-gain fence is weeks out, not days.** Since that fence gates the serving
+  reload, and the reload gates F2/F3/F4 -> F5 -> S3, **holding S3 behind it holds S3 for weeks.** This
+  is the strongest argument yet for the decouple option already put to the owner: reload with a
+  written known-defect list, ship F2, run the critic panel on 6 of 7 movements.
+  Non-mutation re-verified: NAV inode 77680801, 827,741,516 bytes, **link count still 2**; zero files
+  under `data/{gold,product,silver,bronze,reference}`; still exactly 7 files in `data/_tmp/capgain/` —
+  the correction round wrote no new data.
