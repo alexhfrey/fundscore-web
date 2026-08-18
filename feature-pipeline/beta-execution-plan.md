@@ -1177,3 +1177,26 @@ unchanged pending your call; the F1 progress file's leak-check claim was correct
   −130 → −150 while chart-withheld) · **21 steps of ratchet slack** (ceiling 584, actual 563) ·
   the absent td cache. **Next READY: L2** (with L7 needing its single off-cycle L2 re-solve
   coordinated after all price-touching fixes).
+- 2026-08-17 12:4x — **Owner drained all five L15 follow-ups in one sitting; filed to `backlog.md`
+  Working set (top).** Decisions, with the measured context each was made on: **(1) capital-gain /
+  basis breaks — ONE item**, terminal + mid-series adjudicated together (they are one defect at two
+  positions; AQLGX sits in both, so splitting risks two rules disagreeing on one fund). Measured
+  blast radius: **31 served funds carry a fabricated chart tail, 4 also serve a headline verdict
+  off it** (AQLGX −290, CWCFX −210, PSMPX −150, QMGAX −70). Discriminator: a one-way step whose own
+  benchmark did not move — costs no new magnitude threshold. **(2) W3 — extend the quarantine to
+  `value_score`.** The "defect may fall outside the score window" defence was checked and FAILS:
+  `n_weeks` 389–1,228 (7.5–23y), so the window fully contains the withheld period; fits look healthy
+  (r²0.86–0.93), which is why it reads as fine. Costs 6 of 2,270 scores. **(3) ratchet → 563**, and
+  re-tighten per fix; auto-ratcheting rejected (count scales with universe size → a sampled build
+  would set a too-low ceiling and the next full build fails on nothing). **(4) td cache — leave
+  ABSENT as a deliberate tripwire.** The finding is bigger than the cache: `build_risk_decomposition`
+  reads the fund leg from the RAW panel (the MMTMX 8.8122 print is still there — hygiene is applied
+  downstream at NAV-build, never baked in) and the ETF leg from Sharadar+Tiingo, so served
+  `theme_ride_bps` was built on the contaminated basis and re-running would bake it back in. No
+  serving impact today (all three outputs exist on disk). Consumer error text to be repointed away
+  from "run build_risk_decomposition first". **(5) SPAX — measure before ruling.** Not served at all,
+  so a coverage gap not a wrongness; my naive cohort scan returned 310 and was **retracted** —
+  VWUSX/AMECX/NMANX appear in it yet serve full 283-month histories, so it measured my assumption,
+  not the builder. Re-measure with the builder's own trim before touching a rule that governs all
+  9,238 series. **Serving reload remains fenced** behind L14 + the capital-gain item; L15 landing
+  did not lift either. **Next READY: L2.**
