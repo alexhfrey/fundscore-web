@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-18T08:16-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-18T12:45-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -2158,3 +2158,34 @@ cannot serve a 5-year window at all).
   silently abandoned.
   **Confirmed unchanged: blast radius 155 -> 151 served tickers and the 52 scored rows, verified
   set-identical pre and post rather than coincidentally equal.**
+- 2026-08-18 12:45 — **Second usage-limit interruption (reset 12:20); both in-flight workers resumed via
+  SendMessage, not relaunched. Lakehouse re-verified clean with the SOUND method: 0 canonical writes
+  since session start.** Worker liveness confirmed by transcript mtimes before re-stamping (both had
+  written within 75 seconds), per [[verify-run-dead-before-resuming]].
+  **Dispatcher defect, recorded because it produced false alarms:** the heartbeat was left at 08:16
+  while the run kept working through to 12:44 — 4.5 hours stale on a LIVE run. The backstop cron
+  fired repeatedly against it. The rule "re-stamp after every unit of work" was followed for build
+  units but not for resume/report units; a stale heartbeat on a live run is exactly the signal the
+  backstop cannot distinguish from death.
+  **The L9 reviewer was resumed with an explicit correction to its V9 method** — it was about to run
+  the `find data ...` lakehouse scan that this session proved vacuous (BSD find will not descend the
+  `data` symlink). Told to use `find -L` or a Python walk with a self-test that must see its own
+  writes, and to say so loudly if its result disagrees with the three methods that currently agree.
+  **STRATEGIC READ DELIVERED TO THE OWNER (they asked: are we on the right course?).** Honest
+  position: **the rigor is right, the sequencing is not.** Twenty-four hours in, **1 of 7 units
+  shipped, zero `fund_score` commits, ~10 decisions parked.** What the rigor bought is real and not
+  process theatre — the owner's own discriminator falsified at ~92 pct FP, the capital-gain root
+  cause found to be BACKWARDS, a live product misdescription (FCNTX), a wrong-company trap that
+  would have bound a bank's prices to a muni fund, a silent-drop defect hiding 1,387 funds from every
+  coverage check, and an error in EVERY report — including one recommendation that had already
+  reached the owner through the dispatcher and would have written fabricated losses into served
+  history. What it cost is ~6 agent rounds per item before any code ships, with the decision queue
+  growing faster than it drains.
+  **Recommendation put to the owner: DECOUPLE the review from the fixes.** S3 is currently gated on
+  everything, but **F2 needs only the reload** (its data is built and merged), F1's movements are
+  live, and the reload's fences protect ~52 wrong verdicts and \$37.0M of sector labels — real, but
+  ~1 pct of funds. So: **reload now with a written known-defect list -> build F2 -> run the critic
+  panel on 6 of 7 movements -> owner reviews in days, not weeks**, with the backend fixes continuing
+  behind it. The trade was stated plainly: acceptable for a PRODUCT review if the critic panel is
+  told what is known-wrong up front; **not** acceptable for a launch. This collapses the owner's
+  immediate decision load from ~10 to **one**.
