@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-17T22:23-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-17T22:32-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -423,20 +423,31 @@ touches only 259 rows / \$941M **but re-breaks the LION fix segment 1c shipped**
 withdraws sector from 1,618 rows / \$3.86B across 514 funds. **Recommend P1** — consistent with every
 prior L1 adjudication.
 
-**Why it fences the reload — corrected, and it cuts both ways.** The plan previously said this was
-"served-on-next-reload". Querying the live DB directly: **8 securities ALREADY serve two sectors**
-(1,462 rows / 914 funds), including SharkNinja, Shift4 and Genie Energy. But decomposed, **every
-majority side is correct and the wrong side is only 26 rows / 26 funds / \$37.0M** — not the
-"\$8.2B" the queue row quotes, which is gross value across both sides. The real fence argument is
-that **the reload would swap today's small live footprint for the current build's larger S7-4a one
-(1,290 rows / 514 funds) unless precedence is settled first.**
+**Why it fences the reload — corrected twice, and the final version is a genuine trade, not a
+one-way risk.** The plan said this was "served-on-next-reload"; querying the live DB directly, **8
+securities ALREADY serve two sectors** (1,462 rows / 914 funds), and decomposed, **every majority
+side is correct — the wrong side is 26 rows / 26 funds / \$37.0M**, not the "\$8.2B" the queue row
+quotes (that is gross value across both sides). Reconciled per ISIN against this item's cohorts:
+**0 of the 8 are S7-4a**; **3 are S7-4b** (SharkNinja, Shift4, Genie Energy — Genie still served
+under cusip `369604301` with the name "General Electric Co"); **4 are ALREADY REPAIRED by the
+current build** (Nu Holdings, Brightstar, Ferroglobe, Clarivate); and **1 is new — Burford**, where
+`holdings_complete`'s dominant-lot picker collapses the contradiction but per-row
+`fund_holdings_full` does not, so the two panels disagree in treatment (filed **N-7**).
+So the honest statement of the trade: **the reload swaps today's small live footprint (\$37.0M
+wrong / 26 funds) for the current build's larger S7-4a footprint (1,290 rows / 514 funds / \$3.80B),
+while FIXING 4 live contradictions and filling 963 blanks across 592 funds** — clearly positive only
+if precedence is settled first. And note the converse: **"not now" does not leave production clean**,
+because the live contradictions stay live.
 **Scope retraction:** symptom (e), the \$3.51B name-bridge recall, is **not reachable by domicile
 routing** — removed from L14. **S7-4b (6 securities) stays a separate item**; routing cannot fix it.
 **Corrected before this brief:** the staging fill headline is **963 rows / 592 funds / \$5,752.4M**
 on one stated definition (the worker's "632 funds / \$5,781.6M" triple was assembled from different
 computations and reproduces under none); the "21 quarter-to-quarter sector flips" are **not
-time-series flips at all** but same-quarter dual-domicile double-filings serving two sectors at once
-— which strengthens the precedence case; and the fill buys ~164–169 regressed fund-quarters, not 202.
+time-series flips at all** (0 of 21 flip between quarters) but same-quarter dual-domicile
+double-filings serving two sectors at once — which strengthens the precedence case; and the fill's
+effect on the 481 regressed fund-quarters is quoted as an **honest bracket of 164–188**, because the
+worker and the reviewer independently got different residuals (293/299 vs 312/317) under different
+definitions and neither is trusted — pinning ONE definition in code is now a Segment-1 deliverable.
 
 ## Run log
 <!-- newest entries appended at the end of this section -->
@@ -1606,3 +1617,31 @@ time-series flips at all** but same-quarter dual-domicile double-filings serving
   a loose reading would smuggle in Option A — filer trust, the Patrizia→Celator surface — by accident.
   Lakehouse unmutated: **zero files under `data/` modified since 2026-08-10.**
   **U4 (L6) still running — the only item on the S3 path that needs no owner ruling.**
+- 2026-08-17 22:32 — **U3 report corrected (all 5 checkpoint defects + 4 warnings); P6 sharpened.
+  Both fences remain parked on the owner; U4 (L6) still the only thing moving.**
+  **The worker handled a disputed number the right way and it is worth recording as the pattern.**
+  On C4 it could reproduce neither its own residual (279) nor the reviewer's (312/317) — its own
+  stated definition gave 293/299, two further variants 292/299 and 302/305. Rather than adopt the
+  reviewer's figure or defend its own, it **retracted both and quoted an honest bracket — the fill
+  recovers 164–188 of the 481 regressed fund-quarters — flagged the residual as definition-sensitive,
+  and made "pin ONE definition in code" a Segment-1 deliverable.** Two independent parties disagreeing
+  is evidence the definition is underspecified, not evidence that one of them is right.
+  **The live-DB reconciliation (R-6) is the most useful thing to come out of the round**, and it
+  turned the fence from a one-way risk into a measurable trade: of the 8 securities serving two
+  sectors on the live site, **0 are S7-4a**, **3 are S7-4b** (SharkNinja, Shift4, Genie Energy —
+  Genie still served under the GE-Aerospace cusip with the name "General Electric Co"), **4 are
+  already repaired by the current build**, and **1 is new**: Burford, where `holdings_complete`'s
+  dominant-lot picker collapses the contradiction while per-row `fund_holdings_full` does not — the
+  two panels disagree in treatment, filed **N-7**. So the reload trades a \$37.0M/26-fund live
+  footprint for a 1,290-row/514-fund one **while fixing 4 live contradictions and filling 963
+  blanks**, and **"not now" does not leave production clean either.**
+  Also corrected: the refusal table now lists all 14 ISINs (\$43.815M) and splits them **6 genuine
+  as-of drift vs 5 false refusals costing 10 rows / \$8.07M** — a cost now argued explicitly against
+  the recommended option rather than hidden inside it; LZ is 1 refused row, not 2 (the `Ltd.`
+  spelling is admitted while `LIMITED` is refused), so N-5 is softened from "every token is a
+  stopword" to a spelling-dependent failure within one security; the "0 controls admitted" line now
+  says plainly it is **vacuous by construction** and that the probe carries the case; and W1 became a
+  boxed trap with its own Segment-1 probe — a Cimpress-shaped Layer-2 binding must be REFUSED, since
+  the loose phrasing "stop discarding a CUSIP-derived layer sector" would smuggle filer-trust back in.
+  Lakehouse untouched: `find data/{gold,product,reference,silver} -newermt <session start>` empty;
+  `git status` shows only the report.
