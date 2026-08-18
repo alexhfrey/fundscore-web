@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-17T22:04-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-17T22:12-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -361,12 +361,23 @@ without one. The proposal is a three-hypothesis distribution test (`H_correct` /
 **Honest caveat the reviewer forced out and it must not be buried:** the pitch "adds no new
 constant" is **not strictly true** — the `y >= 0.10` scan floor is load-bearing (47 of 1,465
 firings sit below y = 0.20; the minimum is 0.109), and events below y = 0.10 were never tested.
-Sub-decision **1a, repair vs excise**: recommend **excise** — a single uniform repair formula was
-falsified (on MXXVX it would "repair" +26.4% to +13.7% when the truth is ≈ −0.6%).
-**DECISION 2:** 7 terminal funds (PLVPX, NTHFX, VSDIX, FMSVX, MLPZ, CYA, POLCX) have no dividend
-record at all; catching them would need a magnitude bar. Recommend leaving them and filing a
-dividend-coverage item. (LHVAX was in this list and is not: it has a same-day stamped distribution
-and is a *rule-declines* case.)
+Two named remedies: adopt the floor as an explicitly adjudicated constant, or **drop it to 0 and
+re-measure** — the worker recommends the latter, which is the option that keeps "no new tunable" true.
+Sub-decision **1a, repair vs excise — RECOMMENDATION WITHDRAWN 2026-08-17, do not decide it yet.**
+It was "excise", on the evidence that a uniform repair formula is falsified (on MXXVX it would
+"repair" +26.4% to +13.7% when the truth is ~ -0.6%). The checkpoint then showed excision is not the
+safe default either: an independent sample found **2 of 29 EARLY_FACTOR events carry a material REAL
+same-day move underneath the factor artifact** (FBSIX 2021-12-15 -11.8%, AMCGX 1999-12-10 -16.6%),
+so excising would delete a genuine double-digit return. Both remedies are unsafe on some slice of the
+class. **The honest ask is now: authorize Segment 1 to MEASURE the flat-versus-superimposed split
+first, and bring 1a back with that number.**
+**DECISION 2 (now two classes, not one):** **class A** — 7 terminal funds verified event-free
+(PLVPX, NTHFX, VSDIX, FMSVX, MLPZ, CYA, POLCX), plus CHNA whose only nearby event is immaterial
+(y = 0.46%): catching these would need a magnitude bar, so recommend leaving them and filing a
+dividend-coverage item. **class B** — **LHVAX alone**, which was wrongly filed under "no dividend
+record": it has a stamped distribution on the exact step day (y = 0.8955) and already sits in the
+classifier's own output as AMBIGUOUS with `n_admissible = 0`. It is a *rule-declines-to-classify*
+case, so the dividend-backfill remedy does not apply to it.
 **DECISION 3:** confirm the widened scope — the regression surface becomes `value_score` +
 `l2_replica_quality` + the chart, not the chart alone.
 **Ratchet:** 563 today, of which 162 are attributable to this defect; a complete fix lands ≈401.
@@ -1491,3 +1502,21 @@ steps) but that explanation is plausible, not established.
   including a \$1.86B tanker Energy-vs-Industrials judgement call.
   **Line does not stall on two parked fences: U4 (L6, recent-changes-te-ranked) dispatched next** —
   it is the highest-value item on the S3 path that needs no owner ruling.
+- 2026-08-17 22:12 — **U2 report corrected (worker applied all 7 checkpoint findings); P5 amended and
+  ONE RECOMMENDATION TO THE OWNER WITHDRAWN.** The worker took the corrections properly: R2 retracts
+  its own prefilter bug with the buggy figures kept in a side column for auditability, R3 withdraws
+  the "self-limiting below ~20% by construction" claim, F7 is promoted to THE LOAD-BEARING PROOF with
+  the 6-dp identity demoted to mechanism, and its self-audit now carries **four retractions, two of
+  which the reviewer found rather than the worker**.
+  **The substantive change: DECISION 1a flipped, so the brief the owner already received is now
+  wrong on that point and has been corrected.** "Excise" was recommended because a uniform repair
+  formula is falsified. But C4's independent sample found **2 of 29 EARLY_FACTOR events carry a real
+  material same-day move underneath the factor artifact** — so excision would delete a genuine
+  double-digit return. Neither remedy is safe across the whole class; the ask becomes "authorize
+  Segment 1 to measure the flat-vs-superimposed split, then decide 1a on that number."
+  Segment 1's gate list also gained a **log-space symmetry test** asserting that down- and up-move
+  admission thresholds are exact mirrors — a permanent regression test for the exact bug class the
+  reviewer caught, which is the right response to a defect found in one's own validation code.
+  Lakehouse re-verified untouched: nothing under `data/` newer than 21:00, NAV still inode 77680801
+  at 827,741,516 bytes. **U2 stays `parked:owner` on DECISION 1 + 1a. U4 (L6) dispatched and
+  running; U3's checkpoint still running.**
