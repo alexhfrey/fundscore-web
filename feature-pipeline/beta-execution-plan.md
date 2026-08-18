@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-17T20:58-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-17T21:02-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -1278,3 +1278,34 @@ unchanged pending your call; the F1 progress file's leak-check claim was correct
   RAM killed the L15 rebuild twice this is the next resource tripwire, so it is being watched rather
   than discovered. **Next: U2, the capital-gain / basis-break item** — reload fence #1 and the head
   of the owner's price-path order.
+- 2026-08-17 21:02 — **U2 DISPATCHED — capital-gain / basis-break, Segment 0 (EDA, NO WRITES).**
+  F2 preconditions re-verified on disk first: zero pipeline processes running, `fund_score` main
+  clean at `75980a3`. Dedicated worktree `fund_score-wt-capgain` on `fix/capital-gain-basis-breaks`,
+  `data/` symlinked to the one shared lakehouse. Worker = `fundscore-data:backend-implementer`
+  (opus/high); data-reviewer checkpoint, codex gate and commit stay with the dispatcher
+  ([[workflow-finalize-cannot-await-codex]]).
+  **v7 snapshot taken BEFORE dispatch** at `fund_score-l15-snapshots/v7/` — and taken cheaply,
+  which is worth recording as a reusable trick: `build_benchmark_nav.py` writes the 828 MB NAV via
+  `os.replace(tmp, path)`, so a **hard link** is an exact point-in-time snapshot (the rebuild's
+  rename leaves our link on the old inode). Real disk cost ~0 — free space unchanged at 18 GiB —
+  versus 828 MB for a copy, on a disk already at 98%. Served artifacts and all 10 hygiene ledgers
+  were copied normally (their writers are not verified atomic, and a hard link is only safe under
+  rename semantics — an in-place truncate+write would mutate the "snapshot" too).
+  Segment-0 mandate, in priority order: **reconcile the 32-vs-55 cohort boundary BEFORE any
+  sizing** (with the builder's own logic, not a reimplementation — the retracted SPAX 310 is the
+  cautionary case); re-measure the served blast radius on v7; size the mid-series face and its
+  overlap with the terminal one; and **empirically validate the owner's discriminator** — precision
+  on the known cohort, false-positive rate over all 9,238 series hand-adjudicated against raw
+  source, and two design questions that could stop it: whether the matched benchmark is even
+  available at the point in the pipeline where the rule would run (if the benchmark leg derives
+  from the hygiened fund leg the rule is CIRCULAR — a design blocker to brief, not to work around),
+  and how "did NOT move" is expressed. The worker was given one threshold-free formulation to try
+  first (fund step clears the existing `LOG_EXCURSION_FLOOR` and `EXCURSION_SIGMAS` bars on its own
+  sigma while the benchmark's same-day step does not clear those same bars on the BENCHMARK's
+  sigma) and told that **if it needs any new constant, that is a STOP-and-brief, not a decision** —
+  never invent a bar to make a rule work, never seed an allowlist to green your own gate.
+  **Dispatcher note on model tiering, for the owner:** the plan's START HERE section calls for a
+  Fable session because the rule is *reviewer >= implementer* and the gates inherit the SESSION
+  model while implementers are pinned to opus. This session is Opus 5, so reviewer == implementer —
+  the weaker margin the plan flags. It satisfies the rule but does not exceed it; Track L is where
+  that would cost something, so this is surfaced rather than absorbed silently.
