@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-17T21:57-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-17T22:04-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -1453,3 +1453,41 @@ steps) but that explanation is plausible, not established.
   77680801 still identical to the v7 hardlink, no lakehouse file modified after 12:00 today.
   **U3 (L14) still running.** Both reload fences now end in an owner ruling, which is what P5 and
   L14's forthcoming brief are for. Line does NOT stall: U4 (L6) is next once L14's EDA lands.
+- 2026-08-17 22:04 — **U3 (L14) Segment 0 LANDED; adversarial checkpoint RUNNING. Dispatcher found
+  independently that the plan's own framing of this fence is WRONG in both directions.**
+  Report: `fund_score-wt-l14/reports/l14_domicile_routing.md`. Nothing written under `data/`.
+  **CORRECTION 1 — it is not "served-on-next-reload"; it is SERVED NOW.** The worker stated honestly
+  that it could not query Postgres, so the dispatcher ran the same-security test directly against the
+  live serving DB: **8 ISINs currently carry two different sectors across 1,462 rows / 914 funds** in
+  `fund_holdings_full`. Among them are the exact known bad binds — Genie Energy also labelled
+  Industrials (the GE-Aerospace cusip), Shift4 also Energy (ENERPLUS), SharkNinja also Energy
+  (SANCHEZ), Nu Holdings also Utilities. So the reload is not what would introduce this contradiction;
+  we have been serving it. (`fund_holdings_full` is a PAID table, so it sits behind the tier gate —
+  served, not free.)
+  **CORRECTION 2 — and this one cuts the other way, so quote it instead of the headline.** The plan's
+  L14 row sizes this as "20 ISINs/$8.2B". That is the GROSS value of every row on those securities,
+  both sides of the disagreement. Decomposed majority-vs-minority on the live DB, **every majority
+  side is correct** (Brightstar=Consumer Cyclical, Ferroglobe=Basic Materials, Burford=Financial
+  Services, Clarivate=Technology, Nu Holdings=Financial Services, SharkNinja=Consumer Cyclical,
+  Genie Energy=Utilities, Shift4=Technology) and the **wrong side is 26 rows across 26 funds worth
+  \$37.0M**. Reporting \$8.2B as the wrongness would have been the aggregate-masks-the-real-number
+  error this run has already been bitten by twice; the honest live figure is \$37.0M.
+  **The worker's own structural retractions (pending checkpoint):** symptom (e), the \$3.51B
+  name-bridge recall, is **not reachable by domicile routing → retract from L14**; **"one rule closes
+  all four" is RETRACTED** — it needs a FILL rule for (a)/(b)/(c) and a separate PRECEDENCE rule for
+  (d)/S7-4a; and the pivotal supporting claim that **S7-4a has sector NULL = 0** (every row already
+  classified, so a fill rule is a no-op there) with all 14 being the **same company on both sides** —
+  i.e. a vendor taxonomy disagreement, not an identity defect. It also narrows the root cause below
+  "a new rule": `isin_reference` already resolves 14 of 15 to the right ticker, name AND industry and
+  drops only `sector`, and Layer 1 **already grants this exemption for `US`-prefix ISINs on exactly
+  the same "the ISIN contains the CUSIP" argument** — which would reframe the owner's ask from
+  "authorize a novel rule" to "extend an existing exemption". All of that is with the reviewer.
+  Measured options (dev 938 / holdout 977, scored once): **B+G1** — ISIN-embeds-CUSIP plus filed-name
+  corroboration — **1,290 rows / \$6.013B / 733 funds at 99.16% holdout identity, 96.64% sector**,
+  with **0 of the 14 positive-control wrong-company binds admitted** and the control proven
+  non-vacuous (removing the guard flips 1,260 rows / \$3.316B). Worker recommends B+G1 + P1, and
+  disclosed its own three weaknesses: the eval set is a **proxy** (the rule never fires on it), G1's
+  recall leaned on a **frozen 2026-02-25** ISIN→name map, and P1 relabels \$2.92B of served value
+  including a \$1.86B tanker Energy-vs-Industrials judgement call.
+  **Line does not stall on two parked fences: U4 (L6, recent-changes-te-ranked) dispatched next** —
+  it is the highest-value item on the S3 path that needs no owner ruling.
