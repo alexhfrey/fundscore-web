@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-17T23:14-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-18T07:25-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -1893,3 +1893,21 @@ Sharadar SEP store.
   exactly **D8-6, already filed**. Converted from an owner decision into a fix. Within-fund stamps
   were also checked and are consistent (0 funds disagree across their own rows).
   Lakehouse untouched — `find data/ -newermt "2026-08-17 12:00"` still returns nothing.
+- 2026-08-18 07:25 — **RUN INTERRUPTED overnight by a session usage limit (reset 02:30); all three in-flight
+  Segment-1 workers died mid-start. Resumed, not relaunched.** The heartbeat went ~8h stale because
+  the backstop cron only fires while the REPL is idle and the REPL was itself limit-blocked — worth
+  recording as a real gap in the night-drain design, not a one-off.
+  **Safety checks ran BEFORE anything was restarted, and everything is clean:** the lakehouse is
+  untouched — `passive_alt_daily_nav.parquet` still inode **77680801** and identical to the v7
+  snapshot hardlink, and `find data/{gold,product,reference,silver} -newermt "2026-08-17 12:00"`
+  returns **nothing**. No `data/_tmp/{capgain,l6,l9}/` was ever created, so the measurement-only
+  Segment 1s died before their first write. **Five worktrees, zero canonical writes, across the
+  entire session.**
+  One near-miss worth logging: the L9 worker reported "the worktree script ran against the wrong
+  repo (my cwd)" as its last act. Verified — **it caught itself**: the web repo has only its main
+  checkout and `fundscore-web-wt-f1`, no stray `l9` worktree or branch, and
+  `fund_score-wt-l9` exists correctly at `75980a3` on `feat/l9-per-stock-receipts`. Nothing to clean
+  up. (The helper resolves the repo from cwd, which is a sharp edge for an agent whose cwd defaults
+  to the web repo — filed as a harness note.)
+  All three workers resumed via **SendMessage**, never relaunched, so their context survives
+  ([[interruption-resilient-agent-runs]]).
