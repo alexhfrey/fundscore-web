@@ -303,7 +303,7 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
       "The twin leg holds TODAY'S matched weights fixed and backcasts them across the window. That is hypothetical by construction — the mix was fit at the refit date shown on the chip and did not exist historically — so every payload carries the hypothetical flag and its mix-as-of date, and the page labels it.",
       "The window starts at the LATEST first-price date across the twin's own holdings plus IVV, VT and BND (world stocks, first priced 2008-06-26, bind most twins; a younger holding binds later and the page names what bound it), and ends at the earliest last-price date across those legs. No proxy is ever spliced in to reach further back and nothing is backfilled — a twin holding a young ETF honestly gets a shorter window.",
       "Capture is computed on monthly returns with world stocks as the reference: down-capture is the twin's average return across the months world stocks fell, divided by their average return in those same months (up-capture is the mirror). Drawdowns are measured on the twin's DAILY closes — peak is the last day at the running high, recovery is the first day that high is regained, depth is never clamped — and an unrecovered episode is marked ongoing rather than closed early.",
-      "On the handful of days where a leg has no price, that day is skipped for every leg rather than filled: compounding across the gap yields the true multi-day return. The effect is bounded and visible — at most 2 skipped days on any twin, 51 of 6,202 twins affected — and the build fails outright above 5.",
+      "On the handful of days where a leg has no price, that day is skipped for every leg rather than filled: compounding across the gap yields the true multi-day return. The effect is bounded — at most 2 skipped days on any twin, 51 of 6,202 twins affected — and the build fails outright above 5. (The per-twin count is measured in the panel but is not currently carried into the served payload, so the page cannot disclose it per-fund; tracked upstream.)",
     ],
     sources: [
       "Canonical daily adjusted closes (fund_daily_adj_close) for every leg",
@@ -316,7 +316,7 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
       "“US bonds” means exactly that: BND is Vanguard Total Bond Market, a US investment-grade fund, not a global bond fund. The honest global vehicle only begins in 2018 and reaching 2008 with it would require splicing, which this panel forbids.",
     ],
     limitations: [
-      "Coverage is 3,079 of 5,819 served funds (52.9%). The right denominator is funds that show a passive alternative at all: of those 3,689, this serves 3,079 — 83.5%. There is no recoverable gap.",
+      "Coverage is 3,094 of 5,819 served funds (53.2%). The right denominator is funds that show a passive alternative at all: of those 3,689, this serves 3,094 — 83.9%. There is no recoverable gap.",
       "The funds without a neighbourhood are honestly without one: 2,130 have no twin to speak of (1,705 of them ARE passive vehicles, where a twin is meaningless), 608 have a twin below our fit floor — we will not present a match we don't trust as “the neighbourhood” — and 2 fail closed for want of a fit row.",
       "The history belongs to the twin, not the fund. Two funds matched to the same alternative see the same neighbourhood, and a twin can be far older than the fund holding it.",
     ],

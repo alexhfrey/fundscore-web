@@ -27,10 +27,11 @@ import { PreviewBanner } from "@/components/fund/profile/v2";
 import { M00Verdict } from "@/components/fund/profile/v4/M00Verdict";
 import { M01WhatIsIt } from "@/components/fund/profile/v4/M01WhatIsIt";
 import { M02Record } from "@/components/fund/profile/v4/M02Record";
+import { M03Neighbourhood } from "@/components/fund/profile/v4/M03Neighbourhood";
 import { M05Family } from "@/components/fund/profile/v4/M05Family";
 import { M06KeyStats } from "@/components/fund/profile/v4/M06KeyStats";
 import { V4Nav, type V4NavItem } from "@/components/fund/profile/v4/V4Nav";
-import { buildTwin } from "@/components/fund/profile/v4/derive";
+import { buildNeighbourhood, buildTwin } from "@/components/fund/profile/v4/derive";
 
 // Per-user dynamic render: reads the session to gate by tier server-side, and
 // (PREVIEW ONLY) honors a ?tier= override so reviewers can walk the tier matrix.
@@ -62,10 +63,13 @@ function unlocked<T>(v: any): T | null {
  * The V4 movement tree, built on the preview route per the cutover spec's
  * per-movement protocol.
  *
- * Movements 03 (the neighbourhood) and 04 (the manager and their names) are NOT
- * in this build — their backends are not landed — and are deliberately absent
- * from the nav rather than linking to anchors the page does not carry. The
- * final route cutover is a separate item.
+ * Movement 04 (the manager and their names) is NOT in this build — its backend
+ * is not landed — and is deliberately absent from the nav rather than linking
+ * to an anchor the page does not carry. Movement 03 (the neighbourhood) is
+ * served, but only for the 3,094 funds that HAVE a neighbourhood: where the
+ * payload is null the movement and its nav entry are both dropped (see
+ * M03Neighbourhood's header for why a placeholder would be worse). The final
+ * route cutover is a separate item.
  *
  * GATING: `applyGates` is the single owner of the public/free/paid split. Every
  * value below is read off the GATED row. The RAW row is used only for presence
@@ -135,6 +139,12 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
   const attrSummary =
     paid && ara != null && !isLocked(ara) ? buildAttributionWindowSummary(ara, blocksMeta) : null;
 
+  // neighbourhood-panel (movement 03): section gate is `public`, so every tier
+  // sees it — the twin's identity is already public and the rest is asset-class
+  // history. Read through `unlocked` anyway so a future gate change fails safe
+  // instead of handing a {locked} marker to the parser.
+  const neighbourhood = buildNeighbourhood(unlocked<unknown>(row.neighbourhood));
+
   const twin = buildTwin(passiveBaseline, valueScore?.replica_r2 ?? null);
   const passiveLabel =
     navSeries?.passive_label ??
@@ -172,6 +182,9 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
     { id: "exec", index: "00", label: "Verdict" },
     { id: "whatis", index: "01", label: "What is it" },
     { id: "record", index: "02", label: "The record" },
+    ...(neighbourhood != null
+      ? [{ id: "twin", index: "03", label: "The neighbourhood" }]
+      : []),
     { id: "family", index: "05", label: "Fund family" },
     { id: "stats", index: "06", label: "Key stats" },
     { id: "sources", index: "—", label: "Sources" },
@@ -258,6 +271,14 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
           returnAttribution={row.returnAttribution as { rows?: unknown[] } | Locked | null}
           riskExplainers={riskExplainers}
         />
+
+        {neighbourhood != null ? (
+          <M03Neighbourhood
+            fundName={identity.fund_name ?? identity.ticker ?? ticker.toUpperCase()}
+            view={neighbourhood}
+            twinMixLabel={twin.mixLabel}
+          />
+        ) : null}
 
         <M05Family
           family={family}

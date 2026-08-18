@@ -746,3 +746,236 @@ export function buildConcentration(
           : null,
   };
 }
+
+// ---------------------------------------------------------------------------
+// The neighbourhood (movement 03) — `fund_profile_facts.neighbourhood`
+// ---------------------------------------------------------------------------
+// Served panel (`neighbourhood_v1_2026-08-09`), keyed by BLEND not by fund: two
+// funds on the same twin see the same history. Everything below is a straight
+// read of the served payload — the web tier never computes a return series.
+//
+// HONESTY GATE (fail-closed): the twin leg is a CURRENT-MIX BACKCAST. The
+// payload must carry `hypothetical: true` AND `mix_as_of`, because the page's
+// only defence against reading that leg as a track record is the chip built
+// from those two fields. A payload missing either is SUPPRESSED, not rendered
+// unlabelled — the same rule the upstream builder enforces.
+
+/** One leg's summary tile: annualised % and the end value of $10,000. */
+export interface NeighbourhoodTile {
+  annPct: number | null;
+  endValue: number | null;
+}
+
+/** One month of the growth-of-$10,000 grid. All four legs are priced. */
+export interface NeighbourhoodPoint {
+  t: string;
+  twin: number | null;
+  ivv: number | null;
+  vt: number | null;
+  bnd: number | null;
+}
+
+export interface NeighbourhoodYear {
+  year: number;
+  twinPct: number | null;
+  worldPct: number | null;
+  /** A calendar year the window only partly covers (first/last year). */
+  partial: boolean;
+}
+
+export interface NeighbourhoodDrawdown {
+  rank: number | null;
+  peak: string | null;
+  trough: string | null;
+  /** null exactly when `ongoing` — never back-filled with the window end. */
+  recovered: string | null;
+  depthPct: number | null;
+  underwaterMonths: number | null;
+  ongoing: boolean;
+}
+
+export interface NeighbourhoodCapture {
+  /** The reference leg capture is measured against (VT on every served row). */
+  reference: string | null;
+  upPct: number | null;
+  downPct: number | null;
+  nDownMonths: number | null;
+  /** Down months for the reference where the twin still rose. */
+  nDownMonthsTwinUp: number | null;
+}
+
+export interface NeighbourhoodView {
+  /** Always true on a rendered view — see the honesty gate above. */
+  hypothetical: true;
+  /** The refit date the backcast mix was fit at. Never null on a rendered view. */
+  mixAsOf: string;
+  windowStart: string | null;
+  windowEnd: string | null;
+  windowYears: number | null;
+  /** The leg whose first price bound the window start ("VT", "IEMG", …). */
+  bindingTicker: string | null;
+  /**
+   * Days skipped because a leg had no price (skipped for EVERY leg, never
+   * filled). Not emitted by `neighbourhood_v1_2026-08-09` — read optionally so
+   * the disclosure appears the moment the builder starts emitting it, and stays
+   * silent (rather than showing a fabricated 0) until then.
+   */
+  nDaysDropped: number | null;
+  /** Served comparator labels — used verbatim, never restated in the web tier. */
+  labels: { ivv: string | null; vt: string | null; bnd: string | null };
+  tiles: {
+    twin: NeighbourhoodTile;
+    ivv: NeighbourhoodTile;
+    vt: NeighbourhoodTile;
+    bnd: NeighbourhoodTile;
+  };
+  capture: NeighbourhoodCapture | null;
+  drawdowns: NeighbourhoodDrawdown[];
+  years: NeighbourhoodYear[];
+  points: NeighbourhoodPoint[];
+  methodVersion: string | null;
+}
+
+function obj(v: unknown): Record<string, unknown> | null {
+  return typeof v === "object" && v !== null && !Array.isArray(v)
+    ? (v as Record<string, unknown>)
+    : null;
+}
+
+function str(v: unknown): string | null {
+  return typeof v === "string" && v.length > 0 ? v : null;
+}
+
+function tile(v: unknown): NeighbourhoodTile {
+  const o = obj(v);
+  return { annPct: num(o?.["ann_pct"]), endValue: num(o?.["end_value"]) };
+}
+
+/**
+ * Served `neighbourhood` payload → view model, or null (render nothing).
+ *
+ * Null means the fund honestly has no neighbourhood: no twin, a twin below the
+ * fit floor, no fit winner, a sub-36-month window, or a blend/panel desync.
+ * Upstream already fails closed on all five; there is no reason code to render,
+ * so the movement omits itself rather than printing a vague "unavailable".
+ */
+export function buildNeighbourhood(rawSection: unknown): NeighbourhoodView | null {
+  const n = obj(rawSection);
+  if (!n) return null;
+
+  // The honesty gate. Both halves of the chip must exist or nothing renders.
+  const mixAsOf = str(n["mix_as_of"]);
+  if (n["hypothetical"] !== true || mixAsOf == null) return null;
+
+  const rawPoints = Array.isArray(n["series"]) ? n["series"] : [];
+  const points: NeighbourhoodPoint[] = rawPoints
+    .map((p) => {
+      const o = obj(p);
+      const t = str(o?.["t"]);
+      if (t == null) return null;
+      return { t, twin: num(o?.["twin"]), ivv: num(o?.["ivv"]), vt: num(o?.["vt"]), bnd: num(o?.["bnd"]) };
+    })
+    .filter((p): p is NeighbourhoodPoint => p != null);
+  // A single point is not a history; two is the minimum a line can describe.
+  if (points.length < 2) return null;
+
+  const w = obj(n["window"]);
+  const labels = obj(n["labels"]);
+  const tiles = obj(n["tiles"]);
+  const cap = obj(n["capture"]);
+
+  const drawdowns: NeighbourhoodDrawdown[] = (Array.isArray(n["drawdowns"]) ? n["drawdowns"] : [])
+    .map((d) => {
+      const o = obj(d);
+      if (!o) return null;
+      return {
+        rank: num(o["rank"]),
+        peak: str(o["peak"]),
+        trough: str(o["trough"]),
+        recovered: str(o["recovered"]),
+        depthPct: num(o["depth_pct"]),
+        underwaterMonths: num(o["underwater_months"]),
+        ongoing: o["ongoing"] === true,
+      };
+    })
+    .filter((d): d is NeighbourhoodDrawdown => d != null)
+    .sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99));
+
+  const years: NeighbourhoodYear[] = (Array.isArray(n["years"]) ? n["years"] : [])
+    .map((y) => {
+      const o = obj(y);
+      const yr = num(o?.["year"]);
+      if (yr == null) return null;
+      return {
+        year: yr,
+        twinPct: num(o?.["twin_pct"]),
+        worldPct: num(o?.["world_pct"]),
+        partial: o?.["partial"] === true,
+      };
+    })
+    .filter((y): y is NeighbourhoodYear => y != null)
+    .sort((a, b) => a.year - b.year);
+
+  return {
+    hypothetical: true,
+    mixAsOf,
+    windowStart: str(w?.["start"]),
+    windowEnd: str(w?.["end"]),
+    windowYears: num(w?.["years"]),
+    bindingTicker: str(w?.["binding_ticker"]),
+    nDaysDropped: num(w?.["n_days_dropped"]) ?? num(n["n_days_dropped"]),
+    labels: {
+      ivv: str(labels?.["ivv"]),
+      vt: str(labels?.["vt"]),
+      bnd: str(labels?.["bnd"]),
+    },
+    tiles: {
+      twin: tile(tiles?.["twin"]),
+      ivv: tile(tiles?.["ivv"]),
+      vt: tile(tiles?.["vt"]),
+      bnd: tile(tiles?.["bnd"]),
+    },
+    capture: cap
+      ? {
+          reference: str(cap["reference"]),
+          upPct: num(cap["up_capture_pct"]),
+          downPct: num(cap["down_capture_pct"]),
+          nDownMonths: num(cap["n_down_months"]),
+          nDownMonthsTwinUp: num(cap["n_down_months_twin_up"]),
+        }
+      : null,
+    drawdowns,
+    years,
+    points,
+    methodVersion: str(n["method_version"]),
+  };
+}
+
+/**
+ * "+5.3%" / "−17.8%" — a signed percentage already expressed in percent units.
+ * Rounds HALF AWAY FROM ZERO (same reason as `fmtBpsAsPct`: `toFixed` inherits
+ * binary representation and silently rounds an exact half the wrong way).
+ */
+export function fmtPctSigned(v: number | null | undefined, digits = 1): string | null {
+  if (v == null || !Number.isFinite(v)) return null;
+  const f = Math.pow(10, digits);
+  const r = (Math.sign(v) * Math.round(Math.abs(v) * f)) / f;
+  const sign = r > 0 ? "+" : r < 0 ? "−" : "";
+  return `${sign}${Math.abs(r).toFixed(digits)}%`;
+}
+
+/** "110%" — a capture ratio, whole percent. */
+export function fmtPctWhole(v: number | null | undefined): string | null {
+  if (v == null || !Number.isFinite(v)) return null;
+  return `${Math.round(v)}%`;
+}
+
+/** "2014-07" → "Jul 2014" — the compact form the drawdown table needs. */
+export function shortMonth(d: string | null | undefined): string | null {
+  if (!d) return null;
+  const m = /^(\d{4})-(\d{2})/.exec(d);
+  if (!m) return null;
+  const dt = new Date(Number(m[1]), Number(m[2]) - 1, 1);
+  if (Number.isNaN(dt.getTime())) return null;
+  return dt.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
