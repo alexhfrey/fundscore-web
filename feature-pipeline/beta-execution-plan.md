@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-18T08:02-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-18T08:16-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -401,6 +401,25 @@ constant" is **not strictly true** — the `y >= 0.10` scan floor is load-bearin
 firings sit below y = 0.20; the minimum is 0.109), and events below y = 0.10 were never tested.
 Two named remedies: adopt the floor as an explicitly adjudicated constant, or **drop it to 0 and
 re-measure** — the worker recommends the latter, which is the option that keeps "no new tunable" true.
+**2026-08-18 UPDATE — Segment 1's checkpoint returned FAIL and BRIEF-A's repair recommendation is
+now known UNSAFE. Do not ratify DECISION 1 or 1a from the current report text.** The measurement
+layer is trustworthy — an independent full ~2M-event rescan reproduced every number with **zero
+verdict disagreements** — but three decision-facing claims are wrong:
+(i) **the kept rho>=0.10 tail is mischaracterised**: 30 of 50 events show the stamped distribution
+was never corroborated by the raw price path, only 2 of 50 show the predicted T+1 drop, and the
+flagship "real move" (PRMTX +18.54 pct) is **the rebound leg of an unadjusted −29.64 pct drop the day
+before** — so **repair would write fabricated double-digit LOSSES** into served history there;
+(ii) **"145 false positives" is really 93 rejections + 52 never-adjudicated events** (no vendor row),
+so making coherence mandatory **permanently fail-closes every yahoo-sourced ticker** — a policy the
+owner must ratify knowingly — and the "no threshold" claim is **false**: an undisclosed
+`|recovered| <= 0.05` constant sits in the bar-attribution fallback;
+(iii) **GATE 2b's safety headline overstates coherence** — PFFA 2020-03-18 misfires at y = 0.40 and
+TREMX at y = 0.50 (yields >= 0.50 are common: 539 of 1,519), and the seeded misfires it demonstrates
+are exactly the case coherence **cannot** catch.
+Also: the "12 survivors verified by two independent routes" is **8/12**, and four tickers adjudicated
+out of scope (**BRLIX, CSIUX +62.7 pct, JOPSX, SMGAX**) **remain served with large fabricated-looking
+steps and no remedy path** — filed separately. Corrections are with the worker.
+
 Sub-decision **1a, repair vs excise — RECOMMENDATION WITHDRAWN 2026-08-17, do not decide it yet.**
 It was "excise", on the evidence that a uniform repair formula is falsified (on MXXVX it would
 "repair" +26.4% to +13.7% when the truth is ~ -0.6%). The checkpoint then showed excision is not the
@@ -2094,3 +2113,48 @@ cannot serve a 5-year window at all).
   extraction defect** — `fmp_isin_us_ticker_bridge` already resolves those listings and the pricing
   path simply never calls it, which is a defect by doctrine, not a coverage choice.
   **S2-a, S2-c and S2-d remain the owner's**, and S2-c blocks any floor below 0.80.
+- 2026-08-18 08:16 — **U2 Segment-1 checkpoint: FAIL — and the dispatcher must correct TWO things it told the
+  owner.** The verdict's shape matters: an independent implementation (own sigma, own bars, own
+  vendor pull, full ~2M-event rescan) reproduced **every load-bearing number with zero verdict
+  disagreements and membership identity** to the worker's parquets. **The measurement is sound; the
+  briefs are not.** All three blocking defects sit exactly where DECISION 1a lives, and all three
+  were findable with the same raw-source test the worker applied to the class it EXCLUDED but never
+  applied to the class it KEPT.
+  **CORRECTION 1 (to the owner):** the dispatcher relayed that BRIEF-A now recommends "repair for all
+  coherent verdicts, which needs no rho cut and therefore adds no threshold at all." **Both halves are
+  wrong.** Repair is **unsafe on the tail** — 30 of the 50 kept rho>=0.10 events show the stamped
+  distribution never left the raw price, only 2 of 50 show the predicted T+1 drop, and the flagship
+  case PRMTX +18.54 pct is **the rebound leg of an unadjusted −29.64 pct drop the previous day** (the
+  pair nets ~0; any single-day remedy breaks the cancellation). Repair there would **write fabricated
+  double-digit losses into served history.** And the "no threshold" claim is false: an undisclosed
+  **`|recovered| <= 0.05`** constant sits in the bar-attribution fallback — the exact R3-class defect
+  the worker had already retracted once.
+  **CORRECTION 2 (to the owner, about the dispatcher's own verification):** yesterday the dispatcher
+  tested `find -newermt` against a probe, found all four timestamp formats worked, and told the owner
+  "every non-mutation claim this session stands." **That test did not exercise the real failure mode
+  and the counter-diagnosis was wrong.** The true cause, found by the L6 reviewer: **`data` is a
+  SYMLINK in every checkout** (`fund_score/data -> fundscore-lakehouse`) and **BSD `find` will not
+  descend a symlinked path argument** — `find data ...` traverses exactly **1 entry** and returns 0
+  **vacuously**. Verified directly: `find data -newermt "2026-08-17 00:00"` returns **0**, while
+  `find -L data ...` returns **41**. **At least one dispatcher check used the bare `data` form and
+  proved nothing.** The checks that named SUBDIRECTORIES (`data/gold data/product ...`) were sound,
+  because the final path component is a real directory.
+  **The conclusion survives the method error, and was re-established properly:** an authoritative
+  `find -L` scan excluding `_tmp` returns **0 canonical writes since 2026-08-17 12:00 and 0 since
+  2026-08-18 07:20**; the capgain reviewer independently confirmed the same over
+  gold/product/silver/bronze/reference/vendors with the sound subdirectory form **plus the NAV
+  hard-link still at links = 2**; and the L6 reviewer walked **2,252,125 files with
+  `followlinks=True`** and found zero. **Three independent sound methods agree: the lakehouse is
+  untouched.** Standing rule from here: **never use `find data/...` for a non-mutation proof — use
+  `find -L`, or a Python walk with a self-test that must see the prover's own writes.**
+  Other findings carried to the worker: the "12 survivors by two independent routes" is really
+  **8/12** (Segment 0 had called CRSGX a "garbage dividend"; the raw rows vindicate it, so the
+  inclusion is right but a prior adjudication was silently reversed); the MAPOX class is **recurring
+  one-day doubled close prints, not exact 2:1 splits**, and is handled by pre-2003 excision rather
+  than the seam; two of the five gates are **non-probative** (a construction identity and a
+  self-comparison), so GATE 1 and GATE 2b are doing all the work; and **four tickers adjudicated out
+  of scope — BRLIX, CSIUX (+62.7 pct), JOPSX, SMGAX — remain SERVED with large fabricated-looking
+  steps and now have no remedy path**, filed as a separate bad-dividend-record item so they are not
+  silently abandoned.
+  **Confirmed unchanged: blast radius 155 -> 151 served tickers and the 52 scored rows, verified
+  set-identical pre and post rather than coincidentally equal.**
