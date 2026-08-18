@@ -96,6 +96,11 @@ interface AttrRow {
   member_label: string;
   contribution_to_active_return_bps: number | null;
   rank_direction: string;
+  // 1 = largest contribution within (period, dimension, direction). Load-bearing:
+  // the payload's array order is NOT a contract — two builds of the same gold emit
+  // these rows in different orders — so anything that takes a "top N" must sort on
+  // this, never on arrival order.
+  rank_within_dimension: number | null;
   period_start_date: string;
   period_end_date: string;
 }
@@ -426,14 +431,30 @@ function ReturnAttributionTiles({ ra }: { ra: ReturnAttribution | Locked | null 
     ["3Y", "5Y", "1Y"].find((p) =>
       ra.rows.some((r) => r.period === p && r.dimension === "stock"),
     ) ??
-    ra.rows[0].period;
+    // Deterministic fallbacks. `ra.rows[0].period` was arrival-order dependent,
+    // which made the displayed period itself arbitrary for funds with no stock rows.
+    ["3Y", "5Y", "1Y"].find((p) => ra.rows.some((r) => r.period === p)) ??
+    [...new Set(ra.rows.map((r) => r.period))].sort()[0];
   const dim = ra.rows.some((r) => r.period === period && r.dimension === "stock")
     ? "stock"
     : "sector";
   const scoped = ra.rows.filter((r) => r.period === period && r.dimension === dim);
-  const contributors = scoped.filter((r) => r.rank_direction === "positive").slice(0, 4);
-  const detractors = scoped.filter((r) => r.rank_direction === "negative").slice(0, 4);
-  const win = scoped[0];
+  // Sort on the SERVED rank, never on arrival order: the assembler emits these rows
+  // in a nondeterministic order (measured 2026-08-18 — 38 funds' `rows` arrays
+  // reordered between two builds of identical gold, same members, no value change),
+  // so `.slice(0, 4)` over raw order was showing an arbitrary four of N.
+  const byRank = (a: AttrRow, b: AttrRow) =>
+    (a.rank_within_dimension ?? Number.MAX_SAFE_INTEGER) -
+    (b.rank_within_dimension ?? Number.MAX_SAFE_INTEGER);
+  const contributors = scoped
+    .filter((r) => r.rank_direction === "positive")
+    .sort(byRank)
+    .slice(0, 4);
+  const detractors = scoped
+    .filter((r) => r.rank_direction === "negative")
+    .sort(byRank)
+    .slice(0, 4);
+  const win = [...scoped].sort(byRank)[0];
 
   return (
     <Card>
