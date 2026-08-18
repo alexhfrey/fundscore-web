@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-17T22:32-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-17T22:37-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -448,6 +448,61 @@ double-filings serving two sectors at once — which strengthens the precedence 
 effect on the 481 regressed fund-quarters is quoted as an **honest bracket of 164–188**, because the
 worker and the reviewer independently got different residuals (293/299 vs 312/317) under different
 definitions and neither is trusted — pinning ONE definition in code is now a Segment-1 deliverable.
+
+### P7 — L6 Recent Changes: the section's own surfacing rule is inverted against its promise (filed 2026-08-17; **checkpoint RUNNING — do not act on these numbers until it returns**)
+Evidence: `fund_score-wt-l6/reports/l6_recent_changes_te_ranked.md`. Two decisions, one of which
+blocks the build and one of which blocks only the serving step.
+
+**The finding that matters most is not the feature — it is that the section is quietly broken
+today.** `is_surfaced` requires a change to be BOTH a cross-sectional outlier (`|change_z| >= 1`)
+AND already half-complete at the half-window (`persistence == 'sustained'`). But `single_quarter`
+means *the move happened in the most recent half of the window* — so **the freshest moves are
+exactly what gets filtered out of a section whose promise is "what has the manager been doing
+lately".** Measured: **1,092 served funds (18.8%) serve "none available" while holding 25,030
+`available` gold rows** — 226 honestly empty, **470 killed by the z-gate, 396 by persistence**. And
+because `z` is null when fewer than 30 funds hold a change and `z_ok` fill-nulls to False, **36.2%
+of qualifying rows are silenced for being DISTINCTIVE** (21,307 position rows; 116 funds have null z
+on every row), and those rows are not smaller (median est. TE 53 bps vs 61 bps).
+**The specimen is damning and should be checked personally:** FCNTX today serves exactly one row —
+`entered BRK.B +1.02pp`, 16 bps, **8th of 8** on both TE impact and magnitude — while suppressing
+META halved (−6.0pp), AI Infrastructure +4.9pp, **BRK.A −6.2pp (killed by null z)**, Semis +4.9pp,
+Hyperscalers −6.3pp, Financials −7.7pp, Mag-7 −4.6pp. **Serving BRK.B +1.0pp while hiding BRK.A
+−6.2pp does not merely under-report the trade; it misdescribes it.**
+
+**DECISION D-1 (blocks the serving step, not the build): the surfacing rule.** Options R0–R6 are
+measured in the report's §9. Recommended **R1** — keep the magnitude floors, **retire `|z|` and
+persistence as FILTERS but keep them as displayed attributes**, and let `te_rank` do the selecting:
+**3,277 funds served (+866), median 6 rows/fund, median 91 bps**, versus today's 2,411 / 3 rows /
+75 bps. Dependency: **R1 makes D8-3 servable, so D8-3 must be fixed first** (27 rows in 26 funds
+claim "entered IVV/SPYM/VOO at ~99pp" with `lookthrough_coverage = 1.0` — an unresolved wrapper or a
+mislabelled flag; harmless while unsurfaced, a launch blocker the moment it is surfaced).
+
+**DECISION D-2 (blocks the build): where theme volatility comes from.** The shared Σ is
+`global_basis_v0.2_nothemes` — **sector 11/11 have a σ, theme 0/28.** Either compute theme σ through
+the shared `orthogonalize_levels` call (recommended; reproduces `sqrt(diag(Σ))` to **4.4e-16**, so it
+is the same basis, not a new recipe) or serve `te_impact_bps = null` for all **1,416** surfaced theme
+rows. **The dispatcher has asked the checkpoint to settle one thing before this goes up: the basis is
+literally named `_nothemes`, so it must be established whether themes were DELIBERATELY excluded by a
+prior decision or merely never computed** — that is the difference between "apply existing machinery"
+and "re-open a settled call", and it changes what is actually being asked.
+
+**Two silent traps the EDA caught before they were built on.** (1) **A 100× error waiting to happen**:
+the panel emits pp of NAV while the exposure path uses `decimal_weight`, so the mapping is Δpp/100 —
+and the regression beta is a third, unusable object (corr +0.061 sector / +0.152 theme against Δw).
+(2) **A REORDERING error, not a rescale**: the shared Σ is FF6-residualised while
+`target_return_series` is raw, and raw/shared spans **0.96×–2.69×** — mixing raw theme σ with
+residual sector σ would float mega-cap themes to the top for a purely basis-driven reason
+(`mag_7` 2.41×, `us_megabanks` 2.34×).
+
+**Staleness — the spec's launch gate is ALREADY SATISFIED, correcting this plan's own assumption.**
+The spec says holdings are frozen at 2025-10-31 and the section is only launch-honest after an N-PORT
+refresh. **That refresh has happened.** Broad frontier **2026-04-30 = 109 days (3.6 months)**, per-fund
+current-endpoint age median **139 days**, p75 170d. The honest residual: **11.7% older than 180 days
+and 9.0% (457 funds) older than a year.** Dual as-of stamps on **98.4%** of served rows; the 1.6% gap
+is 164 returns-derived `style` rows with no holdings basis (filed as a contract inconsistency).
+**Coverage:** 41.4% of served funds (2,411) get a section today; **94.2% of surfaced rows get a TE
+estimate**; recoverable-missing **0.24%** — one ticker, `BK` (BNY Mellon), absent from the entire
+Sharadar SEP store.
 
 ## Run log
 <!-- newest entries appended at the end of this section -->
@@ -1645,3 +1700,44 @@ definitions and neither is trusted — pinning ONE definition in code is now a S
   the loose phrasing "stop discarding a CUSIP-derived layer sector" would smuggle filer-trust back in.
   Lakehouse untouched: `find data/{gold,product,reference,silver} -newermt <session start>` empty;
   `git status` shows only the report.
+- 2026-08-17 22:37 — **U4 (L6) Segment 0 LANDED — the strongest EDA of the run, and it found a LIVE
+  product defect rather than just scoping a feature. Filed as P7; adversarial checkpoint RUNNING.**
+  Report: `fund_score-wt-l6/reports/l6_recent_changes_te_ranked.md` (719 lines). Lakehouse
+  independently re-verified by the dispatcher, not taken on report: `positioning_changes_panel.parquet`
+  still Aug 9 16:42, `serving_facts_staging.parquet` still Aug 9 20:27, and `find data -newermt
+  "2026-08-17 22:00"` returns empty.
+  **The FCNTX "none available" mystery is a RULE, not a bug — and the rule is inverted against the
+  section's own promise.** Surfacing demands a change be both a cross-sectional outlier AND already
+  half-complete at the half-window, so `single_quarter` moves — the ones that happened MOST RECENTLY —
+  are precisely what gets filtered out of a section that promises "lately". 1,092 served funds (18.8%)
+  serve nothing while holding 25,030 available rows. Worse, 36.2% of qualifying rows have a null `z`
+  (fewer than 30 funds hold that change) which fill-nulls to False, so the gate **silences names for
+  being distinctive** — and those rows are not smaller. The worker's gate reconstruction reproduces
+  `is_surfaced` with 0 mismatches over 89,945 rows **and provably fails (4,564 mismatches) when one
+  gate is broken** — a negative control that actually fires, which is the standard this run has been
+  holding everyone to.
+  **The specimen is the argument:** FCNTX serves ONE row — `entered BRK.B +1.02pp`, 8th of 8 on both
+  ranking axes — while hiding **BRK.A −6.2pp** (killed by null z), META halved −6.0pp, and five more.
+  Serving the small side of a Berkshire trade while suppressing the large one does not under-report
+  it, it **misdescribes** it.
+  **Two silent traps caught before anything was built on them.** A **100× unit error** (panel emits
+  pp of NAV, exposure path uses `decimal_weight` → Δpp/100; the regression beta is a third, unusable
+  object at corr +0.061/+0.152), and a **REORDERING error rather than a rescale** — the shared Σ is
+  FF6-residualised while `target_return_series` is raw, spanning 0.96×–2.69×, so mixing bases would
+  float mega-cap themes to the top for a purely basis-driven reason.
+  **A correction to this plan's own assumption, and it is good news for S3:** the spec's launch gate
+  ("only launch-honest after an N-PORT refresh") is **already satisfied** — the frontier is 2026-04-30,
+  **109 days / 3.6 months**, per-fund median 139 days, not the ~10 months the frozen 2025-10-31 spec
+  implied. The honest residual is 9.0% of funds (457) older than a year. The dispatcher had flagged
+  this to the owner as a probable S3 honesty problem; measured, it is materially smaller than feared.
+  **Two decisions parked (D-1 surfacing rule, D-2 theme σ)** — the worker picked neither, correctly.
+  The dispatcher added one question to the checkpoint before D-2 goes up: the shared basis is literally
+  named `_nothemes`, so it must be established whether themes were **deliberately excluded** or merely
+  never computed — that decides whether the recommended option is "apply existing machinery" or
+  "re-open a settled call", which is a materially different ask.
+  **Also filed, not absorbed — two are live defects:** `build_fund_takeaways.py` pins
+  `EVAL_DATE = 2025-10-31` and filters the panel on it, so `fund_takeaways.parquet` currently holds
+  **zero positioning-change takeaways** (a silent fail-open date pin); and 27 rows in 26 funds claim
+  "entered IVV/SPYM/VOO at ~99pp" with `lookthrough_coverage = 1.0`. Plus `BK` missing from the whole
+  Sharadar SEP store, the manifest's absent `as_of` key, and style rows serving null as-of stamps
+  against a contract that says both are mandatory.
