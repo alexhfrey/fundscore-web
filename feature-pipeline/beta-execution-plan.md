@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-17T21:38-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-17T21:57-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -329,6 +329,49 @@ FREE while `nav_series` gates the identical statistic at PAID; one of the two ga
 Options: keep family free (a taste of the product across the family) and accept that a reader can
 find any fund's 3Y figure via its family table, or gate the family column to paid. Behavior
 unchanged pending your call; the F1 progress file's leak-check claim was corrected to disclose it.
+
+### P5 — Capital-gain / basis breaks: the discriminator you chose does not work, and any fix needs a NEW rule (filed 2026-08-17; **U2 is `parked:owner` on this**; reviewer-verified PASS-WITH-CORRECTIONS)
+**Blocks a serving reload, and therefore blocks S3.** Full evidence:
+`fund_score-wt-capgain/reports/capital_gain_basis_breaks.md`.
+
+**What is actually wrong** (verified by hand from raw vendor files, and the backlog item had it
+backwards). On a large distribution the pricing vendor moves its **adjustment factor** by exactly
+the distribution yield on a day the **price does not move** — fabricating a one-day *gain* equal to
+the yield — and the real drop lands separately, unadjusted. AQLGX 2025-12-01: `close_price` flat at
+18.10, dividend 8.3526, served **+46.147%**, then 18.10 → 9.75 the next day. True two-day total
+return **+0.014%**; served **−21.3%**. The evidence needed to see this is discarded one stage
+upstream of price hygiene: the raw files carry `close_price`, `adj_close`, `dividend`,
+`split_factor`, and `build_fund_daily_adj_close.py` keeps only `ticker, date, adj_close`.
+
+**Your discriminator is rejected on measurement, not on taste.** Implemented faithfully it fires on
+**626 served tickers' steps, 347 of them with no distribution evidence**, and **~92% of a random
+sample of those are real market moves** — March 2020 preferreds, Russia 2022 — including cases the
+project has already ruled must survive. It is also *inert*: deleting the benchmark clause leaves the
+cohort unchanged, so the discrimination was really coming from a new 25% magnitude bar, which is the
+one thing the discriminator was chosen to avoid.
+
+**Sizing, corrected:** 52 scored `value_score` verdicts (25 at HIGH confidence), not 4 · 132 served
+mid-series tickers, not 1 · 24 terminal tickers on evidence · 922 events / 730 tickers untouched by
+any existing rule. It **subsumes open backlog Item 1**. **QMGAX is not in this cohort** (its event is
+ambiguous; it belongs to W3) — so your list of four is really three.
+
+**DECISION 1 (the blocker): authorize a new evidence-based trigger class?** No fix is possible
+without one. The proposal is a three-hypothesis distribution test (`H_correct` / `H_early` /
+`H_none`) decided with the already-ratified `LOG_EXCURSION_FLOOR` ∧ `EXCURSION_SIGMAS`·σ bars.
+**Honest caveat the reviewer forced out and it must not be buried:** the pitch "adds no new
+constant" is **not strictly true** — the `y >= 0.10` scan floor is load-bearing (47 of 1,465
+firings sit below y = 0.20; the minimum is 0.109), and events below y = 0.10 were never tested.
+Sub-decision **1a, repair vs excise**: recommend **excise** — a single uniform repair formula was
+falsified (on MXXVX it would "repair" +26.4% to +13.7% when the truth is ≈ −0.6%).
+**DECISION 2:** 7 terminal funds (PLVPX, NTHFX, VSDIX, FMSVX, MLPZ, CYA, POLCX) have no dividend
+record at all; catching them would need a magnitude bar. Recommend leaving them and filing a
+dividend-coverage item. (LHVAX was in this list and is not: it has a same-day stamped distribution
+and is a *rule-declines* case.)
+**DECISION 3:** confirm the widened scope — the regression surface becomes `value_score` +
+`l2_replica_quality` + the chart, not the chart alone.
+**Ratchet:** 563 today, of which 162 are attributable to this defect; a complete fix lands ≈401.
+**Open:** the "55" cohort boundary is explained as an entity-vs-event confusion (33 tickers / 55
+steps) but that explanation is plausible, not established.
 
 ## Run log
 <!-- newest entries appended at the end of this section -->
@@ -1367,3 +1410,46 @@ unchanged pending your call; the F1 progress file's leak-check claim was correct
   known wrong-company binds as positive controls a candidate rule must NOT admit. It was also told
   to verify a refinement the plan's own one-line L14 summary lacks: the "20 ISINs / $8.2B" splits
   into **S7-4a (14, this item)** and **S7-4b (6, a separate item domicile routing cannot fix)**.
+- 2026-08-17 21:57 — **U2 Segment-0 checkpoint: PASS-WITH-CORRECTIONS (adversarial data-reviewer).
+  U2 is now `parked:owner` as P5.** The reviewer reproduced every load-bearing conclusion from raw
+  source — root-cause inversion, D1 settlement, blast-radius resize, discriminator falsification,
+  ratchet arithmetic — and **four corrections went back to the worker** rather than into the brief
+  unexamined ([[fix-round-economics]]: it owns the scripts, so the report edits went to it; the
+  owner brief was written from the corrected numbers here).
+  **The most consequential correction ran AGAINST the worker's own case and made it stronger.** Its
+  D4 script prefiltered candidates on `|simple return| >= 0.20`, which is asymmetric against a
+  LOG-space floor and silently dropped every ticker whose only qualifying steps were down-moves
+  between −16.7% and −20%. A faithful re-implementation agreed on every shared ticker (0
+  disagreements) and added 357 firings: the discriminator actually fires on **626 served tickers'
+  steps, 347 unexplained across 302 tickers** — a false-positive blast radius **~64% larger** than
+  reported — and the **92% FP rate reproduced independently** on the corrected population
+  (seed-42, 23/25; PFFA 2020-03-12 −21.1%, RSX 2022-02-28 −30.4%, RSXJ 2022-03-03 −17.0%, all real).
+  It also killed the report's explanation of its one recall miss: VPGEX clears its own σ bar ~8×
+  and was lost to the prefilter, not to the rule. Corrected recall is **173/173 steps, 155/155
+  tickers — perfect**.
+  **The claim that would have gone to the owner as the rule's main selling point is NOT TRUE as
+  written**: "no new constant, self-limiting below ~20% by construction" — the `y >= 0.10` scan
+  floor is load-bearing, **47 of 1,465 firings sit below y = 0.20** (min 0.109, MXXVX 2021-12-16),
+  and nothing below y = 0.10 was ever tested. P5 discloses it instead of burying it; authorizing a
+  "no new tunable" rule that has one is exactly the failure the standing constraint exists to stop.
+  **The degeneracy flagged at dispatch was real and is now labelled**: `distribution_yield =
+  dividend / close_price` comes from the same rows whose `adj_close` embeds the vendor's
+  dividend-derived factor, so the headline `served == D/P` identity holds **by construction** —
+  mechanism, not evidence ([[verification-metric-must-be-non-degenerate]]). The non-degenerate
+  proof (two-day `close_price` + `dividend` total return, a path the pipeline never sees) exists and
+  was reproduced from raw for all six tickers, independently of the dispatcher's own AQLGX check.
+  Also corrected: **LHVAX** was filed as "no dividend record" but has a same-day stamped
+  distribution (y = 0.8955) and sits in the worker's OWN classifier output as AMBIGUOUS — it is a
+  rule-declines case, so DECISION 2's cohort is **7**, not 9. And F22's "29/29 price-flat" does not
+  generalize: an independent seed-7 draw found 2/29 with material same-day raw moves (FBSIX −11.8%,
+  AMCGX −16.6%), which pushes the mixed-mechanism problem INSIDE the EARLY_FACTOR class and bears
+  directly on repair-vs-excise. Still open and carried into P5 as open: the **"55" boundary is
+  plausible, not established**.
+  Reproduced exactly by the reviewer: v6 L15 table 51/36/32/24/14; v7 30/31 (GRTVX); v6→v7 delta
+  {MMTMX, QDVIX}; terminal 24 / mid 132/149; **value_score 52 rows, 25 high**; QMGAX AMBIGUOUS and
+  quarantined, **not in the cohort**; 344 seamed / 223 excised / **922 untouched (730 tickers)**;
+  census 563, allowlist ceiling 584 with 0 entries, **162 defect-attributable — independently
+  matching the execution plan's own separately-recorded 162** — remainder ≈401. Integrity: NAV inode
+  77680801 still identical to the v7 hardlink, no lakehouse file modified after 12:00 today.
+  **U3 (L14) still running.** Both reload fences now end in an owner ruling, which is what P5 and
+  L14's forthcoming brief are for. Line does NOT stall: U4 (L6) is next once L14's EDA lands.
