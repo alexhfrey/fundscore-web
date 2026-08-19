@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-18T15:32-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-18T18:18-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -2384,3 +2384,29 @@ them.
   `29c3d22`.** None overrode a finding; there is no finding, only an unavailable reviewer.
   **L6 Segment 3 is blocked on owner rulings D-4 and D-1/D8-3, and it writes `serving_facts_staging`
   — a canonical path needing its own explicit authorisation.**
+- 2026-08-18 18:18 — **D8-3 (wrapper look-through) dispatched and RUNNING; the predicted resource tripwire
+  fired and was diagnosed rather than guessed at.** It is the one item on the board that is a FIX
+  rather than a decision, and it is the hard precondition on shipping R1: 8 of the 10 worst
+  "entered IVV at ~99pp" rows are already `available` + `sustained` and held back ONLY by the null-z
+  gate that R1 removes, with 97 phantom "exited AAPL/MSFT" rows riding in the same funds.
+  **Liveness lesson worth recording: the task-stub `.output` files are NOT a liveness signal.** The
+  backstop check found the D8-3 stub unwritten for 88 minutes at 148 bytes — the same size every
+  agent stub carries — which reads exactly like death. The worker was in fact **alive and working**:
+  `ps` showed `build_holdings_lookthrough_window.py --full --out data/_tmp/d83/...` running since
+  17:20 with 172 minutes of CPU. **Verify liveness from the PROCESS TABLE, not the stub**
+  ([[verify-run-dead-before-resuming]] — a stub that never grows is the same shape as a dead run).
+  Also confirms the worker honoured the no-canonical-write constraint: it passed `--out` into its own
+  `_tmp` prefix unprompted.
+  **The resource tripwire flagged at session start fired.** Disk fell from 14 GiB to **3.4 GiB free
+  (100 pct used)** in an hour. Diagnosed instead of assumed: the artifact being rebuilt is only
+  **134 MB** and 138 MB was already written, so the build was never the disk hog — **swap was**.
+  `vm.swapusage` showed **26.6 GB allocated / 25.5 GB used** on a **16 GB** host, and macOS grows
+  swapfiles on the boot volume. Cause is the standing one: Supabase's 12 containers + a full
+  lookthrough rebuild + browser + session on 16 GB. It is self-correcting as the build passes peak —
+  disk recovered to **5.2 GiB** during the check — so nothing was killed and no backup was deleted
+  (the 55 MB redundant `.POSTLOAD` copy was kept deliberately: provenance of exactly what was loaded
+  is worth more than 55 MB).
+  **Operational rule reaffirmed for the next heavy build: stop Supabase first.** It could not be
+  stopped here because it is serving the page the owner is actively reviewing — which is itself the
+  trade-off to know about, not a reason to be surprised by it.
+  Canonical writes remain **0**.
