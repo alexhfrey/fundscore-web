@@ -316,8 +316,8 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
       "“US bonds” means exactly that: BND is Vanguard Total Bond Market, a US investment-grade fund, not a global bond fund. The honest global vehicle only begins in 2018 and reaching 2008 with it would require splicing, which this panel forbids.",
     ],
     limitations: [
-      "Coverage is 3,094 of 5,819 served funds (53.2%). The right denominator is funds that show a passive alternative at all: of those 3,689, this serves 3,094 — 83.9%. There is no recoverable gap.",
-      "The funds without a neighbourhood are honestly without one: 2,130 have no twin to speak of (1,705 of them ARE passive vehicles, where a twin is meaningless), 608 have a twin below our fit floor — we will not present a match we don't trust as “the neighbourhood” — and 2 fail closed for want of a fit row.",
+      "Coverage is 3,094 of 5,819 served funds (53.2%). The denominator that matters is funds that actually display a twin mix you could act on — 3,101 of them — and of those this serves 3,094, or 99.8%. (Against the wider 3,689 carrying any passive-alternative record it reads 83.9%, but 588 of those display no twin at all because the match fell below our fit floor, so that denominator understates it.) There is no recoverable gap.",
+      "The funds without a neighbourhood are honestly without one: 2,130 have no twin to speak of (1,705 of them ARE passive vehicles, where a twin is meaningless), 588 have a twin below our fit floor — we will not present a match we don't trust as “the neighbourhood” — and 7 fail closed for want of a fit row. Those three add to exactly the 2,725 funds that serve nothing.",
       "The history belongs to the twin, not the fund. Two funds matched to the same alternative see the same neighbourhood, and a twin can be far older than the fund holding it.",
     ],
   },
