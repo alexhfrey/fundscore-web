@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-18T18:40-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-18T22:47-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -2454,3 +2454,58 @@ them.
   proved non-vacuous by relocating its allowed prefix (it then reports 9 offenders)** — the strongest
   form of this proof the run has produced. **Canonical writes remain 0.** Disk recovered to 13 GiB as
   swap released. **Four commits now carry a disclosed, OWED codex gate.**
+- 2026-08-18 22:47 — **Movement 03 audited end-to-end: PASS on every NUMBER, three HIGH findings on the STORY.
+  One was a false sentence on 144 live pages and is FIXED (`3c291ab`); the rest are filed to
+  backlog so they survive this session.**
+  This closed a gap in the dispatcher's own process: every other unit of the run got an adversarial
+  check and F2 — the newest thing on the owner's page — had not. The audit walked
+  **rendered HTML → Postgres → staging → gold → raw daily prices** and **reconciled all 3,094 served
+  payloads against gold with ZERO field-level discrepancies**, rebuilding PRNEX's entire panel
+  bit-for-bit from raw adjusted closes (25228.951859 == 25228.951859). Every figure the owner is
+  reading — $25,229 / $46,574 / +5.3 pct/yr / 110 pct / 98 pct / 79 down months / 15 of 79 / 18.1
+  years — **reproduced**. External sanity clean (VT +8.88 pct/yr vs a published 8.96 pct
+  since-inception): no units error, no off-by-a-decade window.
+  **The honesty machinery was MUTATION-TESTED, not assumed.** Dropping `hypothetical`, dropping
+  `mix_as_of`, dropping both, dropping `series`, and an empty-string `mix_as_of` **all** produce a
+  null view with no section and no nav entry. The claim that an unlabelled backcast cannot reach the
+  page is TRUE. VOO renders nothing; "global bonds" appears nowhere; ongoing drawdowns say "not yet".
+  **HIGH-1, and it was shipping a FALSEHOOD: 144 funds' twin IS the reference leg.** A `100% VT`
+  twin makes both capture ratios 100 **by identity**, and the old rule matched
+  `downPct <= 100 && upPct >= 100` and printed *"Less of the falls came through than the gains"* —
+  next to "$46,574 ... turned the same $10,000 into $46,574". **Fixed and committed**: suppressed on
+  the identity, plus a branch that never existed for the ADVERSE case (MCHFX, down 88 / up 77 while
+  returning 4.84 pct/yr against VT's 11.40 pct in a 70 pct ongoing drawdown, previously rendered as
+  the reassuring "moved less than world stocks in both directions"). Funds already correct are
+  unchanged. **Removing a false claim was treated as a defect fix, not deferred to a decision**; what
+  IS deferred is whether the card or the section should render at all for an identity twin.
+  **HIGH-2 (owner): "twin" means two different portfolios on one page.** M02 uses a point-in-time
+  twin refit as the fund changed; M03 uses today's mix backcast. Same window, same named object:
+  **$28,600 vs $24,503, a 16.7 pct divergence** — and M02's own caption warns against "today's mix
+  projected backwards ... a mirror that did not exist at the time", which is precisely M03's method.
+  The two displayed figures sit close enough to imply 2008-2012 was flat when the twin actually
+  **lost 11.8 pct**. Filed.
+  **HIGH-3 (owner): 18 index ETFs get "before you judge the manager".** TAN has no manager and its
+  twin is a rival passive ETF. One root cause, two symptoms — these 18 are EXACTLY the 18 with no
+  `asof_refit_date`, having entered via a path that bypasses the L2 fit record, so their chip date is
+  asserted rather than sourced. The assembler's own docstring already forbids this. Filed.
+  **MEDIUM-HIGH: the headline dollar figure assumes DAILY REBALANCING for 18 years, undisclosed** —
+  PRNEX $25,229 vs buy-and-hold $26,539; worst case **$111,953 vs $177,659, a $65,706 gap on
+  $10,000**. Filed.
+  **Two errors in the dispatcher's OWN methodology copy, corrected (`8e8b1e7`)**: the suppression
+  components did not sum (published 2,130/608/2 = 2,740 against a real 2,725; truth **2,130/588/7**),
+  and the coverage denominator **understated our own result** — against the 3,101 funds that actually
+  display a twin mix, coverage is **99.8 pct**, not the published 83.9 pct. Both re-derived from the
+  staging parquet by the dispatcher before editing.
+  **Six findings filed to `backlog.md` Working set** so none of this is lost with the session.
+  **Environment: the local Postgres is DOWN and needs the owner.** Docker reported the container "Up
+  24 hours (healthy)" while `exec` said it was not running — its VM disk took an I/O error during the
+  swap episode. `docker start` fails on `/var/lib/docker/.../hosts: input/output error`. Docker
+  Desktop was quit (the standard non-destructive fix) and **will not relaunch from the CLI** — the
+  owner must open it, then `npx supabase start`. **No prune, no factory reset: that would destroy the
+  local serving DB.** The data is recoverable regardless — the exact loaded staging artifact is on
+  disk at sha `38a84c41…`, so the DB is one reload away. Disk recovered to 19 GiB once Docker quit.
+  **Owed, and tracked rather than forgotten:** `npm run build` and a live render-check on `3c291ab`
+  (the build guard fails closed on an unreachable DB, which is correct — verified the failure is
+  `ECONNREFUSED`, not the change; `tsc --noEmit` clean), and the **codex gate on six commits**
+  (`c0c13bd`, `f69b6d5`, `29c3d22`, `076562f`, `8e8b1e7`, `3c291ab`), still out of vendor quota until
+  2026-08-19 22:52.
