@@ -114,11 +114,24 @@ function CaptureCell({ k, n, sub, d }: { k: string; n: string; sub?: string; d: 
  */
 function captureTakeaway(upPct: number | null, downPct: number | null): string | null {
   if (upPct == null || downPct == null) return null;
+  // DEGENERATE COMPARISON — say nothing rather than something false.
+  // 144 served funds have a twin of exactly 100% VT, i.e. the twin IS the
+  // reference leg. Both ratios are then 100 BY IDENTITY, the growth chart draws
+  // the gold line on top of the grey one, and any claim of asymmetry is false.
+  // The previous rule matched `downPct <= 100 && upPct >= 100` here and asserted
+  // "Less of the falls came through than the gains" for a tautology.
+  if (Math.round(downPct) === 100 && Math.round(upPct) === 100) return null;
   if (downPct > 100 && upPct < 100) return "You were not buying protection.";
   if (downPct > 100 && upPct >= 100)
     return "This space amplified world stocks in both directions.";
-  if (downPct <= 100 && upPct >= 100) return "Less of the falls came through than the gains.";
-  return "This space moved less than world stocks in both directions.";
+  // Compare the two ratios TO EACH OTHER, not to 100. A space can take less of
+  // the falls than of the gains (genuinely defensive) or MORE of them (adverse)
+  // while both sit under 100 — the old rule had no branch for the adverse case
+  // and read reassuringly for it (e.g. down 88 / up 77 rendered as "moved less
+  // than world stocks in both directions").
+  if (downPct > upPct) return "More of the falls came through than the gains.";
+  if (downPct < upPct) return "Less of the falls came through than the gains.";
+  return "This space moved with world stocks in both directions.";
 }
 
 function DrawdownRow({ d }: { d: NeighbourhoodDrawdown }) {
