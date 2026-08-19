@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-18T18:18-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-18T18:40-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -2410,3 +2410,47 @@ them.
   stopped here because it is serving the page the owner is actively reviewing — which is itself the
   trade-off to know about, not a reason to be surprised by it.
   Canonical writes remain **0**.
+- 2026-08-18 18:40 — **D8-3 FIXED and committed (`076562f` on `fix/d83-wrapper-lookthrough`). It corrected the
+  ITEM'S OWN PREMISE, and that correction is the headline.**
+  All 24 candidate rows were adjudicated against raw N-PORT — did the fund actually file that CUSIP
+  at its own prior endpoint? — and **14 of the 24 are TRUE allocations that really happened** (SHUS
+  really did enter SSPY at 98.9pp). **Only 10 are bogus.** The magnitude cut everyone had been
+  quoting was never a defect cut. Restated blast radius: **10 false "entered" rows, 97 phantom
+  "exited" rows, and a coverage flag that lied for 276 funds** (`partial=false` for 291).
+  **Root cause proven, not guessed:** the filer swapped the issuer LEI on the wrapper line from the
+  SERIES LEI to the REGISTRANT/TRUST LEI — same CUSIP throughout — so `lei2series` missed, `msid`
+  came back null, and the book collapsed to the wrapper line. **And the disclosure flag was computed
+  from THE SAME FAILED LOOKUP** (`is_unresolved_wrapper = msid.is_not_null() & …`), so a
+  99%-of-NAV S&P 500 ETF was reclassified as an operating-company leaf while coverage reported 1.0.
+  One unknown identifier produced both halves. The dispatcher's own briefed hypothesis — that
+  `etf_holdings_snapshots` has only 5 as-of dates — was **RETRACTED with evidence: that table is
+  never read.**
+  **The fix separates identity from resolution**: a CUSIP→series map built only where the SEC MF
+  ticker file and Sharadar agree on the FILED cusip (4,839 CUSIPs) feeds the FLAG only and never
+  `msid`, so *knowing what a line is* can no longer be confused with *having expanded it*. Plus a
+  per-wrapper resolution ledger, a basis-break gate that marks holdings-derived rows `missing` with a
+  reason when a wrapper is expanded at one endpoint and opaque at another, and fail-CLOSED wiring
+  (`finalize()` raises without the gate column; NULL counts as broken).
+  **The best thing in the report is a fix it built, measured and DELETED**: excluding wrapper lines
+  from the position family as "not single names" removes 604 rows across 201 funds — and 14 of the 24
+  are true allocations. A wrapper position IS a position. A comment now marks it so it is not
+  re-added.
+  Verification: regression shows **0 rows added, 0 removed, 0 magnitude changes**; 2,264 status flips
+  **all** carrying the basis-break reason; **101 of 5,062 funds changed, 4,961 byte-identical**;
+  10/10 false rows suppressed, **0 of 97 phantom exits survive**. An **independent cross-check
+  rebuilt the ledger from raw N-PORT using none of the pipeline's code — 94 funds against the
+  pipeline's 123, a strict SUBSET with 0 funds missed.** 14 tests, and reverting the two gate
+  expressions in place makes exactly 7 fail. Coverage 97.0 → 92.6 pct: **coverage did not fall, the
+  measurement stopped over-stating**; the residual is 26.2 pct honest vs **73.8 pct recoverable**
+  (2,552 lines / 390 funds) — a defect, filed as its decision 1.
+  **Cost it refused to hide:** 143 surfaced rows across 43 funds stop surfacing, and **69 of them
+  have magnitudes larger than the entire basis-broken weight** (median break 1.93pp) — the fund-level
+  rule over-suppresses. Filed as decision 2(a) with the alternative already sized (1,700 rows / 69
+  surfaced), and no constant chosen.
+  **It also found the same root cause LIVE in the X-Ray** — `holdings_complete.parquet` carries
+  SPYC/HEQT/SHUS/GBXA as a single opaque ETF line with no wrapper flag at all (partially contained by
+  `exposure_xray.is_opaque`). Filed.
+  Non-mutation: `os.walk(followlinks=True)` over 2,252,145 files with a canary, **and the detector
+  proved non-vacuous by relocating its allowed prefix (it then reports 9 offenders)** — the strongest
+  form of this proof the run has produced. **Canonical writes remain 0.** Disk recovered to 13 GiB as
+  swap released. **Four commits now carry a disclosed, OWED codex gate.**
