@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-20T15:53-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-20T15:58-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -2790,3 +2790,44 @@ them.
   post-gate lint fix tripped the commit hook's "code changed after review" guard, correctly, and the
   gate is re-running. **Both fences behaved exactly as designed today** — the hook refused a pre-gate
   commit and then refused a post-gate edit.
+
+- 2026-08-20 15:58 — **U4 (L6) Phase A CHECKPOINT: PASS-WITH-CORRECTIONS. All three checkpoints are now in. U3
+  (L14) COMMITTED (`98c3433`) after a second codex pass.**
+  The reviewer re-derived every headline number and several trace to the **raw SEC filings**: R0
+  reconstruction == production staging row-for-row; **served == gold, 0 mismatches over 480,562 field
+  comparisons**; D8-6's 139 undated rows / 93 funds -> 0; the D8-3 frame trio (+3,459 wrapper flags
+  strictly one-way, 0 reversals on a 4.03M-row keyed join); determinism reproduced to the row with
+  inertness **stress-tested rather than accepted**; G6 falsified with the reviewer's OWN seeded defects;
+  the consumer audit re-done independently — `build_fund_takeaways` confirmed **dead**, no hidden
+  consumer; FCNTX's 8 rows traced to N-PORT `0000035402-26-003312` (META -6.010pp, BRK.A -6.210pp,
+  BRK.B +1.024pp); non-mutation clean.
+  **Four corrections, two of which the owner brief depends on:**
+  **(C-1) "Merging `076562f` is clean, zero conflicts" is FALSE for the branch that will actually
+  merge.** The clean result was measured against COMMITTED `6e177e2`, but Phase A's code is
+  **uncommitted** and touches the same files. Snapshotting the working tree yields **one conflict** in
+  `positioning_changes.py` — a single both-sides-insert hunk of adjacent constants, resolvable by
+  keeping both. **The D8-3 substance survives entirely** (0 basis-break refs on this branch vs 20 on
+  `076562f`; frame promotion IS a no-op; the prerequisite IS a code merge) — but the merge ruling reads
+  that sentence, so it must say "one trivial conflict".
+  **(C-2) D8-9 was MIS-DIAGNOSED by exactly the vacuous-verification pattern this run keeps hunting.**
+  Served rows carry **no `total` field at all**, so "all 107 moved positions have `total = null`" is true
+  **by construction**, and "1,939 of 5,819 exposed" is merely the count of funds HAVING the section. The
+  real sort key is null on **0** funds. The phenomenon is real and pre-existing (reproduced on MAIN),
+  but the mechanism is **exact-duplicate float keys** on overlapping-theme twins and **true exposure is
+  56 funds, ~35x smaller than filed**. A fix built against "nulls sort last" would not fix it. Refiled.
+  **(C-3)** §S3.10's "3 ERRORS" is **28** (mechanism as claimed; load-bearing half verifies at 30
+  passed / 1 failed against the v0.2 panel).
+  **(C-4) MATERIAL OMISSION from the ruling brief — served-content CHURN.** The report gives "+854 net"
+  and never states that **4,069 currently-served non-style rows across 1,325 funds LEAVE the served
+  top-8 under R1 — 46.9 pct of today's non-style served rows — with 214 funds having their ENTIRE
+  current section content replaced.** All 4,069 verified as cut-displacement (still `is_surfaced` at
+  rank > 8, **0 surfacing regressions**), so this is D-1 + D-1b operating as ruled, not a defect. But a
+  brief showing only net adds while half the displayed rows rotate out is not a complete brief, and the
+  owner must see it.
+  **Phase B is safe once the owner rules, on four conditions** (adopted from the reviewer): fix C-1..C-4
+  first; commit Phase A, merge keeping both constant blocks, and **re-run the full gate battery on the
+  MERGED tree** (the review covered the pre-merge tree plus merged blob reads, not a built merged
+  artifact); **re-measure the D8-4 blast radius immediately before the staging write**; and rebuild
+  `value_offering_reframed_panel` AFTER the positioning panel.
+  **All corrections appended to the reports; L6 confirmed holding cleanly at the Phase A/B boundary
+  with 0 canonical writes and both authorized paths still at their pre-existing timestamps.**
