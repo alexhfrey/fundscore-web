@@ -277,6 +277,11 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
             fundName={identity.fund_name ?? identity.ticker ?? ticker.toUpperCase()}
             view={neighbourhood}
             twinMixLabel={twin.mixLabel}
+            // A multi-leg twin's series is daily-rebalanced; the caption discloses
+            // that only when it actually applies.
+            twinLegCount={twin.legs?.length ?? null}
+            // An index vehicle has no manager to bet on.
+            isPassive={identity.management_style === "passive"}
           />
         ) : null}
 

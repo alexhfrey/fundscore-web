@@ -884,6 +884,16 @@ export function buildNeighbourhood(rawSection: unknown): NeighbourhoodView | nul
   const tiles = obj(n["tiles"]);
   const cap = obj(n["capture"]);
 
+  // FAIL CLOSED on the four-file contract. The assembler writes series, stats,
+  // drawdowns and years atomically and refuses to emit a partial set, so a
+  // MISSING array here means the payload drifted — not that the fund has no
+  // drawdowns. Coercing to [] silently dropped whole cards while the section and
+  // its nav entry still rendered, which is the nested-contract-collapse shape:
+  // the parent looks populated so no section-level guard can see it.
+  if (!Array.isArray(n["drawdowns"]) || !Array.isArray(n["years"]) || !obj(n["capture"])) {
+    return null;
+  }
+
   const drawdowns: NeighbourhoodDrawdown[] = (Array.isArray(n["drawdowns"]) ? n["drawdowns"] : [])
     .map((d) => {
       const o = obj(d);

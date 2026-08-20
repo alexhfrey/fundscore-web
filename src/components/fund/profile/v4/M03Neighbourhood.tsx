@@ -163,9 +163,26 @@ export interface M03Props {
   view: NeighbourhoodView;
   /** The verdict's twin mix ("68% IGE + 32% VT"), for naming the gold line. */
   twinMixLabel: string | null;
+  /**
+   * How many ETFs the twin holds. A multi-leg twin's served series is a
+   * constant-weight DAILY-REBALANCED backcast, which is not what "held fixed"
+   * implies to a reader, so the disclosure below is conditioned on this.
+   */
+  twinLegCount?: number | null;
+  /**
+   * An index vehicle has no manager. Suppresses the "a bet on the manager"
+   * clause rather than asserting something false about it.
+   */
+  isPassive?: boolean;
 }
 
-export function M03Neighbourhood({ fundName, view, twinMixLabel }: M03Props) {
+export function M03Neighbourhood({
+  fundName,
+  view,
+  twinMixLabel,
+  twinLegCount = null,
+  isPassive = false,
+}: M03Props) {
   const { tiles, capture, drawdowns, years, labels } = view;
 
   const twinName = twinMixLabel ?? "the fund's passive twin";
@@ -201,8 +218,11 @@ export function M03Neighbourhood({ fundName, view, twinMixLabel }: M03Props) {
   const standfirst = (
     <>
       Owning {fundName} is first a decision to own this corner of the market{" "}
-      {twinMixLabel ? <>&mdash; {twinMixLabel} &mdash;</> : null} and only second a bet on the
-      manager. What follows is that decision&rsquo;s history, not the fund&rsquo;s: the panel
+      {twinMixLabel ? <>&mdash; {twinMixLabel} &mdash;</> : null}
+      {/* An index vehicle has no manager to bet on. Asserting one is simply
+          false for the passive funds that reach this section. */}
+      {isPassive ? null : <> and only second a bet on the manager</>}. What follows is that
+      decision&rsquo;s history, not the fund&rsquo;s: the panel
       belongs to the twin, so two funds matched to the same alternative see the same
       neighbourhood. {fundName}&rsquo;s own record is{" "}
       <SectionLink href="#record">section 02</SectionLink>.
@@ -242,7 +262,16 @@ export function M03Neighbourhood({ fundName, view, twinMixLabel }: M03Props) {
         <Caption>
           <b>The gold line is a backcast, not a track record.</b> It holds the twin&rsquo;s mix as
           fit on {mixAsOfLong} fixed and applies it to the past &mdash; that combination of index
-          funds is what someone could buy today, and nobody earned this line historically. The
+          funds is what someone could buy today, and nobody earned this line historically.
+          {twinLegCount != null && twinLegCount > 1 ? (
+            <>
+              {" "}
+              The mix is held at those weights <b>by rebalancing daily</b>, which a buy-and-hold
+              holder would not do &mdash; on some multi-leg twins that is worth a percentage point
+              or more a year.
+            </>
+          ) : null}{" "}
+          The
           three reference legs are single funds, each its own real history over the same window.
         </Caption>
         <div className="mt-3">
