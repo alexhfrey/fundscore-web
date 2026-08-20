@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-20T11:30-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-20T12:45-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -2593,3 +2593,41 @@ them.
   measurement pass (recommend authorise measuring, NOT fixing), L14's fill + precedence (recommend
   B+G1 and P1), and the "twin means two different portfolios on one page" question — the only one
   carrying **no** recommendation, because it is a product-voice call.
+- 2026-08-20 12:45 — **OWNER RULED ON ALL FOUR. Three unblocked, one turned into a measurement.**
+  **S2-a = 0.80** ("Sure 80%") — the receipts floor holds where it is; 1,947 funds get the card.
+  Consequences that follow automatically and are recorded so nobody re-opens them: **S2-c (the twin
+  basis) is NOT blocking at 0.80** — it was only blocking for a floor BELOW 0.80, where the
+  un-renormalized-twin defect concentrates; **S2-d (ADR pricing) stays deferred**; and **S2-b takes
+  the status quo** — the shipped gate already uses the worst-sub-period basis, and the line ruling
+  (gate basis == displayed basis) then forces display to match it. No change needed.
+  **Capital-gain: "Yes measure"** — Segment 2 authorised as a MEASUREMENT pass, not a build. The
+  owner also asked for a proper root-cause explanation, which was given: the vendor moves its
+  ADJUSTMENT FACTOR on the ex-date while the PRICE does not move until the next day, so for one day
+  the two disagree — AQLGX shows +46.1 pct on a flat-price day, then the real -46.1 pct lands
+  unadjusted. **The deeper defect is that `build_fund_daily_adj_close.py` keeps only `adj_close` and
+  discards the raw close and the dividend**, so nothing downstream can tell an invented move from a
+  real one. The fabricated charts are the symptom; the discarded evidence is the cause.
+  **L14: "You pick"** — line takes **B+G1** (fill, ISIN-embeds-identifier + filed-name corroboration)
+  and **P1** (US/Sharadar wins the vendor tie). Recorded as a delegated line decision, not an owner
+  ruling, so the provenance is honest.
+  **Twin question: the owner pushed back well and the pushback is being taken seriously.** Their
+  argument — "for past performance we should use the current mix, since it is anyway derived from a
+  past regression" — has real force. Evidence put in front of them: **PRNEX's section-02 benchmark is
+  SEVENTEEN different portfolios stitched end to end** (2020 VEU 55/XLE 45 → 2021 VT 60/XLE 40 →
+  2024 VT 52/IXC 48 → 2026 IGE 68/VT 32), which is **not a portfolio anyone could have held** — you
+  would have had to switch on our refit dates — and the page currently labels it "IGE", which is
+  false for the early years. Against that, the current mix carries hindsight: it is fitted knowing
+  the fund's recent returns, so grading 2020 with it uses information from the future.
+  **Nobody has measured what that hindsight is worth**, so the line offered to measure it — Value
+  Score verdicts under both benchmarks, same funds — rather than argue the principle. Three options
+  are on the table (A all point-in-time, B all current-mix, C keep both but stop calling both "the
+  twin"); the line leans C but will not defend it without the number.
+  **Q1 answered with evidence, and the premise was wrong in a useful way: we CAN price foreign
+  companies — when the line is US-exchange-listed.** Measured against the real equity store (8,643
+  tickers): Shell, TSMC, BP and AstraZeneca are all **present**; the OTC ADRs (RHHBY, BAYRY, BNPQY,
+  RBGLY, PROSY, PPRUY) are all **absent**; home-exchange ordinaries (Bayer/Xetra, Nestle/SIX) are
+  **absent**. So the dividing line is not "foreign" — it is **where that specific share line trades**.
+  The vendor covers US EXCHANGES, not the US OTC market and not foreign exchanges, which is exactly
+  why no floor reaches international funds. **A trap was flagged in the same breath:** `ROG` and `MC`
+  ARE in the store — as Rogers Corp and Moelis, not Roche and LVMH — so matching foreign holdings by
+  ticker would silently price the wrong company, the same class as the Genie/GE bind.
