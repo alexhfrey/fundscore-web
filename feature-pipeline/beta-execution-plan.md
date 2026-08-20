@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-20T16:23-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-20T17:15-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -2935,3 +2935,24 @@ them.
   rounds each finding a new falsifier in under a day, **each along an UNTESTED AXIS rather than by
   refining one in hand.** DECISION C option (b) is now **three gates and a band**, and the gate count has
   grown at every review round. That is the strongest available argument for the conservative branch.
+
+- 2026-08-20 17:15 — **Heartbeat went stale at 51 min. Verified NOT dead: the run is PARKED ON THE OWNER, which is
+  a legitimate state — no compute in flight, every worker completed and reported, all three reports
+  carrying their checkpoint corrections.** Per the owner contract the line does **not** stall on owner
+  decisions, so it moved to the next READY item rather than idling.
+  **U5 (L9 — per-stock receipts backend) DISPATCHED, Segment 0, EDA + read-only.** It is unblocked: its
+  `depends_on: L1` closed 2026-08-09, and **S2-a was ratified at 0.80 today** (1,947 funds get the card),
+  which was the last thing holding it. F2's fence holds — Segment 0 writes nothing, and L6's uncommitted
+  Phase A is not a writing session.
+  **It was dispatched with the foreign-returns finding as its HEADLINE input, because that finding is
+  this item's own coverage denominator.** The existing L9 line ruling sizes the missing-bridge defect at
+  **+30 funds**; the measurement says **1,808 funds / \$540.4B**. The worker is told to re-derive rather
+  than inherit, and to say plainly — with its own numbers — whether the denominator the 0.80 floor was
+  ratified on is itself defective. It must frame the **ADR/FX basis** question as a numbered DECISION
+  (S2-d reopened as a MEASUREMENT, not a re-litigation) and bind on **ISIN only**, because `ROG` and `MC`
+  are in the price store as Rogers Corp and Moelis.
+  **Both falsification rules this run earned were written into its brief**: a check returning 0 must be
+  shown capable of returning non-zero before its 0 is quoted (three vacuous checks caught today), and a
+  class boundary must be tested against every axis the downstream action branches on.
+  **Still awaiting the owner on all three fences** — the D8-3 merge (+ D8-3's own DECISIONS 1 and 2(a)),
+  L14's Segment-4 scope fork with Navigator named, and the capital-gain remedy. Brief published.
