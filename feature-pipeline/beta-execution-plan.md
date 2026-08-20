@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-20T15:48-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-20T15:53-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -2755,3 +2755,38 @@ them.
   `changed 0 / lost 0` diff. Also: W1's "+8 ISINs" is properly "6 held + 2 reference-only", and the
   structural collateral is 31 ISINs / 362 rows / \$880.3M actually changing label (definitional delta
   against the report's 32/363). All four corrections appended to `reports/l14_segment1.md`.
+
+- 2026-08-20 15:53 — **U2 (capital-gain) Segment 2 CHECKPOINT: PASS-WITH-CORRECTIONS, but FIVE statements must not
+  reach the owner as written — two of them inside the owner briefs. ONE revision round dispatched.**
+  The measurement layer is real: the reviewer re-derived every load-bearing table from canonical/raw
+  sources with its own code, including **the entire S2-F10 remedy window table cell-by-cell from raw
+  closes**, and confirmed the stale prints appear in EVERY tiingo vintage — so the staleness test is not
+  a panel-build artifact. **All the central reframings survive**: the -y^2 retraction of the 8 pct
+  headline, the stale-print reversal of S2-F2, the three-remedy table, "excision is a window no-op",
+  R3 undefined for 19.9 pct, the 740/609/696/569/77 sizing, the M3 retraction, the yahoo defect's
+  existence, and non-mutation.
+  **What does NOT survive, and why it blocks the owner decision:**
+  **(1) The 575 "genuine timing" class is contaminated by the report's OWN proven bad prints.** The
+  2025-09 family splits **38/38 across the two halves of the taxonomy** — every 2025-09-10 stamp has
+  `left_T1 ~ 0.99` and lands INSIDE the "stamped amount is right, only the timing is wrong" class.
+  **DECISION A would therefore write R3 repairs onto >=38 events whose premise the same report
+  falsifies.** The "union is the 740" parenthetical is false in both directions: union = **851**; 182
+  sub-class events are outside the 740; 71 of the 740 are in no sub-class. The counts are right — the
+  BOUNDARY leaks, and the boundary is what 1a turns on.
+  **(2) "0 of the 38 appear in `value_score`" is a FABRICATED ZERO from a check that could never fire** —
+  `m2e.py` falls back to `vs.columns[0]` (= `series_id`) when there is no `ticker` column, so filtering
+  it by ticker strings returns 0 vacuously. **MSVSX is in fact scored.** The mitigation is real (hygiene
+  truncates MSVSX at 2025-09-09, so its score predates the bad print) but the claim as printed is the
+  vacuous-check class this run keeps finding.
+  **(3) "Class A is empty" is a THEOREM, not evidence** — min served step 0.18244 >= the 0.18232
+  excursion floor every event must clear, while class A requires s <= ~0.105. No selectable event can
+  land there; for the 271 events with y >= 1 it is impossible at any s.
+  **(4) The NaN fix did not propagate to three downstream numbers** — median `left_T1` 0.993 is
+  NaN-inflated (clean **0.9829**); S2-F7's 513/94/18.3 pct/0.0073 is pre-fix (corrected: 559/94/16.8
+  pct/0.0084); and "100+ thrown out of PAID" is **false** — one-sidedness had ZERO net PAID effect.
+  **(5) DECISION D's "over-moves above 1 pct of NAV" onset is a BANDING ARTIFACT** — `.round(0)` applied
+  before `.cut()` shifts every band edge up to 0.5pp. True onset is **~2-3 pct of NAV**, not 1 pct.
+  **U3 (L14) committed** on `fix/l14-domicile-routing` after codex pass (0 blockers, 0 advisories); a
+  post-gate lint fix tripped the commit hook's "code changed after review" guard, correctly, and the
+  gate is re-running. **Both fences behaved exactly as designed today** — the hook refused a pre-gate
+  commit and then refused a post-gate edit.
