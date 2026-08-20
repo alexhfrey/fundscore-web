@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-20T16:06-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-20T16:14-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -2864,3 +2864,40 @@ them.
   **S2-DECISION C re-sized:** the bad-record item is **701 events / 570 tickers / 534 served / 76
   scored / 658 kept (~48 pct of the class)**, PLUS 85 print artifacts (~5.5 pct). Option (b) is
   **two gates and a band**, not one band.
+
+- 2026-08-20 16:14 — **U2 RE-CHECK: taxonomy confirmed cell-for-cell, but a THIRD leak found — on the axis nobody
+  was testing. Two bounded edits dispatched. And the "is the class converging?" question is now
+  SETTLED, empirically: it is not.**
+  The reviewer rebuilt the taxonomy with its OWN round-trip detector and `left_any`: **all 25 cells
+  reproduce exactly**, both closures hold. Its adversarial probe for a second round-trip blind spot
+  (late reversion T+2..T+15 at 5 pct tolerance, plus series-end censoring) found **none** — every flag
+  resolved on raw rows to a genuine T+2..T+4 landing or its own baseline artifact. The bad-print bucket
+  is complete on that axis.
+  **THE NEW LEAK: the boundary tests the PRICE PATH and never the `verdict`.** All **12** kept
+  NO_FACTOR events sit inside "TIMING ONLY — this item's genuine class": AEMIX, SCGLX, SEOFX,
+  VPGCX/VPGEX/VPGYX, LTGAX x2, AMWCX/AMWIX/AMWYX, **CRSGX**. Every one has `left_T ~ 1` — the money
+  left ON the stamped day — and serves a fabricated **LOSS** of -16.9 pct to -28.9 pct, with
+  **CRSGX 2019-03-19 serving -97.17 pct** (13.41 -> 0.38, D=13.036, factor never moved; verified on raw
+  tiingo + the gold panel). **These are the MIRROR defect, and DECISION A's prescription is SIGN-WRONG
+  for all 12** — the two-legged repair would deepen CRSGX's -97 pct toward -99.9 pct, and its
+  `-log(1-y)` leg is **undefined at y = 34.3**. TIMING ONLY is really **525 EARLY_FACTOR + 12
+  NO_FACTOR**; the repair needs a `verdict == EARLY_FACTOR` guard and the 12 need the mirrored remedy as
+  their own bucket. 7 of the 12 served, 0 scored.
+  **ITEM 2 — the meta-observation is real and it UNDER-claims.** The 1,519 -> 1,374 -> 575 -> 537
+  sequence is a genuine one-way ratchet (both apparent "in" moves added 0 events). The worker's
+  "a fourth has not been looked for" is now settled: **the reviewer looked, and it exists** — the verdict
+  axis takes 537 -> at most **525**. **Four rounds, and TWO CONSECUTIVE REVIEW ROUNDS have each found a
+  new falsifier in under a day. The class is still shrinking, not converged.** The reviewer's words:
+  the conservative branch "is not just argued for, it is the only defensible reading of this trajectory."
+  **ITEM 3 — one claim overbroad, and it exposed an UNOWNED SERVED DEFECT.** "price_hygiene already
+  handles them" holds for the kept 76 (2025-09 family) but is **false for CSIUX**: hygiene excised only
+  the reversion leg (2022-07-14), so the served `passive_alt_daily_nav` **STILL CARRIES the fabricated
+  +62.72 pct print step on 2022-07-13** and the stale 1.9632 level after it. MAPOX by contrast is fully
+  excised — so the machinery handles this shape and simply did not here. **CSIUX was adjudicated OUT of
+  the capital-gain rule's scope, and the report that ruled it out implied hygiene covered it. Nothing in
+  any branch of the plan owns it.** Filed to backlog as its own item, with an instruction to check the
+  same excision asymmetry on BRLIX / JOPSX / SMGAX.
+  **Verdict: fit for the owner after the two bounded edits. The recommendation's ARCHITECTURE holds** —
+  evidence-first split, conservative branch, and no remedy without consuming `close_price`, which is the
+  same root cause the owner already holds (`build_fund_daily_adj_close.py` discards the raw close and
+  the dividend, so nothing downstream can tell an invented move from a real one).
