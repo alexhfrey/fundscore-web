@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-20T16:14-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-20T16:23-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -2901,3 +2901,37 @@ them.
   evidence-first split, conservative branch, and no remedy without consuming `close_price`, which is the
   same root cause the owner already holds (`build_fund_daily_adj_close.py` discards the raw close and
   the dividend, so nothing downstream can tell an invented move from a real one).
+
+- 2026-08-20 16:23 — **U2 ROUND-3 EDITS APPLIED AND VERIFIED. The capital-gain report is now internally consistent
+  and FIT FOR THE OWNER.** No further review round — the edits were bounded, the reviewer had already
+  adjudicated the direction, and the implementer verified each with its own numbers.
+  **Edit 1 (verdict axis):** TIMING ONLY = **525 EARLY_FACTOR (524 kept) + 12 NO_FACTOR (12 kept)**,
+  11 tickers, **7 served, 0 scored**. All 12 have `left_T` 0.9638-1.1374 and serve a fabricated LOSS
+  from -16.86 pct (LTGAX) to **-97.17 pct (CRSGX)**. CRSGX verified end-to-end: raw tiingo
+  `13.42 -> 13.41 -> 0.38`, dividend 13.036, `adj_close/close_price = 1.000000` throughout, gold panel
+  books -0.971663. **New S2-F24** names them the MIRROR defect and shows the prescription is sign-wrong:
+  the day-T leg rewrites CRSGX **-97.17 pct -> -99.92 pct**, and the T+1 leg `-log(1-y)` is the log of a
+  negative number at y = 34.31 — **it does not mis-fire, it does not evaluate.** Their remedy is the
+  opposite sign. DECISION A now specifies **four ordered gates** — round-trip -> `verdict ==
+  EARLY_FACTOR` -> stamped-amount -> repair — with only **525** events reachable.
+  **The honesty sentence that matters most to the owner: 7 of those 525 (1.3 pct) have `n_fwd <= 3`, so
+  non-reversion is truncation-censored and "not a bad print" is UNVERIFIABLE — and the owner's own named
+  archetype AQLGX is one of the seven.**
+  **Edit 2 (hygiene scope):** measured on `passive_alt_daily_nav` — MAPOX fully excised (526 excised
+  observations, 0 served rows around its prints); the 2025-09 family truncated at 2025-09-09, before the
+  print; **CSIUX NOT handled** — the served NAV books `1.206452 -> 1.963191, +62.7244 pct` and carries
+  that inflated level for **396 rows to 2024-02-09**. **The excisor removed the leg that REVEALS the
+  artifact and kept the leg that IS the artifact.** The report now states plainly that CSIUX belongs to
+  no gate in the corrected plan and needs its own owner.
+  **The self-accounting is worth recording:** both round-3 errors were **errors of SCOPE, not of
+  measurement, and both were visible in output the worker had already produced** — `m4_four.py` printed
+  CSIUX's exact step on the same screen where the blanket "hygiene covers them" sentence was written.
+  **Two durable lessons came out of this item, both generalised by the worker itself:** round 2's — *a
+  check that returns 0 must be shown capable of returning non-zero before its 0 is quoted*; and round
+  3's, sharper — ***a class boundary must be tested against every axis the downstream action branches
+  on*** (here the `verdict`, which the remedy reads and the boundary did not).
+  It withdrew its own "a fourth falsifier has not been looked for" and replaced it with the measured
+  series, now the report's headline: **1,519 -> 1,374 -> 575 -> 537 -> 525**, two consecutive review
+  rounds each finding a new falsifier in under a day, **each along an UNTESTED AXIS rather than by
+  refining one in hand.** DECISION C option (b) is now **three gates and a band**, and the gate count has
+  grown at every review round. That is the strongest available argument for the conservative branch.
