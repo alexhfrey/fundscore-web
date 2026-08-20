@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-20T15:58-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-20T16:06-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -2831,3 +2831,36 @@ them.
   `value_offering_reframed_panel` AFTER the positioning panel.
   **All corrections appended to the reports; L6 confirmed holding cleanly at the Phase A/B boundary
   with 0 canonical writes and both authorized paths still at their pre-existing timestamps.**
+
+- 2026-08-20 16:06 — **U2 (capital-gain) REVISION ROUND COMPLETE. All five must-fix findings addressed, and the
+  corrected boundary CHANGES the remedy's shape. Focused re-check dispatched (not a second full
+  review) because the corrected taxonomy is NEW analysis the owner's decision now rests on.**
+  **The leak is diagnosed, not just patched:** a round-tripping print produces a T+1 fall of ~1x`D`
+  that `left_T1` **cannot distinguish** from a real ex-drop — so the round-trip test had to be IN the
+  boundary and was not. The rebuilt taxonomy puts a BAD PRINT bucket AHEAD of both halves:
+  **BAD PRINT 85 events / 40 tickers / 76 kept / 1 scored · AMOUNT WRONG 701 / 570 / 658 / 76 scored ·
+  TIMING ONLY 537 / 515 / 536 / 83 scored** · collapse 25 · unmeasurable 171. Arithmetic closes both
+  ways (1,348+171=1,519; 1,270+104=1,374) and the union audit reproduces exactly (851 union; 182
+  sub-class events outside the 740; 71 of the 740 in no sub-class). Old counts retained, labelled
+  superseded.
+  **The vacuous zero is retracted AS THAT CLASS, and the worker generalised it into a standing rule
+  worth adopting line-wide: "a check that returns 0 must be shown capable of returning non-zero before
+  its 0 is quoted."** It named this as the THIRD vacuous check this run has found. **MSVSX is scored**
+  (`S000003671`, score100=25, n_weeks=1184); the real mitigation is that its served NAV ends
+  2025-09-09, so the score predates the print — one fund protected by truncation, not zero by design.
+  Class A demoted from evidence to theorem (min |s| 0.18244 vs floor 0.18232; class-A bound maxes at
+  0.09910, and is negative for the 271 with y>=1 — A=0 would hold on a defect-free population).
+  Clean `left_T1` median **0.9829**; S2-F7 rebased to 559 / 94 / 16.8 pct / p50 0.0084; **"100+ thrown
+  out of PAID" WITHDRAWN as false** (one-sidedness had zero net effect). DECISION D onset corrected to
+  **~2-3 pct of NAV** (clean bands 1.000/1.002/1.006/1.007 through y=2 pct, then 1.911).
+  **CORRECTED RECOMMENDATION — conclusion unchanged, ORDERING changed:** run the round-trip/bad-print
+  test FIRST, then the amount test, then apply the two-legged repair ONLY to the **537** timing events;
+  route **701** to the bad-record item and **85** to `price_hygiene`, which already handles them.
+  **The observation the owner should weigh, raised by the worker unprompted:** *every falsifier added
+  has moved events OUT of the remediable class, never in — **1,519 -> 537 across three rounds** — and a
+  fourth has not been looked for.* That is an argument for the conservative branch and it is now an
+  explicit item in the re-check, along with the obvious next leak: **bad prints that do NOT round-trip
+  inside the detector's window would still sit in TIMING ONLY.**
+  **S2-DECISION C re-sized:** the bad-record item is **701 events / 570 tickers / 534 served / 76
+  scored / 658 kept (~48 pct of the class)**, PLUS 85 print artifacts (~5.5 pct). Option (b) is
+  **two gates and a band**, not one band.
