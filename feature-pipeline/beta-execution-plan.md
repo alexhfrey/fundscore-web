@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-20T15:01-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-20T15:45-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -2708,3 +2708,28 @@ them.
   **Nothing is committed and nothing is gated yet — three `data-reviewer` checkpoints are running, and
   no result above should be treated as established until they return.** Reviewer >= implementer holds:
   implementers were opus, reviews are on the session model.
+
+- 2026-08-20 15:45 — **SESSION LIMIT killed all three reviewers mid-flight; all three RESUMED from their own
+  transcripts (not relaunched), progress intact.** Partial findings they had already reported are worth
+  recording because one is adverse: the capital-gain reviewer had found **the 740-event union claim
+  fails in BOTH directions — it gets 851 vs 740 with 71 uncovered.** The L6 reviewer had confirmed the
+  builder fails closed on both batteries and that G6 gates the final post-reorder rank; the L14 reviewer
+  had independently confirmed non-mutation. **No verdict is in yet and nothing is established.**
+  **ANSWERED THE OWNER'S FOREIGN-RETURNS QUESTION, and the previous answer was wrong in the direction
+  that matters.** On 2026-08-20 the line told the owner the dividing line is "where that share line
+  trades" and implied the gap is honest-missing. Measured on the densest quarter (2026-03-31; 2,471
+  series, $12.74T): **87.1 pct of held value is priceable per-stock; 12.9 pct — $1,644B — is not**, and
+  **81 pct of the unpriced rows (198,546 rows / $1,340B) carry NO TICKER AT ALL** — they never reach a
+  price lookup to fail it. Split by the ISIN-keyed `fmp_isin_us_ticker_bridge`: **$540.4B (32.9 pct) is
+  RECOVERABLE — 1,047 securities across 1,808 funds whose ISIN resolves to a US ticker ALREADY IN OUR
+  PRICE STORE** (TSM $46.6B, NVS $11.4B, BTI $10.6B, TTE, NXPI, LIN, HSBC); $716.1B (43.6 pct) resolves
+  to a US ticker we do not price; $299.6B (18.2 pct) has no bridge entry — the plausibly-honest cohort;
+  $87.9B (5.3 pct) has no ISIN. **Under the house rule a recoverable miss is a DEFECT, not partial
+  coverage.** This is the same defect as the L9 line ruling "the pricing path never calls
+  `fmp_isin_us_ticker_bridge`" — but that ruling sized it at **+30 funds** and the true size is
+  **1,808 funds / $540B**, off by more than an order of magnitude. Filed to backlog Working set.
+  **Two things must be settled before anyone builds it:** whether a US ADR's USD return is the right
+  return for a foreign ORDINARY line (it differs by FX — defensible for a USD-reporting fund, but
+  adjudicated and labelled, never assumed), and the wrong-company trap (bind on ISIN ONLY — `ROG` and
+  `MC` are in the store as Rogers Corp and Moelis). **Consequence the owner should see: this gap is the
+  denominator the 0.80 priced-coverage floor they ratified today is computed on.**
