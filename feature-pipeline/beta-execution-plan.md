@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-20T12:45-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-20T14:07-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -2631,3 +2631,32 @@ them.
   why no floor reaches international funds. **A trap was flagged in the same breath:** `ROG` and `MC`
   ARE in the store — as Rogers Corp and Moelis, not Roche and LVMH — so matching foreign holdings by
   ticker would silently price the wrong company, the same class as the Genie/GE bind.
+
+- 2026-08-20 14:07 — **RUN RECOVERED after a process death, and L6 SEGMENT 3 AUTHORISED BY THE OWNER.**
+  **What died:** the dispatcher session (`c4a3c451`) lost its stream at 13:00 MDT and the process
+  bonked at 13:32. Both in-flight workers were killed by the stall watchdog after 600s with no
+  progress. **They died simultaneously, right after successful tool results — that points at the
+  process, not at either agent's work.**
+  **What survived, verified on disk rather than assumed:** L14's ISIN name harvest **COMPLETED at
+  13:05** (445,153 rows, 49,054 distinct ISINs -> `data/_tmp/l14/fresh_isin_names.parquet`) — the
+  agent was blocked in a wait loop and died five minutes before its own result landed. Both
+  worktrees intact with uncommitted work; capital-gain's Segment-2 report written to S2-F1;
+  **canonical lakehouse writes 0** — both workers were `_tmp`-fenced and the fences held.
+  **What did NOT survive, and is the lesson:** the `:14/:44` backstop heartbeat cron was registered
+  INSIDE the dispatcher session, so it died with the run it exists to rescue. The backstop only ever
+  covered "alive but stalled", never process death. Recorded as [[backstop-cron-dies-with-session]].
+  **OWNER RULING: L6 Segment 3 is authorised to write the canonical `serving_facts_staging.parquet`.**
+  That was the explicit authorisation §S2.11 said it needed, and it was the only decision on the board
+  that could be taken without waiting on a measurement.
+  **Restart state:** Docker restarted (it was down, taking Supabase with it); the local stack came back
+  healthy. Three workers dispatched — capital-gain Segment 2 (measurement, `_tmp`), L14 Segment 1
+  (sample, `_tmp`), L6 Segment 3 (the one canonical writer). F2's fence is honoured: exactly one
+  lakehouse-writing session.
+  **A PREREQUISITE THE BOARD HAD LOST TRACK OF, found while dispatching L6 and raised to the owner:**
+  P7-D1 says R1 must not ship until D8-3 is fixed — and D8-3's fix `076562f` is **committed only on
+  `fix/d83-wrapper-lookthrough`, not merged to main and not an ancestor of the L6 branch**, while its
+  rebuilt artifacts sit unpromoted in `data/_tmp/d83/` and canonical
+  `positioning_changes_panel.parquet` is still dated **2026-08-09**, pre-D8-3. So R1 cannot honestly
+  ship on today's canonical data. L6 is sequenced Phase A (no canonical writes, and measure the true
+  cost of the prerequisite) / Phase B (the authorised writes) and told to STOP between them.
+  Fence F2/F3 reserves merges to the owner, so the merge is the owner's call and is now in front of them.
