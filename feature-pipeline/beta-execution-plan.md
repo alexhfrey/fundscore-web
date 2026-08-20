@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-20T14:07-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-20T15:01-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -2660,3 +2660,51 @@ them.
   ship on today's canonical data. L6 is sequenced Phase A (no canonical writes, and measure the true
   cost of the prerequisite) / Phase B (the authorised writes) and told to STOP between them.
   Fence F2/F3 reserves merges to the owner, so the merge is the owner's call and is now in front of them.
+
+- 2026-08-20 15:01 — **ALL THREE DISPATCHED SEGMENTS LANDED, all three stopped correctly at their checkpoints, all
+  three adversarial reviews now RUNNING. Zero canonical writes across all of them.**
+  **U2 capital-gain Segment 2 (measurement).** Two changes to the owner's mental model. (a) The
+  early-factor account is CONFIRMED and far stronger than the 8 pct they hold — the 8 pct was an
+  ARITHMETIC ARTIFACT: Segment 1's statistic degenerates to `-y^2` when the drop lands, so it measures
+  y and **cannot fire above y = 0.2236** while the class median y is 0.3661. True landing rate **41.0
+  pct on exactly T+1; 0 of 1,362 events had money leave on the stamped day.** (b) **Roughly half the
+  trigger class is a DIFFERENT defect** — 740 of 1,519 events (609 tickers, **569 served**, 77 scored)
+  have a stamped amount the price path contradicts. M1 returns three remedies, not two, exact on
+  disjoint halves; **excision deletes no real return anywhere and repairs nothing anywhere** (window
+  no-op bar 104 truncating events), and R3 — the repair actually on the record — is **undefined for 271
+  events (19.9 pct)**. **S2-F9 RETRACTS the predecessor's S2-F2**: the 705 "price exactly flat" events
+  are stale prints and flat is evidence the money DID leave, one day late — the opposite of what was
+  written. Zero floor changed the final population by **exactly zero events**. **BRIEF-B(2) retracted:
+  mandatory coherence does NOT fail-close yahoo tickers** (phi computable 67/67, cost 0 not 46) — but
+  re-adjudicating them exposed a **NEW unnamed defect**: the yahoo factor over-moves ~2.5x on days the
+  distribution went ex correctly (ICENX 2008-11-11 served **+111.8 pct** against a true **-2.2 pct**).
+  Agent self-caught and disclosed a polars `NaN >= x` bug in its own classifier.
+  **U3 L14 Segment 1 (sample).** **1,322 rows / \$6.0854B / 754 funds newly classified; 0 existing
+  labels changed.** Precision measured on the population the rule ACTUALLY acts on (the Segment-0
+  correction): on the 60 held ISINs E1 8/8, E2 10/12, E3 23/24, four contradictions hand-adjudicated.
+  Every guard defeated **twice** — fixture and production scale; the W1 probe refuses Cimpress-shaped
+  bindings 8/8. Non-mutation CLEAN and **earned** — a seeded violation flips it DIRTY. Segment 0's only
+  material false refusal (Brookfield Business Corp) is retracted, not worked around. **M4 is inert at
+  production scale and is reported as fixture-only rather than dressed as a scaled proof.**
+  **U4 L6 Segment 3 PHASE A.** **It reversed the dispatcher's own read of the D8-3 prerequisite:
+  D8-3 is a CODE-MERGE prerequisite, NOT a data-promotion one** — the suppression lives in PANEL code
+  (0 matches on this branch, 20 on `076562f`), so promoting the frame alone would fix nothing. Merge is
+  clean, zero conflicts. Cost is trivial: **panel 4.0s, staging 34s, ~335 MB**. **R16 retracts the D8-4
+  blast-radius warning this file carried — it is currently ZERO** (staging is 2026-08-18, not 08-09;
+  08-09 is the `.prereload` copy). **R17 corrects the headline: +866 was gross and pre-D-4; net is
+  +854** (3,265 funds / 20,894 rows at cut 8). D-4 takes **undated served rows 139 across 93 funds to
+  0**. G6 caught a defect in the agent's OWN code before it could report green.
+  **It declined Phase B for a better reason than the merge:** merging `076562f` drags in **two owner
+  decisions D8-3's own author declined to make** — a suppression refinement (143 rows/43 funds today, of
+  which **69 have a break arithmetically too small to explain the move**) and **2,552 lines / 390 funds
+  (73.8 pct) RECOVERABLE-missing, a DEFECT under the house rule.** R1 widens what surfaces, so those
+  rulings decide what the +854 funds see.
+  **New defects filed, none of them L6's or L14's:** **D8-9** `return_attribution` row order is
+  non-deterministic (31/47 funds differ across consecutive runs; **1,939 of 5,819 served funds
+  exposed**); the capital-gain **bad-dividend-record** item is re-sized to **740 events / 609 tickers /
+  569 served / 77 scored**; the **yahoo factor over-move**; and two web-side items — `profile-v2.ts:646`
+  `recentChangesTe` is still **fixture-only** (nothing populates it from the served row) and
+  `registry.ts:485` pins `positioning_changes_v0.1` with prose that goes stale on promotion.
+  **Nothing is committed and nothing is gated yet — three `data-reviewer` checkpoints are running, and
+  no result above should be treated as established until they return.** Reviewer >= implementer holds:
+  implementers were opus, reviews are on the session model.
