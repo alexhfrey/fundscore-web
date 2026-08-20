@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-20T17:15-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-20T17:54-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -2956,3 +2956,41 @@ them.
   class boundary must be tested against every axis the downstream action branches on.
   **Still awaiting the owner on all three fences** — the D8-3 merge (+ D8-3's own DECISIONS 1 and 2(a)),
   L14's Segment-4 scope fork with Navigator named, and the capital-gain remedy. Brief published.
+
+- 2026-08-20 17:54 — **U5 (L9) Segment 0 LANDED and it CORRECTED THE DISPATCHER'S OWN FINDING — the one already put
+  in front of the owner. Checkpoint running. Nothing built; writes confined to `data/_tmp/l9/`.**
+  **THE REAL HEADLINE, and it is worse than the coverage number: of the 1,947 funds clearing the 0.80
+  floor, all 1,947 can be given a panel but only 601 (30.9 pct) a COMPLETE one. 1,346 funds (69.1 pct)
+  are missing at least one PRICEABLE position from a table headed "every position"** — median **4.14
+  pct of NAV**, p90 7.94 pct, max **17.10 pct**. That is the recoverable-missing DEFECT, and the
+  extensive floor-crossing count never showed it.
+  **THE DISPATCHER'S "OFF BY SIXTY-FOLD" WAS A CATEGORY ERROR AND IS RETRACTED.** The existing L9
+  ruling's "+30 funds" is a **floor-crossing (extensive)** number and is low by **~1.6x** — true
+  **+47** on the plain fix, **+116** with ADR pricing. The dispatcher's "1,808 funds" is the
+  **intensive** margin. Both were right about different quantities; the comparison between them was
+  not. **PRNEX/TRNEX moves 0.593 -> 0.730 -> 0.821 and CROSSES the ratified floor** — the fund the
+  owner was reviewing on-page today.
+  **Second correction: \$19.8B of the dispatcher's "\$540B recoverable" is a STALE-QUOTE MIRAGE** —
+  BBL last quoted 2022-01-28, ABBNY 2023, AKZOY 2019; pricing them fabricates a 0 pct return.
+  Corrected and exactly additive: recoverable **\$521.6B (31.7 pct)** · recoverable-by-ingestion-fix
+  \$19.6B · **honest \$1,104.3B (67.1 pct)** = not-in-vendor-universe \$656.9B + vendor-delisted
+  \$59.6B + no-bridge-entry \$299.9B + no-ISIN \$87.9B. The dispatcher's census otherwise reproduces
+  (87.08 pct priceable; 198,546 no-ticker rows exactly).
+  **Third correction: "the denominator the floor was ratified on is defective" is WRONG.**
+  `equity_coverage_book` is already foreign-inclusive — **the denominator is fine; the NUMERATOR is
+  under-counted.** 1,947 is the output of that under-count.
+  **A class WORSE than omission (F-S2.13): 318 funds would display an UNDERSTATED WEIGHT for a name the
+  card DOES show** — median displayed = **41 pct of true**; AGTHX shows TSM at **0.239 pct** when the
+  filed position is **1.42 pct**. A wrong number beats a missing one for severity.
+  **The chokepoint is NOT `build_return_attribution.py:55`** — it is `build_holdings_snapshots.py`'s
+  identity rule (placeholder CUSIP `000000000`/`N/A` + inner join to `cusip_reference`), and
+  **51 consumers ride that book**, including the **L2 passive solver** and `build_profile_source_inventory`
+  (the serving scope). Hence D-3: an **ADDITIVE** recovered book, never an in-place migration.
+  **D-1 measured, not argued:** 7.9M consecutive-quarter pairs against the fund's OWN filed USD price
+  per share, with a US-line control — control +0.22pp/qtr (97.7 pct within 2pp), `Ra` +0.25pp (96.4
+  pct), `Rb` ADR +0.37pp (76.2 pct within 2pp). The >10pp tail is **corporate actions, not FX**.
+  `Ra` needs no ruling; `Rb` needs a `pricing_basis` label + a corporate-action screen.
+  **Wrong-company traps:** ISIN bind clean (Roche->RHHBF not ROG; LVMH->LVMHF not MC; 39/40 verified).
+  Two real traps: **BBL** (right company, dead share line) and **BNY** (correct prices but a STALE
+  ticker reference — **a validation built on `sharadar_tickers` would REJECT a correct bind**).
+  Blockers for Segment 1: **D-1** (ADR basis), **D-3** (additive vs migration), **D-4** (freshness bound).
