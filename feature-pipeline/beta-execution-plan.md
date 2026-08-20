@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-20T10:44-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-20T11:23-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -2541,3 +2541,33 @@ them.
   One operational note: the first branch-wide gate took **3h04m** to return where these normally take
   5-15 minutes. It did complete and did pass; smaller per-diff scopes returned in minutes. Prefer
   narrow scopes.
+- 2026-08-20 11:23 — **L6 committed with a CLEAN GATE (`6e177e2`, 0 findings) after four review rounds. 5 of 6
+  owed gates cleared; only D8-3 remains and is running.** Worth recording what those rounds caught,
+  because every one would have shipped looking green: (1) the check **validated SCRATCH, not
+  production** — on a clean checkout `make check` died file-not-found, and with stale scratch present
+  it PASSED while never opening the gold panel; (2) G4 made **targeted builds unusable**; (3) the
+  three-state refactor **broke a caller** (`not None` is truthy, so every sample build exited GATE
+  FAILURE); (4) that fix **re-created its own bug through a side door** — `--panel` hard-coded
+  full-universe, reinstating the very false failure (2) had removed; (5) **partial writes passed
+  vacuously** — a panel with SOME new columns took the absent-column path and validated nothing on
+  disk, the same shape as (1) returning through the partial door.
+  **On the sixth finding the reviewer was BACKWARDS, and following it literally would have made
+  things worse.** It called the targeted `--panel` path "broken" for exiting 1. The exit was correct:
+  4 seeded defects cannot trip on a small sample because it holds no COUNT rows, no `style`
+  classifications and too few funds for G4's bound. The real defect was conceptual —
+  **falsifiability is a property of the CODE**, established on the full universe, so running the
+  battery on a sample yields "DID NOT FIRE" lines that describe the SAMPLE rather than the gate:
+  misleading green of exactly the kind this check exists to prevent. Resolution: the battery is
+  full-universe only, and a targeted panel validates its VALUES while stating plainly that
+  falsifiability was **not re-proven there**. Both paths verified — canonical runs all 9 gates with
+  every seeded defect tripping; targeted exits 0 honestly; an UNEXPECTED skip still aborts.
+  Discipline held throughout: each new guard was **proven able to fail** (the partial-write guard by
+  seeding a panel with `te_rank` dropped → exit 1), the consumer audit was done **by symbol, not by
+  literal path** (3 call sites, all handling the new state), and **D8-8 was filed rather than
+  absorbed** — a pre-existing `--sample N` crash that reproduces with `--no-te-impact` and was never
+  touched by the diff.
+  Also cleared earlier in the session: the web branch gate (PASS), and its three advisories fixed and
+  committed (`14ec752`) with a **passing gate and zero findings** — codex having independently
+  reproduced three findings the movement-03 data audit made by a different method.
+  **Canonical writes across this entire session remain 0** outside the one owner-authorised reload;
+  the positioning panel is byte-identical at sha `c1e5e138…`, verified independently each round.
