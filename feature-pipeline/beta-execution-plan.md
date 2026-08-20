@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-20T15:45-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-20T15:48-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -2733,3 +2733,25 @@ them.
   adjudicated and labelled, never assumed), and the wrong-company trap (bind on ISIN ONLY — `ROG` and
   `MC` are in the store as Rogers Corp and Moelis). **Consequence the owner should see: this gap is the
   denominator the 0.80 priced-coverage floor they ratified today is computed on.**
+
+- 2026-08-20 15:48 — **U3 (L14) Segment 1 CHECKPOINT: PASS-WITH-CORRECTIONS, nothing blocking. Codex gate RUNNING;
+  the commit hook correctly refused a pre-gate commit.**
+  The reviewer re-derived every load-bearing number from scratch — its own admit-set construction from
+  the fresh harvest + vendor map + the repo's `_names_match`, never re-reading the report — and it all
+  reproduces: 574-admit set (symmetric diff **0**), `gained 574 / changed 0 / lost 0`, the 1,322 rows /
+  \$6.0854B / 754 funds propagation, the remainder decomposition to the row, M4 inert at production
+  (0/1,077) and non-degenerate at fixture, the Brookfield retraction correct on identity, and
+  non-mutation confirmed on the real non-symlink paths. **It re-adjudicated all four held-set
+  contradictions from raw evidence and AGREED** — share-class artifact, share-structure, rename, stale
+  vendor record; none a wrong-company bind. It also **recomputed the 9-of-14 P1 split from data after
+  finding the segment's own scratch script had HARDCODED it** — and got exactly 9.
+  **The material correction changes the owner's Segment-4 choice: the structural option sweeps in
+  `MHY621321089` Navigator (78 rows / \$81.2M, Industrials→Energy), which is an S7-4b security** — so
+  the structural route DOES touch S7-4b, directly contradicting the report's claim beside it, and it was
+  hidden inside an ellipsis. **The owner must see it named before choosing allowlist vs structural.**
+  Second correction worth carrying: **R-8 is LABEL-BLIND** — a sector flip leaves `classified_weight`
+  unchanged, so "0 regressed" can never detect one. The check is not degenerate (a seeded real loss
+  makes it report **206 regressed**), but Segments 2/3 must pair it with the reference-level per-ISIN
+  `changed 0 / lost 0` diff. Also: W1's "+8 ISINs" is properly "6 held + 2 reference-only", and the
+  structural collateral is 31 ISINs / 362 rows / \$880.3M actually changing label (definitional delta
+  against the report's 32/363). All four corrections appended to `reports/l14_segment1.md`.
