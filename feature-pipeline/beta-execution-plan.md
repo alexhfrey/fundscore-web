@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-20T10:32-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-20T10:44-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -2509,3 +2509,35 @@ them.
   `ECONNREFUSED`, not the change; `tsc --noEmit` clean), and the **codex gate on six commits**
   (`c0c13bd`, `f69b6d5`, `29c3d22`, `076562f`, `8e8b1e7`, `3c291ab`), still out of vendor quota until
   2026-08-19 22:52.
+- 2026-08-20 10:44 — **Docker recovered by the owner; the serving DB survived INTACT; all owed gates cleared
+  and the review debt is nearly closed.** Verified against the live DB, every count identical to
+  what was loaded before the crash: **facts 5,819 · holdings 1,398,380 · attribution 2,104 ·
+  neighbourhood 3,094 · active manifest 56**. No reload was needed and the preserved staging
+  artifact was not called upon.
+  **Cleared, all three owed on the down database:** `db:check-serving` **PASS** (41 columns, no
+  anon/authenticated exposure) · `npm run build` **clean** against 127.0.0.1:54322 · the render-check
+  on `3c291ab`, which confirms the capture fix behaves: **PRGSX (twin IS world stocks) now prints NO
+  takeaway** where it used to assert a false asymmetry, **MCHFX now reads "More of the falls came
+  through than the gains"** instead of the reassuring old line, and PRNEX/FCNTX are unchanged.
+  **The codex gate PASSED on the web branch — and independently reproduced three findings the
+  movement-03 data audit had already made, by a different method.** Two reviewers, different
+  approaches, same three defects: the undisclosed daily rebalancing, the manager copy on passive
+  vehicles, and the fail-OPEN parser. That convergence is the strongest quality signal this run has
+  produced, and it turned three "filed" items into three fixes.
+  **All three fixed and committed (`14ec752`) with a PASSING GATE AND ZERO FINDINGS** — the first
+  commit in two days needing no exception. (1) `buildNeighbourhood` now **fails closed** on a missing
+  drawdowns/years/capture: coercing to `[]` had silently dropped whole cards while the section and
+  its nav entry still rendered — the nested-contract-collapse shape where the parent looks populated
+  so no guard can see the hole. (2) The **"only second a bet on the manager" clause is suppressed for
+  passive vehicles** — 18 index ETFs reach this section and none of them has a manager; suppressing
+  the SECTION for them stays an owner call, this only stops a claim that cannot be true. (3) The
+  **daily-rebalancing assumption is disclosed**, conditioned on `twinLegCount > 1` so the 2,860
+  single-leg twins stay silent rather than carry an irrelevant caveat — the gap it discloses reaches
+  **2.96pp/yr, $111,953 vs $177,659** on the worst multi-leg twin. Render-checked across six cells,
+  all as intended.
+  **Debt status: 4 of 6 owed gates now cleared** (the web branch, plus this new commit gated
+  properly rather than skipped). Remaining: the two `fund_score` branches — L6 (`29c3d22`) now
+  running, then D8-3 (`076562f`).
+  One operational note: the first branch-wide gate took **3h04m** to return where these normally take
+  5-15 minutes. It did complete and did pass; smaller per-diff scopes returned in minutes. Prefer
+  narrow scopes.
