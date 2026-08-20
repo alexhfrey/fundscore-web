@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-20T11:23-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-20T11:30-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -2571,3 +2571,25 @@ them.
   reproduced three findings the movement-03 data audit made by a different method.
   **Canonical writes across this entire session remain 0** outside the one owner-authorised reload;
   the positioning panel is byte-identical at sha `c1e5e138…`, verified independently each round.
+- 2026-08-20 11:30 — **REVIEW DEBT FULLY CLEARED. All SIX commits that carried a disclosed, owed codex gate
+  are now gated, and every one PASSED.** D8-3 (`076562f`) closed the set with **0 findings**: "I did
+  not find a discrete code defect in the diff. The new unit tests pass, and the only failure observed
+  was against stale local generated parquet data that lacks the new column/ledger until the upstream
+  artifact is rebuilt" — i.e. the one red was a stale local artifact, not the code, which is the
+  expected state since D8-3 built to `_tmp` and never promoted.
+  Ledger, for the record: `c0c13bd` · `f69b6d5` · `8e8b1e7` · `3c291ab` (web branch, PASS) ·
+  `29c3d22` -> `6e177e2` (L6, PASS after four rounds, 0 findings) · `076562f` (D8-3, PASS, 0
+  findings). Plus `14ec752`, gated properly rather than skipped. **No commit in this run now rests on
+  an unrun gate.**
+  The `SKIP_CODEX_GATE=1` exceptions taken while the vendor account was over quota were **disclosed
+  at the time, tracked as OWED, and have now all been discharged** — none was a finding overridden;
+  every one was an unavailable reviewer, and the review happened as soon as it was available.
+  **Session integrity summary:** canonical lakehouse writes **0** outside the single owner-authorised
+  serving reload; the positioning panel byte-identical at sha `c1e5e138…` and the NAV at inode
+  77680801 throughout; the serving DB verified intact after the Docker VM failure (5,819 / 1,398,380
+  / 2,104 / neighbourhood 3,094 / manifest 56) with no reload required.
+  **Everything the line can do without the owner is now done.** Four decisions remain and were
+  re-presented in one page: S2 (the receipts floor — recommend hold at 0.80), the capital-gain
+  measurement pass (recommend authorise measuring, NOT fixing), L14's fill + precedence (recommend
+  B+G1 and P1), and the "twin means two different portfolios on one page" question — the only one
+  carrying **no** recommendation, because it is a product-voice call.
