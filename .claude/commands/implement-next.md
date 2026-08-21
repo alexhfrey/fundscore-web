@@ -16,6 +16,39 @@ If a spec has no `lane` frontmatter, infer conservatively: `track: frontend` →
 migrations, or cross-repo contracts → `reviewed`. If a spec says `lane: lean` but the contents touch any
 reviewed-lane area, override to `reviewed` or STOP and fix the spec; never use lean to bypass data gates.
 
+## ⚠ MATERIALITY FIRST — decide it yourself and ship, unless it is genuinely material
+**Default to deciding. The owner has decision AUTHORITY, not decision BANDWIDTH** — spending their
+attention to protect your own certainty is a failure, not caution. Before you surface ANY decision,
+finding, hazard or "needs a ruling" — yours or one a segment handed you — run the materiality test and
+**state its verdict out loud**:
+
+1. **Is it live to users right now?** A gold/product/lakehouse write behind an owner-gated serving reload
+   (fence F4) is **not** user-visible. Nothing you write there can reach a user until that reload runs.
+2. **How big is it, in numbers?** Rows, funds, dollars, pp of NAV, % of the book. If you cannot put
+   numbers on it, **go measure it** — that measurement usually dissolves the question outright.
+3. **Does the answer change whether this ships, or only how?** If every option still ships, it is not a
+   ruling — it is an implementation choice, and it is yours.
+
+**Fails the test → PICK THE BEST OPTION AND KEEP GOING.** Do not stop, do not ask, do not batch it for
+later. Record the call in the spec (an `## ADDENDUM — dispatcher ruling` block: what you chose, the
+numbers, and why) so it is reversible knowingly, then ship. Getting it done beats getting it ratified.
+Mention what you decided in the final report — one line each, not a consultation.
+
+**Passes the test → surface exactly that one thing**, lead with the materiality verdict (not the
+findings), give a recommendation, and decide everything else inline. A batch of three where two are
+trivial reads as "I won't make calls" and burns the owner's patience on noise.
+
+**Never interrupt a read-only diagnostic phase (EDA, data-scientist, review) to escalate something it
+might still change.** Let it finish — it is cheap, and it usually returns the rest of the picture. Killing
+a segment mid-flight discards the whole segment and re-pays it on relaunch. On 2026-08-21 stopping an EDA
+early to ask one question cost two discarded runs (~44% of all agent work on that spec) and the second
+finding arrived from the very EDA that had been interrupted.
+
+**Escalation stays mandatory for:** a canonical write whose BILL is wrong (see the write-target check in
+step 4), anything that would push web `main` (F3), the serving reload (F4), destructive/irreversible acts
+beyond the spec's authorised scope, and a genuinely NEW rule/threshold/allowlist that changes what users
+are told. Those are real. Almost nothing else is.
+
 Steps:
 0. **Resume check (limit/crash resilience).** If `feature-pipeline/.loop-state.json` exists, a prior
    iteration was interrupted (token limit, crash) — resume IT before picking anything new:
@@ -63,6 +96,26 @@ Steps:
      real gold/product parquet (a quick `duckdb`/`uv run python` read of the panel schema) — not merely
      that the field name appears in the spec's prose. Delegate a broad sweep to one `Explore` agent if
      the spec references many things.
+   - **WRITE-TARGET CHECK (any spec that writes an artifact — do this, it is ~30 seconds and it is the
+     one the gate used to miss).** "The reference resolves" is NOT the same as "the target can receive
+     the write." For **every artifact the spec says it will write**, read the target's ACTUAL schema and
+     confirm it carries the column the spec intends to change, in the shape the spec assumes:
+     `pl.read_parquet_schema(path)` (or `duckdb DESCRIBE`) — never infer it from the spec's prose, from a
+     builder that mentions the column, or from a sibling artifact.
+     Three failure modes this catches, all seen in production on 2026-08-21 (`sector-consensus-canonical-write`):
+       1. **The column isn't there at all** — it is attached at READ time by a consumer, so the file has
+          nothing to relabel. (`holdings_lookthrough_window.parquet` had no `sector`; the artifact that
+          actually persisted and served those rows was `positioning_changes_panel.parquet`, which was not
+          in the bill.)
+       2. **The artifact name is a shorthand that doesn't exist on disk** (`exposure_xray` → the real
+          panel is `exposure_xray_panel.parquet`).
+       3. **The column is a VALUE in a long-format panel, not a column** — relabelling then makes rows
+          merge/appear/vanish and change rank, which is not the "0 fills, 0 losses" swap the spec claims.
+     Also ask, for each target: **what OTHER artifact inherits this column and would desync if it is not
+     rebuilt?** Grep the builders that read this artifact and materialize the same field
+     (`passive_blend_holdings` inherited `sector` from the holdings frames and was missing from the bill).
+     If a write target fails any of these, the write bill is wrong — fix the bill BEFORE dispatching;
+     a mid-run discovery costs a whole discarded segment.
    - **All references resolve →** continue to step 5.
    - **Any reference is missing / moved / renamed →** do NOT build against a stale spec. Bounce it: hand
      the spec to the revise flow (`/review-specs`, which runs `revise-specs` — the spec-writer re-grounds

@@ -182,7 +182,22 @@ const eda = await agent(
     `target universe will actually get a value, with the non-covered remainder split into honest-missing\n` +
     `(no source data) vs recoverable-missing (data IS in the source but a naive extractor misses it —\n` +
     `confirm by spot-checking raw records). Return it in coverage_estimate. A low rate or large\n` +
-    `recoverable-missing fraction is a caution/no-go — do not wave it through as "partial coverage".`,
+    `recoverable-missing fraction is a caution/no-go — do not wave it through as "partial coverage".\n` +
+    `\nIF THIS SPEC WRITES ANY ARTIFACT: verify each write target can actually RECEIVE the write before\n` +
+    `anything else — read its real schema (pl.read_parquet_schema / DESCRIBE) and confirm it carries the\n` +
+    `column the spec intends to change. "The path exists" is NOT "the target is writable as assumed": the\n` +
+    `column may be attached at READ time by a consumer (nothing in the file to change), the name may be a\n` +
+    `shorthand for a differently-named panel, or the field may be a VALUE in a long-format panel (so a\n` +
+    `relabel makes rows merge/appear/vanish — not the "0 fills, 0 losses" swap the spec claims). Also name\n` +
+    `any artifact that INHERITS that column and would desync if it is not rebuilt. A wrong write bill is a\n` +
+    `hazard; report it in hazards with the numbers.\n` +
+    `\nMATERIALITY — do not manufacture owner rulings. Before writing "needs an owner ruling" into hazards,\n` +
+    `apply the test: (1) is it live to users now (a lakehouse/gold write behind the owner-gated serving\n` +
+    `reload is NOT), (2) how big is it in rows/funds/$/pp of NAV, (3) does it change WHETHER this ships or\n` +
+    `only HOW. If it fails that test, it is an implementation choice — state your recommendation in\n` +
+    `hazards and let the run proceed; do NOT frame it as blocking. Reserve "needs an owner ruling" for a\n` +
+    `wrong write bill, a genuinely new rule that changes what users are told, or an irreversible act\n` +
+    `outside the spec's authorised scope. Always quantify a hazard — an unquantified one cannot be triaged.`,
   { label: 'eda', schema: DS_SCHEMA, phase: 'EDA', model: edaModel }
 )
 if (eda && eda.verdict === 'no-go') return stopped('EDA', eda)
