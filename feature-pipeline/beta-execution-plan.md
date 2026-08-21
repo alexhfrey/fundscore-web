@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-21T09:45-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-21T10:10-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -213,7 +213,7 @@ none needs an owner input, and each de-risks D1 or the fences this plan depends 
 | L11 | Superlative-guard check (top_bet_confident consumer check) — Working set | FB | sonnet/med | **done** (fund_score `06ae57a` on `l11/superlative-guard` — **MERGED, verified 2026-08-17**; 2 deferred advisories → Open chore) |
 | L12 | Twin-label/basis-metadata fix (record's passive leg is a PIT twin cascade mislabeled as one current ETF; 204/218 blends) — **REQUIRED BEFORE F6**; backlog item filed 2026-08-07 | FD | opus/high | **ready** |
 | L13 | Active-share fail-open: propagate `method`+`lookthrough_resolved_weight` to serving + gate (17 funds at 0.5-vs-empty-benchmark, confidence high) — restores the stat F1 gated closed; NOT cutover-blocking | FD | opus/med | **NOT SAFELY READY — new hard prerequisite found 2026-08-21.** L13's whole purpose is to UN-GATE `active_share`, and L10's checkpoint proved `active_share` carries the as-of mislabel: `exposure_xray.py::build_concentration_rows` (L776–810) pulls `effective_positions`, `active_share` AND `hhi` from the same **age-unbounded** panel row, and **JFEAX serves `active_share = 1.0` computed from a ONE-LINE 2022-10-31 book, stamped 2026-04-30, at HIGH confidence.** Un-gating before the as-of item lands would ship a wrong number carrying a confident false date — strictly worse than the honest withholding it replaces. **Sequence: as-of mislabel → L13.** |
-| L14 | **Domicile-routing rule (promoted 2026-08-09 from the Segment-1b follow-up — now FIVE symptoms of one root cause**: 2 unrestored 1c pairs · 15-ISIN/$7.4B split cohort · 481 positioning quarters · S7-4 dual-sector contradiction 20 ISINs/$8.2B **served-on-next-reload** · part of the $3.51B recall chore). **MUST LAND BEFORE THE NEXT SERVING RELOAD** (S7-4 is a same-security contradiction that would reach the product) | FD (reviewed) | opus/high | **Segment 1 COMMITTED and codex-gated (`98c3433` on `fix/l14-domicile-routing`, 0 blockers / 0 advisories); checkpoint PASS-WITH-CORRECTIONS 2026-08-20.** Delivered **1,322 rows / $6.0854B / 754 funds newly classified, 0 existing labels changed**; every guard demonstrated to FAIL at fixture AND production scale; 0 canonical writes. Decisions A=B+G1 and B=P1 were owner-delegated and taken by the line. **Segment 4 PARKED:owner — the scope fork:** P1 as ruled reaches only **9 of the 14** S7-4a contradictions; closing the other 5 means an allowlist, or a structural rule that sweeps in 31 ISINs / $880.3M **including Navigator, an S7-4b security** (so 'structural' silently decides an item we called out of scope). |
+| L14 | **Domicile-routing rule (promoted 2026-08-09 from the Segment-1b follow-up — now FIVE symptoms of one root cause**: 2 unrestored 1c pairs · 15-ISIN/$7.4B split cohort · 481 positioning quarters · S7-4 dual-sector contradiction 20 ISINs/$8.2B **served-on-next-reload** · part of the $3.51B recall chore). **MUST LAND BEFORE THE NEXT SERVING RELOAD** (S7-4 is a same-security contradiction that would reach the product) | FD (reviewed) | opus/high | **Segment 1 COMMITTED and codex-gated (`98c3433` on `fix/l14-domicile-routing`, 0 blockers / 0 advisories); checkpoint PASS-WITH-CORRECTIONS 2026-08-20.** Delivered **1,322 rows / $6.0854B / 754 funds newly classified, 0 existing labels changed**; every guard demonstrated to FAIL at fixture AND production scale; 0 canonical writes. Decisions A=B+G1 and B=P1 were owner-delegated and taken by the line. **Segment 4 UNBLOCKED 2026-08-21 — the scope fork was a FALSE CHOICE and is WITHDRAWN.** Owner delegated ("I don't care about these 5, pick a rule"); line took: **when one security carries two sector labels and its US-filed rows agree on one, use that one everywhere; if the US rows disagree with each other, change nothing.** Needs no identity linkage — both sides are already in the book under the same ISIN with `inv_country` naming the US rows. Measured: **20 ISINs carry >=2 sectors; 14 have an unambiguous US sector (resolves); 6 do not (declines — exactly S7-4b); 0 have no US rows.** Resolves all 14 including the 5, **collateral $0**, and cannot touch Navigator. Segment 4 builds this. |
 | L15 | **D3: `benchmark_nav.py:146` imputes 0% return for unpriced blend sleeves + serves unrenormalized at >50% coverage** (found 2026-08-09 by L5's coherence gate; reviewer re-sized the TRUE blast radius: **51 of 1,449 neighbourhood-served funds >1bp/day, median max 44bps/day, worst SLMCX 304bps/day** — size the fix on `passive_alt_daily_nav`'s FULL universe, not the 41 both-movements funds; SLMCX's 47.4% SOXX sleeve held flat unrenormalized). **PRE-RELOAD, P1**; F2's flip decides whether affected funds gate movement 03 closed until this lands | FD (reviewed) | opus/high | **done 2026-08-17** (`c159f9a` on `l15/benchmark-nav-renorm` — **MERGED to fund_score main `75980a3`**, owner-authorized 2026-08-17; three adjudication rounds. Round 3 caught a v6 REGRESSION its own check surfaced: terminal truncation anchored two served charts ON fabricated prints, MMTMX serving +60.06% vs a +0.80% baseline with four sibling classes at +0.74–0.78%, sign-flipping the headline verdict in all three periods. Fixed by anchoring on evidence via the existing `LOG_BRIDGE_SUSPECT` — no new threshold. All 6 verification items PASS; determinism byte-identical incl. all 10 hygiene ledgers; both `/check-data` 0 blocking; `method_version` → `v3_2026-08-17`. Codex: 2×P1 + 1×P2 fixed, clean pass. Follow-ups filed: thread (c) 32-ticker liquidation class, SPAX run-selection, W3 quarantine-vs-score, ratchet slack 584 vs 563, td-cache absent) |
 
 ### Track F — V4 frontend (**the reload S1 gated has HAPPENED — 2026-08-07 05:44.** Movement-by-movement, then cutover = the new finish line)
@@ -3255,3 +3255,36 @@ them.
   phantom trades, the blunt suppression and the 73.8 pct recoverable-missing question all exist to
   manage a look-through this section barely uses. If no-expansion measures out, that entire decision
   disappears for L6. **Decision 1 is therefore HELD, not withdrawn, pending the measurement.**
+
+- 2026-08-21 10:10 — **OWNER: "I don't care about these 5, just pick some rule and make this problem go away."
+  TAKEN — and the fork was a FALSE CHOICE. A third rule resolves all 14 including the 5, with no
+  allowlist, no filer trust, and provably zero collateral.**
+  **THE LINE DECISION (delegated, reversible): when one security carries two different sector labels,
+  and its US-filed rows all agree on one, use that one for every row of that security. If the US-filed
+  rows disagree with each other, change nothing.**
+  **Why this was missed:** the segment approached sectors as an IDENTITY-LINKAGE problem — give a
+  blank foreign row a label by finding its US sibling through the ISIN-embeds-CUSIP structural check —
+  and then carried that framing into the CONTRADICTION problem, which does not need linkage at all.
+  Both sides of a contradiction are **already in our own holdings book under the same ISIN**, with
+  `inv_country` naming which rows are US-filed. Nothing needs to be linked; it only needs grouping.
+  **Measured blast radius — the rule cannot touch anything else, by construction:**
+  ISINs carrying >=2 sectors anywhere in the book: **20**. Of those, US rows agree on ONE sector
+  (**rule resolves**): **14**. US rows disagree with each other (**rule declines** — exactly S7-4b):
+  **6**. No US-filed rows at all: **0**. **The rule fires on exactly the 20 that are already broken,
+  resolves exactly the 14 that are in scope, and declines exactly the 6 we told the owner were out of
+  scope — so it cannot silently decide the Navigator item.** The S7-4a/S7-4b split was *defined* by
+  this very property ("<=1 sector within `inv_country='US'`"), so the correspondence is structural,
+  not coincidental.
+  **The five now resolved** (each verified in-book, US side present and unambiguous): Cimpress
+  IE Industrials 167 rows -> **US Communication Services** (39 rows) · NIQ Global IE Technology 115 ->
+  **US Communication Services** (37) · Versigent JE Industrials 93 -> **US Consumer Cyclical** (12) ·
+  Gambling.com JE Communication Services 83 -> **US Consumer Cyclical** (5) · Caesarstone IL Basic
+  Materials 6 -> **US Industrials** (1).
+  **What this retires:** the Segment-4 fork (allowlist vs structural sweep) is **withdrawn, not
+  decided** — neither branch is needed. The **\$880.3M / 31-ISIN collateral disappears**, and with it
+  the Navigator/S7-4b contamination the checkpoint flagged as the material correction. **Owner decision
+  2 is CLOSED.**
+  **Honest note on framing, since it is the transferable lesson:** the owner was offered a three-way
+  choice on a \$0.48B cohort when a fourth option existed that dominated all three. The fork was
+  inherited from the fill problem's solution shape rather than derived from the contradiction problem.
+  **When a decision looks like an unpleasant trade-off, check whether the framing is borrowed.**
