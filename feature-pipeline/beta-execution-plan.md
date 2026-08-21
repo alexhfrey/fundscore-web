@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-21T10:10-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-21T10:16-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -3288,3 +3288,18 @@ them.
   choice on a \$0.48B cohort when a fourth option existed that dominated all three. The fork was
   inherited from the fill problem's solution shape rather than derived from the contradiction problem.
   **When a decision looks like an unpleasant trade-off, check whether the framing is borrowed.**
+
+- 2026-08-21 10:16 — **L14 SEGMENT 4 DISPATCHED (sample/measurement only, `_tmp`-scoped).** Builds the rule the
+  line took under delegation: *when one security carries two sector labels and its US-filed rows agree
+  on one, use that sector everywhere; if the US rows disagree, change nothing.*
+  **The brief carries the verification trap that is SPECIFIC to this segment, because it inverts
+  Segment 1's:** Segment 1 changed **0** existing labels, so a coverage-weight check was adequate.
+  **Segment 4 changes labels BY DESIGN**, and the Segment-1 checkpoint proved
+  `l14_classified_weight_regression.py` (R-8) is **LABEL-BLIND** — a sector flip leaves
+  `classified_weight` unchanged, so **R-8 will report clean no matter what this segment does.** The
+  brief makes the **per-ISIN and per-fund label diff** the primary evidence and demotes R-8 to a
+  secondary check that must be stated as unable to see the change.
+  Also carried: prove the rule **declines all 6 of S7-4b with Navigator named** (an earlier proposal
+  would have swept it in and the owner was told it is separate); prove it is **inert on every
+  single-sector ISIN**; seeded-failure demonstrations both ways (a contradiction it must resolve, an
+  ambiguous-US case it must decline); and this run's falsification rules.
