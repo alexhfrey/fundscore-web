@@ -40,6 +40,7 @@ Work state lives under `feature-pipeline/`:
 
 | Command | Use |
 |---|---|
+| `/owner-brief` | Write any brief / status / decision batch for the owner — rebuilds the context chain (prior agreement → what we built → what we found → the ask) so a busy CPO can decide without holding the engineering |
 | `/triage` | Drain backlog: route items to fix-bug / fix-data / spec-story |
 | `/fundscore-data:fix-bug`, `/fundscore-data:fix-data` | Lean single-issue loops (root cause, gates, codex review, commit) — from the shared plugin |
 | `/critique-funds` | Capture pages, run the 5-critic panel → proposals |
