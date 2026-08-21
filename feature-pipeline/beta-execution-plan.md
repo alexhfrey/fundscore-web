@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-21T10:44-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-21T10:59-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -3338,3 +3338,40 @@ them.
   12 pct September concentration as a free falsification test** — a direct check that fails to
   reproduce the distribution season is wrong. **This may close owner decision 3 outright**, and the
   capital-gain item is reload fence #1.
+
+- 2026-08-21 10:59 — **L14 SEGMENT 4 CHECKPOINT: PASS-WITH-CORRECTIONS, NOTHING BLOCKING THE WRITE.** Every
+  load-bearing number reproduced through the reviewer's own independent implementation: 20/14/6/0 with
+  **\$8,198,940,258.43 to the cent**; the diff **1,359 rows / \$2,915,477,693.90 / 512 funds (8.9 pct)**;
+  **0 fills, 0 losses**, all non-`sector` columns bit-identical and row order preserved; **0 of
+  1,725,474 outside rows moved**; all three guards load-bearing (M2 sweeps exactly the 6, Navigator
+  88/87/\$86.451M -> Energy); R-8 blindness confirmed by computation (0 improved / 0 regressed while
+  **3,452 rows across 583 funds change sector**); **6 of 6 spot-checks pulled independently from raw
+  N-PORT**, including both disagreeing Navigator US rows. The dispatcher's Versigent error that the
+  implementer caught (93 JE + **7 CH** = 100) was re-verified and stands.
+  **The cross-surface claim — the most important one in the bill — CONFIRMED:** `return_attribution`,
+  `holdings_brinson_summary` and the passive solver all key sector off `cusip_reference`, and since all
+  14 winning labels EQUAL the `cusip_reference` label, **the write REMOVES a basis disagreement rather
+  than creating one.**
+  **The correction that matters: F-3's sizing was partly COPIED FROM ITS OWN M2 TABLE.** Cango is
+  **8 rows / \$1.227M -> Consumer Cyclical, not "1 row"** — and **M2 and F-3 resolve Cango in OPPOSITE
+  directions** (Technology vs Consumer Cyclical). Correct F-3 total **+151 rows / \$89.8M / 97 funds**.
+  **And F-3's "frame-stable" claim is FALSE — 17 / 17 / 13 across `holdings_complete` /
+  `fund_holdings_full_staging` / `holdings_lookthrough_window`.** F-3 is the alternative rule the owner
+  may rule on later; both errors are corrected so no future ruling inherits them.
+  Also: `inv_country` carries a **string sentinel `'N/A'`** (3 rows) the audit never surfaced —
+  provably inert here, but a `== 'US'` predicate over a sentinel-bearing column should be audited
+  explicitly ([[negation-filters-absorb-new-row-types]]).
+  **⚠ ONE OWNER RULING IS NOW REQUIRED BEFORE THE CANONICAL WRITE — the frame pin (F-1).** The rule's
+  scope is frame-local: it identifies **14 / 9 / 12** securities on `holdings_complete` /
+  `holdings_lookthrough_window` / `fund_holdings_full_staging`, because US rows with a blank filed
+  cusip fall through to the FMP fallback. Zero direction conflicts; coverage-only divergence.
+  **Reviewer's adjudication, adopted as the recommendation: pin to `holdings_complete`** — the frame
+  the rule was ruled on, the canonical collapsed book, and the one whose alternative produces exactly
+  the cross-surface contradiction this module prevents. **But it is an owner ruling, not a reviewer
+  sign-off**, because the pinned map applied to the lookthrough frame relabels NIQ and Scorpio rows
+  where that frame's own US rows would decline — consistent with the ruled wording only under the
+  reading *"evaluate once on the canonical book, propagate the verdict."* That reading is right and it
+  is still an interpretation of the owner's words.
+  **Segment-5 precondition recorded:** the map must be derived **inside the build from the same
+  `holdings_complete` vintage, in the same run that rebuilds all three consumers.** Frozen as an
+  artifact while frames rebuild independently, the coverage drift returns silently.
