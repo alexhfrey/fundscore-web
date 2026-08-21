@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-20T19:51-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-20T22:50-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -209,7 +209,7 @@ none needs an owner input, and each de-risks D1 or the fences this plan depends 
 | L7 | V-spike price corruption 174 funds (BETA BLOCKER; needs ONE off-cycle L2 re-solve — coordinate with L2/L3 so the re-solve runs ONCE, after all price-touching fixes) | FD | opus/high | **ready** |
 | L8 | Taxonomy misroutes / ALT classification (BETA BLOCKER) | FD | opus/high | **ready** |
 | L9 | Per-stock receipts backend — `specs/queue/per-stock-receipts-backend.md` (contains **S2**; L1 closed 2026-08-09 → blank its `depends_on:` when dispatched) | IN (reviewed) | opus/high | **ready** (L1 closed) |
-| L10 | Riders build — `specs/queue/v4-serving-riders-skill-strip-effective-positions.md`. **RE-RATED 2026-08-07 (W5 grounding): lean/opus-med → reviewed/opus-high.** It is NOT two small additions: effective-positions is ALREADY served and rendered on the WRONG book (`holdings_snapshots` US-ticker basis, not filed `pctVal`) — PRNEX used 57 positions to describe a 127-holding fund, serving 30.5 where the filed book gives 59.8, biased so every fund reads ~2× more concentrated than it is. So L10 is a **correctness fix on a live serving fact**, not a rider, and it must land before F6 cutover. Fold in the top-10 27.2/31.0 split (same root cause, filed as its own bug). | IN (**reviewed**) | **opus/high** | **ready** |
+| L10 | Riders build — `specs/queue/v4-serving-riders-skill-strip-effective-positions.md`. **RE-RATED 2026-08-07 (W5 grounding): lean/opus-med → reviewed/opus-high.** It is NOT two small additions: effective-positions is ALREADY served and rendered on the WRONG book (`holdings_snapshots` US-ticker basis, not filed `pctVal`) — PRNEX used 57 positions to describe a 127-holding fund, serving 30.5 where the filed book gives 59.8. **SIZING CORRECTED 2026-08-20 by L10 Segment 0 — the old "every fund reads ~2× more concentrated" line generalised PRNEX and is RETRACTED:** median served/filed ratio is **1.10**, p75 1.65, **p90 8.3×**, max 130×; 86.8% understate but **6.2% are biased the OTHER way**, and only 21% are ≥2× off. **The tail is the defect:** 163 served funds show effective positions <5 while filing ≥50 lines, 130 show <2, and 9 exceed their own filed line count — JFEAX files 288 lines and serves **1.0**, while JINTX files ONE line and serves **70.4**. So L10 is a **correctness fix on a live serving fact**, not a rider, and it must land before F6 cutover. Fold in the top-10 27.2/31.0 split (same root cause, filed as its own bug). | IN (**reviewed**) | **opus/high** | **ready** |
 | L11 | Superlative-guard check (top_bet_confident consumer check) — Working set | FB | sonnet/med | **done** (fund_score `06ae57a` on `l11/superlative-guard` — **MERGED, verified 2026-08-17**; 2 deferred advisories → Open chore) |
 | L12 | Twin-label/basis-metadata fix (record's passive leg is a PIT twin cascade mislabeled as one current ETF; 204/218 blends) — **REQUIRED BEFORE F6**; backlog item filed 2026-08-07 | FD | opus/high | **ready** |
 | L13 | Active-share fail-open: propagate `method`+`lookthrough_resolved_weight` to serving + gate (17 funds at 0.5-vs-empty-benchmark, confidence high) — restores the stat F1 gated closed; NOT cutover-blocking | FD | opus/med | **ready** |
@@ -680,7 +680,7 @@ them.
 | 5 | **35 funds serve undated rows** in Recent Changes (all `style` rows, no holdings basis). | 35 funds / 50 rows | line ruled: exclude style rows; not yet shipped |
 | 6 | **Receipts (movement 04) is not built** — the section is absent, not wrong. | — | U5; **S2 awaiting owner sign-off** |
 | 7 | **Return-attribution top-4 was arbitrary** — the component sliced raw array order. | 38 funds | **FIXED 2026-08-18** (`c0c13bd`) |
-| 8 | **Effective-positions + top-10 concentration are gated CLOSED** (wrong book upstream). | all funds | L10, deliberately withheld — absence is correct |
+| 8 | **Effective-positions + top-10 concentration are gated CLOSED** (wrong book upstream). **Sized 2026-08-20: median served/filed ratio 1.10, p90 8.3×, 6.2% biased the OTHER way — NOT the "~2× every fund" this table used to imply.** The tail is the defect: 163 funds serve <5 effective positions while filing ≥50 lines; JFEAX files 288 and serves 1.0. | all funds | L10, deliberately withheld — absence is correct |
 | 9 | Holdings data is **~3.6 months old** (frontier 2026-04-30); 9 pct of funds older than a year. | universe | honest, disclosed on-page via as-of stamps |
 | 10 | Still-live BETA BLOCKERs not on the S3 path: **L2** wrong price series (WMSIX tracks a muni index), **L3** nondeterministic named ETFs, **L4** ~139 stale-fee scores, **L7** V-spike corruption (174 funds), **L8** taxonomy misroutes, **L12** twin-label, **L13** active-share. | see backlog | deprioritized by owner directive, not fixed |
 
