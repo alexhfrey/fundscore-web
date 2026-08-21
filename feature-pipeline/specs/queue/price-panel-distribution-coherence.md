@@ -7,7 +7,7 @@ repo: fund_score
 depends_on:
 source_proposal: owner ruling 2026-08-21 (decision 3 — "fix the pipeline")
 created: 2026-08-21
-priority: 2
+priority: 3
 scope: global
 model: opus
 effort: high

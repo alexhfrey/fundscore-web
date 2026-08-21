@@ -8,7 +8,7 @@ depends_on:
 source_proposal: owner ruling 2026-08-21 (design challenge to recent-changes-te-ranked)
 created: 2026-08-21
 scope: global
-priority: 1
+priority: 2
 model: opus
 effort: high
 lane: reviewed
