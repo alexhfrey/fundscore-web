@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-20T18:21-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-20T19:16-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -3077,3 +3077,32 @@ them.
   tunable, and it is the honest-data direction.
   **TO THE OWNER: D-1 only** — it changes served financial figures at scale (+116 funds) and is S2-d
   reopened as a measurement, now with the twin-invisibility dimension attached.
+
+- 2026-08-20 19:16 — **Heartbeat stale at 53 min. Verified NOT dead — nothing in flight, all four segments
+  checkpointed. THE ENTIRE S3 CRITICAL PATH IS NOW PARKED ON THE OWNER:** U2 (capital-gain remedy),
+  U3 (L14 Segment-4 fork), U4 (L6 merge ruling), U5 (L9 D-1 ADR basis) — and U6 (the reload) is
+  additionally owner-gated by F4, with U7 behind it. **Four decisions, one brief, published.**
+  **A ROOT-CAUSE LINK FOUND WHILE LOOKING FOR THE NEXT READY ITEM, and it is worth more than the
+  dispatch: L10 and L9 are the SAME upstream defect wearing two faces.** `effective_positions` =
+  `diversification_panel.eff_n_raw`, computed on **`holdings_snapshots.parquet`'s `weight` column** —
+  the US-ticker-resolved book whose identity rule L9 just anatomised (placeholder CUSIPs
+  `'000000000'`/`'N/A'` **pass** `is_not_null()` and are then dropped by an **inner join to
+  `cusip_reference`**, which holds no placeholder entries). **That is the mechanism behind PRNEX
+  describing a 127-holding fund with 57 positions**, and behind serving 30.5 where the filed book gives
+  59.8 — every fund reading ~2x more concentrated than it is.
+  **But the two items need DIFFERENT fixes, and that is the useful part:** L9 needs **prices** for the
+  dropped foreign lines (hard — the bridge, the ADR basis, the twin-visibility problem). **L10 needs
+  only WEIGHTS, and filed `pctVal` carries foreign lines BY CONSTRUCTION** — so **L10 does not depend on
+  L9 and can land first.** Had these been dispatched blind as two independent items, two agents would
+  have rebuilt the same book, or L10 would have been sequenced behind a decision it never needed.
+  **U-item L10 DISPATCHED, Segment 0, EDA + read-only** — chosen because it is the one ready
+  pre-cutover blocker that needs **NO owner ruling**: the basis question was already settled by
+  **OWNER DECISION 2026-08-07 ([[holding-weight-basis-pctval-nav]]) — all product-displayed holding
+  weights use SEC-filed `pctVal`**. It is a correctness fix on a **live serving fact** (currently gated
+  CLOSED, so today's absence is correct) and it must land before F6.
+  **Its brief carries the commensurability trap explicitly:** if L9 later ships its additive recovered
+  book, the concentration stat and the holdings card must not end up on different bases on one page —
+  two answers to "how concentrated is this fund" is the self-contradiction class this project treats as
+  worse than a gap. It also carries L9's mechanism so the agent builds on it rather than rediscovering
+  it, and all three of this run's falsification rules including [[consumer-audit-not-literal-grep]] —
+  **which the dispatcher failed to put in L9's brief and which L9 then walked straight into.**
