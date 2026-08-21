@@ -735,7 +735,7 @@ export function buildConcentration(
     top10AsOf: t10?.holdings_as_of ?? null,
     effectivePositions: null,
     effectivePositionsReason:
-      "The served figure counts only the fund's US-listed equity lines, with their weights rescaled to 100% — for a fund with foreign or private holdings that makes it read roughly twice as concentrated as it is. We would rather show nothing than a number on the wrong book; it returns once it is computed on the filed book.",
+      "The served figure counts only the fund's US-listed equity lines, with their weights rescaled to 100%. For a fund with foreign or private holdings that materially misstates how concentrated it is — usually reading too concentrated, sometimes the reverse, and for a handful of funds by many times over. We would rather show nothing than a number on the wrong book; it returns once it is computed on the filed book.",
     activeShare: RENDER_ACTIVE_SHARE && !asFabricated ? asVal : null,
     activeShareAsOf: as?.holdings_as_of ?? null,
     activeShareReason:

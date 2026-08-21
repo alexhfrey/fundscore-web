@@ -297,7 +297,7 @@ queued** (spec in queue) · **no backend** (no spec — owner decision or new sp
   `format.ts:441` → `CurrentPositioning.tsx:422`) — but on the WRONG book: `diversification_panel.
   eff_n_raw` off `holdings_snapshots.weight` (US-ticker-resolved, equity-renormalised), not the
   filed `pctVal` basis. Measured on PRNEX: **57 positions used to describe a fund that files 127 →
-  30.5 served vs 59.8 filed**, i.e. every fund reads ~2× more concentrated than it is. Do NOT omit
+  30.5 served vs 59.8 filed**. **SIZING CORRECTED 2026-08-20 (L10 Segment 0, checkpoint-verified): "every fund reads ~2×" generalised PRNEX and is RETRACTED** — direction near-universal (86.8% read too concentrated) but magnitude heterogeneous (median **1.10×**, p90 **8.3×**, only 21% ≥2×) and **6.2% biased the OTHER way**. The tail is the defect: 163 served funds show <5 effective positions while filing ≥50 lines; JFEAX files 288 and serves **1.0**. Do NOT omit
   it and do NOT render the current value. It is fixed by item L10
   (`specs/queue/v4-serving-riders-skill-strip-effective-positions.md`, re-rated to lane `reviewed`),
   which MUST land before this cutover. Drill-downs referenced by the

@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-20T22:50-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-20T23:16-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -773,7 +773,7 @@ them.
   on the WRONG book: `diversification_panel.eff_n_raw` off `holdings_snapshots.weight` (US-ticker,
   equity-renormalised) instead of the filed `pctVal` basis the standing owner decision mandates.
   Measured on PRNEX: **57 positions used to describe a fund that files 127 → 30.5 served vs 59.8
-  filed**, biased so every fund reads ~2x more concentrated than it is. Coverage 44.9% -> 93.4%.
+  filed**. **SIZING RETRACTED 2026-08-20 — see the L10 Segment-0 entry in the run log: direction near-universal (86.8% read too concentrated) but magnitude heterogeneous (median 1.10x, p90 8.3x, only 21% >=2x) and 6.2% biased the OTHER way; the TAIL is the defect (JFEAX files 288 lines and serves 1.0).** Coverage 44.9% -> 93.4%.
   L10 **RE-RATED lean/med -> reviewed/high** accordingly: it is a correctness fix on a live serving
   fact and must land before F6 cutover. (2) The strip's denominator changes the page's own sentence —
   the mockup's "53% sit below" only reproduces off the raw 8,150-row panel, 61% of which is funds we
@@ -3089,7 +3089,7 @@ them.
   `'000000000'`/`'N/A'` **pass** `is_not_null()` and are then dropped by an **inner join to
   `cusip_reference`**, which holds no placeholder entries). **That is the mechanism behind PRNEX
   describing a 127-holding fund with 57 positions**, and behind serving 30.5 where the filed book gives
-  59.8 — every fund reading ~2x more concentrated than it is.
+  59.8. **SIZING RETRACTED 2026-08-20 (see the L10 Segment-0 run-log entry): median 1.10x, p90 8.3x, 6.2% biased the OTHER way; the tail is the defect.**
   **But the two items need DIFFERENT fixes, and that is the useful part:** L9 needs **prices** for the
   dropped foreign lines (hard — the bridge, the ADR basis, the twin-visibility problem). **L10 needs
   only WEIGHTS, and filed `pctVal` carries foreign lines BY CONSTRUCTION** — so **L10 does not depend on
@@ -3148,3 +3148,50 @@ them.
   scale-invariant statistic), degenerate books (**148 gate-passing funds would serve < 2**), whether to
   fix the as-of mislabel in the same change-set, and the peer-concentration sentence, which **flips for
   16.8 pct (425/2,524)** of funds.
+
+- 2026-08-20 23:16 — **L10 Segment 0 CHECKPOINT: PASS-WITH-CORRECTIONS, no blocking issues. Every material claim
+  reproduced under INDEPENDENT re-derivation** (the reviewer's own extraction and computation, not the
+  report's scripts). **All five owner decisions FIT as written.**
+  **The "~2x" retraction is CONFIRMED IN BOTH DIRECTIONS**, which is why it was worth checking. On the
+  2,544-fund overlap: median **1.100**, p75 1.646, p90 **8.291**, max 130.3; **86.8 pct understate,
+  21.0 pct >=2x, 6.2 pct OVERSTATE** — and the reversed cohort is **REAL, not a degenerate-book
+  artifact** (151/159 have >=20 filed lines; a strict non-degenerate cut still leaves 147 = 5.8 pct).
+  Correct wording, now used everywhere: **direction near-universal, magnitude heterogeneous (median
+  +10 pct), tail catastrophic.** PRNEX itself is 1.96x — the claim generalised its own specimen.
+  **THE OVER-CLAIM WAS LIVE IN SHIPPED USER-FACING COPY.** `src/components/fund/profile/v4/derive.ts`
+  — the hard-null reason string a reader actually sees — told them the figure "makes it read roughly
+  twice as concentrated as it is." Corrected to the measured shape. **A sweep then found the same claim
+  in FOUR more places:** this file's L10 queue row, the KNOWN-WRONG table, the backlog story item and
+  its owner summary, and **`specs/queue/profile-v2-production-cutover.md:300` — the spec F6 builds
+  from.** All corrected. **The first re-sweep CLAIMED CLEAN AND WAS NOT — the codex gate caught two
+  further live instances in THIS FILE (lines 776, 3092) that the grep missed because its pattern used
+  the `x` multiplication sign while those instances use ASCII `2x`.** Fixed, and re-swept with a
+  pattern covering both forms. **So the count is SEVEN artifacts, not five — and the honest lesson is
+  sharper than "the sweep was the work": a sweep that reports clean is itself a CHECK, and must be
+  shown capable of reporting dirty before its clean is quoted.** That is this run's own zero-check
+  rule, and the dispatcher failed it in the very entry writing the rule up
+  ([[data-tasks-sweep-all-inconsistencies]], [[vacuous-check-and-boundary-axis]]).
+  Codex's framing is worth keeping verbatim: *"the new assertion makes the cleanup look complete while
+  stale guidance remains for later workers."* **A false all-clear on shared execution state is worse
+  than the original error, because it stops anyone looking again.**
+  **The as-of mislabel's propagation is CONFIRMED IN CODE AND VALUE, so the standalone backlog item is
+  well-founded — the reviewer's words: "do not re-scope."** `exposure_xray.py::build_concentration_rows`
+  (L776-810) pulls `effective_positions`, `active_share` AND `hhi` from the same age-unbounded panel row
+  and stamps all three from a separate `holds_as_of` join. **JFEAX serves `active_share=1.0` and
+  `hhi=1.0` computed from a ONE-LINE 2022-10-31 book, stamped 2026-04-30, at HIGH confidence.**
+  Distribution: 1,798 equal / **812 newer** / 0 older; >365d 21; >730d 9, all `available`.
+  **A8 is vacuous and WORSE than filed:** the grep returns zero **today, with emitter 1 live**, because
+  `exposure_xray.py:784` builds the id **dynamically** — so the grep leg is blind to emitter 1 even IN
+  scope, and out-of-scope for emitter 2. **Scope-widening alone is NOT the fix; the output assertions
+  are.** Fifth vacuous check of the day, and the first inside our own machinery rather than an output.
+  **A side-note the report filed is REFUTED:** 217 null-peer-group served funds exist but **zero carry
+  any `vs_peer` row**. Checked — **no backlog item was ever filed on it**, so nothing to retract.
+  **A correction to the DISPATCHER's own commensurability claim:** "the two converge; they cannot
+  diverge" is **over-absolute**. Convergence holds on the **EC book ONLY** — the non-EC seam
+  (STIV/RA/DBT lines snapshots never carry; JINTX-class filed books) persists in the L9 limit **unless
+  DECISION 1 picks EC-long**. **ADR-merge is not the only seam**, as both the dispatcher and the report
+  implied.
+  Atomic verification worth recording: **JFEAX's snapshot is literally ONE line** (`6448 JP`, pct_nav
+  0.189 pct, renormalised to 1.0) against a 288-line filing; **JINTX's FILED book is ONE line** (FGZXX
+  99.181 pct) while its snapshot still holds an 89-name book from a prior quarter. Both directions of
+  the defect verified at the raw line.
