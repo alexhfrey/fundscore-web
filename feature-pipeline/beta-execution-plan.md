@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-21T11:02-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-21T11:09-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -57,6 +57,17 @@ to § Parked decisions below), and the dispatcher moves to the next READY item. 
 parked decisions in batches, never mid-loop.
 
 ## Decision register (answered — never re-ask)
+
+**2026-08-21 — OWNER RULING: CONSOLIDATE TO EODHD, AND DISPLAY RIGHTS ARE CONFIRMED.** The owner
+ruled "We can display it. Go with EODHD." This adopts the **2026-07-16 validation spike's**
+recommendation (`fund_score/reports/product/eodhd_validation_spike.md`) — staged consolidation from
+three vendors (Sharadar + Tiingo + FMP) to one. **Provenance note, recorded because a licensing claim
+needs it: display rights are confirmed BY THE OWNER, who holds the vendor relationship. The drafted
+inquiry (`reports/legal/eodhd_licensing_inquiry_email.md`) was never sent and no written confirmation
+is on file** — this is the owner's assertion, which is the authoritative answer, not a document.
+The spike's staged order stands: **(1) replace FMP with EODHD for the international layer and drop FMP
+· (2) migrate US sector + identity off Sharadar reference · (3) migrate US stock/ETF prices · (4) fund
+NAV LAST, and only after the mutual-fund distribution validation layer exists.**
 
 2026-08-06, batches 1–3: beta = FULL experience (pages + screener + X-Ray) · blocker bar =
 STRICTER (6 tagged items) · solver: cheapest-of-Fly/Railway, license gate pre-push, compaction
@@ -3404,3 +3415,35 @@ them.
   frozen as a standalone artifact, or the 14/9/12 divergence returns silently with no code change.
   42 tests pass; only `sector_attach.py` modified (additive, unwired); canonical mtimes still 2026-08-09.
   **OWNER: the frame pin (F-1) is the single remaining gate before 1,359 rows / 512 funds are written.**
+
+- 2026-08-21 11:09 — **OWNER RULING: "We can display it. Go with EODHD." CONFIRMED and entered in the decision
+  register. This is the largest scope change since the 2026-08-07 re-scope.**
+  **What it settles:** the foreign-pricing gap is **not a purchase** — the owner bought EODHD and a
+  **live-key validation spike measured it on 2026-07-16** against the real held universe (5,528 funds ·
+  5,815 US names / \$57T · 19,554 foreign ISINs / \$14.6T). Measured then: **foreign sector coverage
+  97.53 pct** ("closes Sharadar's US-only gap") · identity via ISIN **99.24 pct** · fund-NAV coverage
+  **95.9 pct vs Tiingo 96.0 pct** (parity) · **foreign price levels PASS** — SHEL.LSE at 3,160 pence
+  correctly labelled GBX, ASML EUR1,598 reconciling against its \$1,815 ADR. **Gate 5, foreign USD
+  returns, was left at "inputs validated; build pending" — and that is precisely the gap the dispatcher
+  described this morning as needing a data purchase.** Nothing was ever built: no fetcher, no data on
+  disk, one stale code comment. `EOD_API_KEY` has been in `.env` since 2026-07-16.
+  **The dispatcher was wrong twice on this in one morning** — first "we buy exactly one price dataset"
+  (there are two vendors; FMP supplies worldwide identity + sector for 90,340 securities across 72
+  venues), then "the remaining gap needs two data purchases" (one was already bought and validated five
+  weeks ago). **Neither error would have survived reading `reports/product/` before writing the brief.**
+  **Provenance recorded honestly: display rights are the OWNER'S assertion.** The spike explicitly
+  warned "confirm the public-display/redistribution commercial tier before shipping EODHD data to the
+  UI — do not repeat the FMP licensing mistake", and the drafted inquiry was never sent. The owner holds
+  the vendor relationship and their word is the authoritative answer; it is logged as a ruling, not as a
+  document, so nobody later mistakes it for one on file.
+  **Consequences for work already in flight:**
+  **(a) Owner decision 4 is very likely SUPERSEDED, not answered.** It asked whether to price foreign
+  holdings via their US listings — a workaround for having no foreign prices. With EODHD we can price
+  the foreign line directly, which also retires the ADR/twin-invisibility problem that was its main
+  cost. **The decision should be RE-MEASURED against EODHD rather than ruled as posed.**
+  **(b) Stage 4 of the consolidation and owner decision 3 are the SAME WORK.** The spike says fund NAV
+  moves last and "only after the mutual-fund distribution validation layer" exists — and that layer is
+  exactly the distribution-coherence check already specced as `price-panel-distribution-coherence`.
+  Sequencing them together is free; doing them separately would build it twice.
+  **(c) FMP is now scheduled for removal**, so the sector work standing on it (L14, L1) must be
+  re-pointed rather than extended.
