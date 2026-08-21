@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-20T23:16-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-21T00:15-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -212,7 +212,7 @@ none needs an owner input, and each de-risks D1 or the fences this plan depends 
 | L10 | Riders build — `specs/queue/v4-serving-riders-skill-strip-effective-positions.md`. **RE-RATED 2026-08-07 (W5 grounding): lean/opus-med → reviewed/opus-high.** It is NOT two small additions: effective-positions is ALREADY served and rendered on the WRONG book (`holdings_snapshots` US-ticker basis, not filed `pctVal`) — PRNEX used 57 positions to describe a 127-holding fund, serving 30.5 where the filed book gives 59.8. **SIZING CORRECTED 2026-08-20 by L10 Segment 0 — the old "every fund reads ~2× more concentrated" line generalised PRNEX and is RETRACTED:** median served/filed ratio is **1.10**, p75 1.65, **p90 8.3×**, max 130×; 86.8% understate but **6.2% are biased the OTHER way**, and only 21% are ≥2× off. **The tail is the defect:** 163 served funds show effective positions <5 while filing ≥50 lines, 130 show <2, and 9 exceed their own filed line count — JFEAX files 288 lines and serves **1.0**, while JINTX files ONE line and serves **70.4**. So L10 is a **correctness fix on a live serving fact**, not a rider, and it must land before F6 cutover. Fold in the top-10 27.2/31.0 split (same root cause, filed as its own bug). | IN (**reviewed**) | **opus/high** | **ready** |
 | L11 | Superlative-guard check (top_bet_confident consumer check) — Working set | FB | sonnet/med | **done** (fund_score `06ae57a` on `l11/superlative-guard` — **MERGED, verified 2026-08-17**; 2 deferred advisories → Open chore) |
 | L12 | Twin-label/basis-metadata fix (record's passive leg is a PIT twin cascade mislabeled as one current ETF; 204/218 blends) — **REQUIRED BEFORE F6**; backlog item filed 2026-08-07 | FD | opus/high | **ready** |
-| L13 | Active-share fail-open: propagate `method`+`lookthrough_resolved_weight` to serving + gate (17 funds at 0.5-vs-empty-benchmark, confidence high) — restores the stat F1 gated closed; NOT cutover-blocking | FD | opus/med | **ready** |
+| L13 | Active-share fail-open: propagate `method`+`lookthrough_resolved_weight` to serving + gate (17 funds at 0.5-vs-empty-benchmark, confidence high) — restores the stat F1 gated closed; NOT cutover-blocking | FD | opus/med | **NOT SAFELY READY — new hard prerequisite found 2026-08-21.** L13's whole purpose is to UN-GATE `active_share`, and L10's checkpoint proved `active_share` carries the as-of mislabel: `exposure_xray.py::build_concentration_rows` (L776–810) pulls `effective_positions`, `active_share` AND `hhi` from the same **age-unbounded** panel row, and **JFEAX serves `active_share = 1.0` computed from a ONE-LINE 2022-10-31 book, stamped 2026-04-30, at HIGH confidence.** Un-gating before the as-of item lands would ship a wrong number carrying a confident false date — strictly worse than the honest withholding it replaces. **Sequence: as-of mislabel → L13.** |
 | L14 | **Domicile-routing rule (promoted 2026-08-09 from the Segment-1b follow-up — now FIVE symptoms of one root cause**: 2 unrestored 1c pairs · 15-ISIN/$7.4B split cohort · 481 positioning quarters · S7-4 dual-sector contradiction 20 ISINs/$8.2B **served-on-next-reload** · part of the $3.51B recall chore). **MUST LAND BEFORE THE NEXT SERVING RELOAD** (S7-4 is a same-security contradiction that would reach the product) | FD (reviewed) | opus/high | **in-progress** — Segment 0 (EDA, no writes) running 2026-08-17 in worktree `fund_score-wt-l14` on `fix/l14-domicile-routing`. Expected to end in an OWNER DECISION: the fix needs a NEW rule (segment-7 §7: "may a foreign-filed row inherit the Sharadar label its US-filed sibling carries?") and the current refusal is what blocks wrong-company cusip binds. Scope refinement to confirm: the "20 ISINs" split into **S7-4a (14, this item)** + **S7-4b (6, a separate item routing cannot fix)**. |
 | L15 | **D3: `benchmark_nav.py:146` imputes 0% return for unpriced blend sleeves + serves unrenormalized at >50% coverage** (found 2026-08-09 by L5's coherence gate; reviewer re-sized the TRUE blast radius: **51 of 1,449 neighbourhood-served funds >1bp/day, median max 44bps/day, worst SLMCX 304bps/day** — size the fix on `passive_alt_daily_nav`'s FULL universe, not the 41 both-movements funds; SLMCX's 47.4% SOXX sleeve held flat unrenormalized). **PRE-RELOAD, P1**; F2's flip decides whether affected funds gate movement 03 closed until this lands | FD (reviewed) | opus/high | **done 2026-08-17** (`c159f9a` on `l15/benchmark-nav-renorm` — **MERGED to fund_score main `75980a3`**, owner-authorized 2026-08-17; three adjudication rounds. Round 3 caught a v6 REGRESSION its own check surfaced: terminal truncation anchored two served charts ON fabricated prints, MMTMX serving +60.06% vs a +0.80% baseline with four sibling classes at +0.74–0.78%, sign-flipping the headline verdict in all three periods. Fixed by anchoring on evidence via the existing `LOG_BRIDGE_SUSPECT` — no new threshold. All 6 verification items PASS; determinism byte-identical incl. all 10 hygiene ledgers; both `/check-data` 0 blocking; `method_version` → `v3_2026-08-17`. Codex: 2×P1 + 1×P2 fixed, clean pass. Follow-ups filed: thread (c) 32-ticker liquidation class, SPAX run-selection, W3 quarantine-vs-score, ratchet slack 584 vs 563, td-cache absent) |
 
@@ -3195,3 +3195,28 @@ them.
   0.189 pct, renormalised to 1.0) against a 288-line filing; **JINTX's FILED book is ONE line** (FGZXX
   99.181 pct) while its snapshot still holds an 89-name book from a prior quarter. Both directions of
   the defect verified at the raw line.
+
+- 2026-08-21 00:15 — **Heartbeat stale at 58 min. Verified NOT dead — nothing in flight, sleep hold confirmed
+  holding (`PreventSystemSleep 1`). DELIBERATELY HOLDING RATHER THAN DISPATCHING, with reasons, because
+  "the line does not stall on owner decisions" is not a mandate to manufacture more of them.**
+  **A NEW HARD PREREQUISITE FOUND WHILE PICKING THE NEXT ITEM — L13 IS NOT SAFELY READY, and its queue
+  row said it was.** L13's entire purpose is to **un-gate `active_share`**. L10's checkpoint proved
+  `active_share` **carries the as-of mislabel**: `exposure_xray.py::build_concentration_rows` (L776-810)
+  pulls `effective_positions`, `active_share` AND `hhi` from the same **age-unbounded** panel row, and
+  **JFEAX serves `active_share = 1.0` computed from a ONE-LINE 2022-10-31 book, stamped 2026-04-30, at
+  HIGH confidence.** Un-gating that stat before the as-of item lands would replace an honest
+  withholding with **a wrong number wearing a confident false date** — strictly worse than the status
+  quo, and the exact wrongness class this project ranks above a gap. **Sequence recorded in the row
+  itself, not just here: as-of mislabel -> L13.** This is the second time today that reading one item's
+  checkpoint changed another item's readiness (the first was L9 -> L10 sharing a root cause).
+  **Why nothing was dispatched:** every remaining READY item either sits behind a parked owner decision
+  (L2/L3 behind capital-gain in the price-path order), or would END in new owner decisions. The owner's
+  queue already stands at **four in the published brief plus L10's five, all fit as written** — nine
+  undrained rulings. Dispatching a seventh segment overnight would add to a queue the owner cannot act
+  on faster than it grows, and would burn lakehouse-adjacent work whose sequencing the pending
+  decisions may change. **The honest state is: the S3 critical path is fully owner-blocked, and the
+  most useful thing the line can do is stop cleanly with durable state.**
+  **State at hold:** five segments landed and checkpointed today (capital-gain, L14, L6, L9, L10);
+  **canonical writes 0 across every one of them**; L14 committed and codex-gated; the web copy fix
+  committed (`ec7306a`) after three correction rounds; all reports carry their checkpoint corrections;
+  working tree clean; sleep held 12h with `PreventSystemSleep` **verified**, not assumed.
