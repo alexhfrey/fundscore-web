@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-21T09:14-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-21T09:45-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -3221,3 +3221,37 @@ them.
   **canonical writes 0 across every one of them**; L14 committed and codex-gated; the web copy fix
   committed (`ec7306a`) after three correction rounds; all reports carry their checkpoint corrections;
   working tree clean; sleep held 12h with `PreventSystemSleep` **verified**, not assumed.
+
+- 2026-08-21 09:45 — **OWNER RULED on the Recent Changes design, and challenged it usefully enough to change the
+  build: (1) KILL the cross-manager filter, (2) BUILD a no-expansion mode so the section stops
+  looking through ETFs.**
+  **The owner independently derived the ranking metric.** They proposed `pct_change x
+  annualized_volatility_of_position`; the shipped estimator is
+  `te_impact_bps = |delta weight| x annualised sigma`. Identical. No change needed and the fallback
+  ("or just percent change if that doesn't work") is not needed either.
+  **The filter has NO documented rationale — traced, not assumed.** `change_z` and its cut arrived
+  inside `8fcd349`, a bundled commit shipping four features at once ("Track 2F #12 positioning_changes
+  panel" as one bullet among many); there is no design note, spec line or comment justifying it. It is
+  already retired in L6's v0.2 (`Z_SURFACE_CUT` survives only as documentation of the retired cut), so
+  the owner's ruling CONFIRMS the pending R1 decision rather than overriding a considered choice.
+  **THE LOOK-THROUGH FINDING — the frame does TWO jobs and its name advertises one.** Besides expanding
+  ETFs, `holdings_lookthrough_window` **selects the fund's own comparison endpoints** (trailing-year,
+  +/-45d tolerance) so `pick_endpoints` reconstructs identically in the panel builder. Trial-built
+  FCNTX both ways: current frame -> **41 rows / 10 surfaced**; raw `holdings_complete` -> **crash**,
+  preceded by `endpoints: 0 with prior, 1 missing prior`. The filed book carries whatever quarters were
+  filed, not the windowed endpoints. **So this is a no-expansion MODE on the window builder, not a
+  source swap** — `--lookthrough-frame` is already a CLI flag and the column contract is satisfied
+  (`holdings_complete` carries all 8 columns the frame path reads), but the windowing is load-bearing
+  and is lost with the swap.
+  **A NUMBER THE DISPATCHER ALMOST REPORTED AND RETRACTED BEFORE SENDING:** "switching books gains
+  1,626 funds a section and loses 212." **Wrong, and wrong in this run's signature way** — the filed
+  book has more funds only because it is NOT windowed, so it includes funds with no valid prior
+  endpoint that cannot get a section either way. Comparing a filtered thing to an unfiltered thing and
+  calling the difference a gain. The same confound weakens the earlier "look-through adds nothing for
+  97.6 pct of funds" figure. **Direction holds** (expansion does nothing for the large majority;
+  unresolved wrapper lines are median 0.03 pct of NAV, max 0.54 pct) **but no clean percentage can be
+  quoted until both sides are windowed identically.** That measurement is the point of the build.
+  **SEQUENCING CONSEQUENCE THE OWNER MUST SEE: this may MOOT owner decision 1 (the D8-3 merge).** The
+  phantom trades, the blunt suppression and the 73.8 pct recoverable-missing question all exist to
+  manage a look-through this section barely uses. If no-expansion measures out, that entire decision
+  disappears for L6. **Decision 1 is therefore HELD, not withdrawn, pending the measurement.**
