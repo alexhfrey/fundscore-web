@@ -25,6 +25,27 @@ Each decision gets its own self-contained block with these four beats, in this o
 
 A block missing beat 1 is the common failure. A block missing beat 4 is not a decision, it is a status update — file it elsewhere.
 
+## Name the mechanism, not just the symptom
+
+Beat 3 fails most often not by being wrong but by being **unexplained**. "Trades that never happened", "the filter rule", "a coverage gap" are labels, not explanations — and the owner cannot weigh a decision whose cause they can't picture.
+
+**Test every finding against: "but how would that even happen?"** If the block doesn't answer it, it isn't finished.
+
+> ✗ *"the filter is the only thing suppressing trades that never happened"*
+> ✓ *"When a fund holds an ETF we look inside it to see the real shares. Some filers wrote the parent trust's identifier instead of the specific ETF's, so our lookup missed, we never opened the ETF, and the fund's whole portfolio collapsed to that one line at 99% of assets."*
+
+The second is three sentences longer and is the difference between a decision they can make and one they have to take on trust.
+
+Corollary: **never re-use a shorthand you coined without re-defining it.** "Phantom trades", "the twin", "the look-through" all read as established terms to the writer and as noise to the reader. If you named it, you owe the definition every time.
+
+## Re-source a number every time you re-use it
+
+A figure carried forward across briefs stops being evidence and becomes folklore. **Before quoting any number you have quoted before, open the source again.**
+
+This is not hypothetical: "funds showing trades that never happened" survived three briefs before anyone re-read the underlying commit, which said in its own second paragraph that **14 of the 24 rows were real**. The number was never checked because it had already been said.
+
+Same rule as the zero-check discipline elsewhere in this project — a claim that has been repeated is not a claim that has been verified.
+
 ## Never fabricate a recall
 
 Beat 1 is the highest-trust sentence in the brief and therefore the most damaging to get wrong. **Source every recall; never reconstruct one from memory.**
@@ -101,3 +122,6 @@ Same facts. The second one can be acted on by someone who has been doing other t
 - [ ] Each decision sentence can be answered in one word
 - [ ] Each recommendation carries its *reason*, not just its verdict
 - [ ] The opening says what changed, not what we did
+- [ ] Every finding survives "but how would that even happen?" — mechanism, not label
+- [ ] Every shorthand you coined is re-defined, even if you used it last week
+- [ ] Every re-used number was re-opened at source, not carried forward
