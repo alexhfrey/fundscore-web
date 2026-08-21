@@ -38,6 +38,31 @@ The second is three sentences longer and is the difference between a decision th
 
 Corollary: **never re-use a shorthand you coined without re-defining it.** "Phantom trades", "the twin", "the look-through" all read as established terms to the writer and as noise to the reader. If you named it, you owe the definition every time.
 
+## Bring the data — a brief without numbers is an opinion
+
+**Never present a defect to the owner without sizing it.** They are being asked to spend money and
+schedule on it; "some charts show a cliff" does not support a decision, and neither does a single
+anecdote. Every defect block owes five things, and you almost always already have them:
+
+| | what to give | why they need it |
+|---|---|---|
+| **Scale** | how many events, how many funds, how many reach the product today | is this 5 funds or 1,500? |
+| **Severity** | the distribution, not just the worst case — median, and the tail | is the typical case bad or is one case bad? |
+| **Recency** | date range, and what share is recent | live problem or historical residue? |
+| **Timing** | when it happens, if there is a pattern | a defect concentrated in December is predictable and cheap to catch |
+| **A worked example** | one real case with real numbers, end to end | it makes the mechanism concrete in a way prose cannot |
+
+> ✗ *"Some fund charts show a cliff that never happened."*
+> ✓ *"1,519 events across 1,256 funds, 75% of them since 2020. The typical fabricated move is 35%; 18% of them exceed 100%; the worst is 1,302%. 56% land in December because that is when funds must distribute realised gains. Worked example: ASVDX on 6 Dec 2013 went 10.96 → 9.50 and paid $1.59 — a true return of +1.2% — and we show +22.2%."*
+
+**Name the third party.** "Our price vendor", "the data source" — say *which*. The owner may have a
+commercial relationship with them, may be choosing whether to keep paying them, and cannot weigh a
+vendor-quality problem against an anonymous vendor.
+
+**If you do not have the numbers, go and get them before writing.** The measurement usually already
+exists in a report or is one query away. Presenting an unsized defect wastes the owner's turn and
+guarantees a second round.
+
 ## Every count names its unit; every rule gets stated
 
 Two failures that look small on the page and make a decision unmakeable.
@@ -142,6 +167,7 @@ So run an explicit pass over the finished draft in which you are **a competent p
 
 1. **Could I explain the cause to a colleague after reading this once?** If the block gives an effect without a mechanism, it fails.
 1b. **Do I know what every number counts, and what every named rule says?** A bare count or a rule referred to but never stated both fail here.
+1c. **Do I know how big this is, and whether it is getting worse?** If the block has no scale, no distribution and no dates, it is an opinion.
 2. **Is there any noun phrase here I'd have to already know to understand?** House shorthand, a coined label, a metric name. Define or replace it.
 3. **Do I know what I'm being asked and what happens under each option?** If the ask needs the reader to infer the consequence, it isn't written yet.
 
@@ -164,3 +190,6 @@ Any sentence that survives only because *you* wrote it gets rewritten.
 - [ ] Every count names its unit — "14" is never a fact, "14 securities across 2,580 holdings" is
 - [ ] Any rule the decision turns on is STATED in plain words, not just named
 - [ ] No block silently merges two different mechanisms into one story
+- [ ] Every defect is SIZED — scale, severity distribution, recency, timing pattern
+- [ ] At least one worked example with real numbers, end to end
+- [ ] Any third party is NAMED, not "our vendor"
