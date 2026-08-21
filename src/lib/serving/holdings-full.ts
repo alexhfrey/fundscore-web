@@ -46,9 +46,11 @@ export function readHoldingsFullTeaser(row: FactRow): HoldingsFullTeaser | null 
  * caller's tier BEFORE the long-table read, so an unentitled tier triggers no
  * row read and zero rows leave the server. Rows come straight from the serving
  * table, AS FILED: ordered by filed-weight rank, no rescaling, no row filtering,
- * multi-line issuers kept separate. `sector` is null where the cusip join didn't
- * resolve; `ticker` is null for private/cash instruments — both surface honestly
- * in the UI (em-dash / name-first), never imputed.
+ * multi-line issuers kept separate. `sector` is null where neither reference
+ * resolves (it is a domicile-routed join plus the pinned US-filed consensus
+ * overlay — see the basis note on `fundHoldingsFull.sector`); `ticker` is null for
+ * private/cash instruments — both surface honestly in the UI (em-dash /
+ * name-first), never imputed.
  */
 export async function getHoldingsFullRows(
   ticker: string,

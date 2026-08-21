@@ -77,10 +77,17 @@ export interface LookThrough {
    * Where in the world the money actually sits. Safe to derive from holdings:
    * `country` is 100% populated across all 1.3M served equity positions.
    *
-   * NOTE: we deliberately do NOT derive a sector look-through the same way —
-   * holdings.sector is ~43% null (the known foreign-classification gap), so a
-   * holdings-derived sector split would quietly under-report every non-US name.
-   * Sector stays on the solver's own reference-mapped row.
+   * NOTE: we deliberately do NOT derive a sector look-through the same way, and
+   * sector stays on the solver's own reference-mapped row.
+   *
+   * The original reason no longer holds and is recorded here so the decision is
+   * re-taken on current facts rather than inherited: this comment used to read
+   * "holdings.sector is ~43% null (the known foreign-classification gap)". After
+   * the domicile-routed foreign fill and the pinned US-filed consensus overlay,
+   * served `sector` is 5.7% null overall and 2.3% null on asset_cat 'EC' equity
+   * common (measured 2026-08-21 over all 1,398,380 served rows). Turning this on
+   * is now a product decision, not a data blocker — but it is a behaviour change
+   * and stays out of scope until it is specced.
    */
   countries: LookThroughCountry[];
   as_of_min: string | null;

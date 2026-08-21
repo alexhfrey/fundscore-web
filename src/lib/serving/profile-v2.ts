@@ -458,7 +458,11 @@ export interface HoldingRow {
   // and ignores anything it doesn't recognise rather than mislabelling it.
   position_direction: string | null;
   country: string | null; // filed invCountry
-  sector: string | null; // cusip_reference join; null where unresolved
+  // Domicile-routed reference join (US lines -> cusip_reference by CUSIP, foreign
+  // lines -> isin_reference by ISIN) plus the pinned US-filed consensus overlay, so
+  // one company reads the same here, in the Exposure X-Ray and in positioning.
+  // Full basis note on `fundHoldingsFull.sector` in db/schema/serving.ts.
+  sector: string | null; // null where neither reference resolves
   asset_cat: string | null; // filed assetCat raw code (labeled in the UI)
 }
 /** Free teaser for the locked drawer — the served count + as-of, read off the

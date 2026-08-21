@@ -212,7 +212,21 @@ export const fundHoldingsFull = pgTable(
     // so a −2.68% row reads as a short sale rather than a data error.
     positionDirection: text("position_direction"),
     country: text("country"), // filed invCountry
-    sector: text("sector"), // cusip_reference join; null where unresolved
+    // Sector basis (fund_score `fundscore.reference.sector_attach.attach_sector`) —
+    // NOT a plain cusip_reference join, and the name does not tell you the basis:
+    //   1. domicile routing — US-domiciled lines (filed invCountry == "US") take
+    //      cusip_reference (Sharadar) by filed CUSIP; every other line takes
+    //      isin_reference (FMP) by ISIN. Sharadar-by-CUSIP is DISCARDED on foreign
+    //      lines because foreign CUSIPs collide with unrelated US issuers.
+    //   2. pinned US-filed consensus overlay (owner ruling 2026-08-21) — where one
+    //      security carried two different sector labels across funds and its
+    //      US-filed rows all agreed on one, that label is applied to EVERY row of
+    //      that security. The verdict is decided once on gold/holdings_complete and
+    //      propagated, so this column, the Exposure X-Ray and positioning_changes
+    //      cannot disagree about the same company.
+    // Null where neither reference resolves (5.7% of served rows; 2.3% of asset_cat
+    // 'EC' equity-common rows, measured 2026-08-21).
+    sector: text("sector"),
     assetCat: varchar("asset_cat", { length: 16 }), // filed assetCat raw code (display labeling is frontend)
   },
   (t) => [
