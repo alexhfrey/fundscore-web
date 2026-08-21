@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-20T19:16-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-20T19:51-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -3106,3 +3106,45 @@ them.
   worse than a gap. It also carries L9's mechanism so the agent builds on it rather than rediscovering
   it, and all three of this run's falsification rules including [[consumer-audit-not-literal-grep]] —
   **which the dispatcher failed to put in L9's brief and which L9 then walked straight into.**
+
+- 2026-08-20 19:51 — **L10 Segment 0 LANDED. Checkpoint running. It CORRECTS THIS FILE'S OWN FRAMING, which the
+  dispatcher has been repeating to the owner all day.** Nothing written under `data/`.
+  **THE "EVERY FUND READS ~2x MORE CONCENTRATED" LINE IS AN OVER-GENERALISATION OF PRNEX and is
+  retracted pending the checkpoint.** Measured: **median served/filed ratio 1.10**, p75 1.65, **p90
+  8.3x**, max 130x; **86.8 pct understate but 6.2 pct are biased the OTHER way**; only **21 pct are
+  >=2x off** and the median fund is 10 pct off. **The queue row L10, the KNOWN-WRONG table, and every
+  dispatcher summary carrying "~2x" are wrong in the same way.**
+  **The tail is the real story, and it is worse than the average suggested:** live today **163 served
+  funds show effective positions < 5 while filing >= 50 lines; 130 show < 2; 9 serve a value EXCEEDING
+  their own filed line count.** **JFEAX files 288 lines and is served "Effective Positions 1.0."**
+  **JINTX files ONE line and is served 70.448** — the reverse direction, which is the better falsifier.
+  Corrected figures: PRNEX **30.48 -> 59.83** (filed all-long) / 56.24 (EC-long); top-10 **27.234 pct ->
+  30.965 pct**; aggregate served p50 **29.0 -> 41.1**. Coverage **5,436/5,819 = 93.42 pct**, with the 79
+  absent verified **honest-missing at the raw source** and a non-degeneracy proof attached. **66 funds
+  served today would LOSE the figure** — a regression the owner must see.
+  **The SPEC's consumer list is wrong, and one omission is user-visible:**
+  `scripts/pipeline/build_positioning_changes_panel.py` emits the same bad stat as change rows, so
+  **10 funds render it as their headline "largest portfolio move."** `format.ts:441` is a reader, not a
+  render site (that is `ExposureXray.tsx`). Good news: **`eff_n_raw` is NOT read by the fee-efficiency
+  score** — it reads the finished `diversification` multiplier — so serving-only retirement is safe.
+  **NEW DEFECT, possibly more serious than the item: the AS-OF MISLABEL. 812 of 2,610 served rows carry
+  a `holdings_as_of` NEWER than the book actually used** — 21 off by >1yr, 9 by >2yr, and **45 of the
+  worst 48 are stamped `coverage_state: available` / `confidence_state: high`. JFEAX's figure was
+  computed on the 2022-10-31 book and labelled 2026-04-30.** It also rides **`active_share` and `hhi`**,
+  which survive this spec. A confidently-stamped four-year-old date is the wrongness class this project
+  ranks above a gap.
+  **THE FIFTH VACUOUS CHECK OF THE DAY, AND THE FIRST FOUND INSIDE A SPEC: acceptance A8 cannot fail on
+  the consumer it exists to catch** — its grep scope is `FUNDSCORE/src` while the second emitter lives
+  in `scripts/pipeline/`. The rule is now catching defects in our own machinery, not only in outputs.
+  **The dispatcher's commensurability read is CONFIRMED: L10 does not depend on L9 and L9 cannot break
+  it** — filed `pctVal` carries foreign lines by construction, and the filed book is the **limit** L9's
+  recovery moves `holdings_snapshots` toward, so the two converge. One seam named: if L9 merges
+  ADR + ordinary lines, the as-filed count differs by that merge.
+  **The 27.2/31.0 split is confirmed the same root cause ATOMICALLY** — the 27.2 book is missing exactly
+  **SHELL PLC 3.759 pct, CANADIAN NATURAL 2.612 pct, LINDE 2.382 pct** (foreign, null US ticker) and
+  back-fills BKR/TRGP/CCJ. At scale `Sum top_holdings[].weight` understates by >=2pp for **32.5 pct** of funds.
+  **Five owner decisions raised, none taken** — position set (567 funds differ >10 pct), validity gate
+  (the `[90,110]` band drops **175 genuinely-levered funds** for a reason that does not bite a
+  scale-invariant statistic), degenerate books (**148 gate-passing funds would serve < 2**), whether to
+  fix the as-of mislabel in the same change-set, and the peer-concentration sentence, which **flips for
+  16.8 pct (425/2,524)** of funds.
