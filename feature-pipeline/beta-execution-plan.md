@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-21T10:59-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-21T11:02-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -3375,3 +3375,32 @@ them.
   **Segment-5 precondition recorded:** the map must be derived **inside the build from the same
   `holdings_complete` vintage, in the same run that rebuilds all three consumers.** Frozen as an
   artifact while frames rebuild independently, the coverage drift returns silently.
+
+- 2026-08-21 11:02 — **L14 Segment 4 corrections applied, ALL RE-MEASURED FROM DATA rather than accepted on
+  assertion. Codex gate running on the code; the CANONICAL WRITE still waits on the owner's frame
+  ruling.**
+  **C-1 confirmed exactly and F-3 rewritten.** Cango is **8 rows / 8 funds / \$1.227M, Technology ->
+  Consumer Cyclical** — the "1 row" was M2's plurality footprint bleeding into the F-3 row, and the two
+  readings genuinely **invert** (one Sharadar-evidence US row says Consumer Cyclical; three no-cusip US
+  rows say FMP Technology, so plurality picks Technology and evidence picks Consumer Cyclical).
+  Corrected F-3 total **+151 rows / 97 funds / \$89.796M**; full footprint 1,510 rows / 529 funds /
+  \$3,005.273M / 17 ISINs. **"Frame-stable" RETRACTED as false — measured 17 / 17 / 13** across
+  `holdings_complete` / `fund_holdings_full_staging` / `holdings_lookthrough_window`. Per-frame
+  evidence persisted to `data/_tmp/l14/s4_f3_altmap_*.parquet` so the retraction is checkable.
+  **C-2 is the one worth keeping.** The `'N/A'` sentinel in `inv_country` is 3 rows / \$1,616,050 (HKT
+  Trust, Banco Latinoamericano, one null-ISIN), and `== 'US'` reads them as foreign. Intersection with
+  the 20 is **0 — and the worker made that a MEASUREMENT rather than an inference by adding a probe**:
+  relabel Scorpio's 32 US rows to `'N/A'` and the map goes **14 -> 13** with Scorpio dropping out, so
+  the predicate is demonstrably sentinel-sensitive. **It also found the sibling frames carry the same
+  sentinel at far higher counts — `fund_holdings_full_staging` 4,959 rows, lookthrough 10 — which must
+  be re-audited if the map is ever derived there.** That is the zero-check rule applied correctly and
+  unprompted ([[negation-filters-absorb-new-row-types]]).
+  **C-3:** 107 insertions / 0 deletions; direction figures relabelled with their unit — **summed
+  percentage points of NAV across the 512 affected funds** (Energy +118.4pp, Comm Services +65.8pp,
+  Industrials −164.8pp, Technology −22.3pp), with an explicit note it is a cross-fund sum and never one
+  fund's exposure. Values unchanged.
+  **Segment-5 precondition recorded in the report:** derive the consensus map **inside the build, from
+  the same `holdings_complete` vintage, in the same run that rebuilds all three consumers** — never
+  frozen as a standalone artifact, or the 14/9/12 divergence returns silently with no code change.
+  42 tests pass; only `sector_attach.py` modified (additive, unwired); canonical mtimes still 2026-08-09.
+  **OWNER: the frame pin (F-1) is the single remaining gate before 1,359 rows / 512 funds are written.**
