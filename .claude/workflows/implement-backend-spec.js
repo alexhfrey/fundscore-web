@@ -273,6 +273,17 @@ const s4 = await impl(
   'finalize-commit',
   `\nThe final data gate passed; its combined check-data report is at ${r3.report_path} — stage that\n` +
     `report with the commit.\n\n` +
+    `STAND-DOWN CHECK, FIRST ACTION (the main session sometimes hand-finalizes while this workflow's\n` +
+    `earlier segments are still running — see memory workflow-finalize-cannot-await-codex — and a second\n` +
+    `finalize then RACES the first: duplicate codex spend, git mv on a spec already in done/, colliding\n` +
+    `backlog edits): before doing ANYTHING else, check whether finalize already happened — the spec file\n` +
+    `is in specs/done/ (not queue/), AND the feature branch HEAD already contains this spec's\n` +
+    `implementation commit, AND a passing high-tier verdict for that HEAD exists in\n` +
+    `feature-pipeline/reviews/ (gates_commit: true). If ALL three hold, DO NOT re-run codex, DO NOT\n` +
+    `commit, DO NOT touch the backlog or spec files — return immediately with codex_gate: 'pass',\n` +
+    `commit_sha: <that HEAD>, spec_moved_to_done: true, and note 'stood down: already finalized by the\n` +
+    `main session'. If only PART holds, stop and report exactly which parts, as a blocker — never\n` +
+    `\"finish the remainder\" of someone else's partial finalize by guesswork.\n\n` +
     `MANDATORY CODEX GATE, BEFORE the commit (the workflow verifies your structured output — a\n` +
     `non-pass gate or empty commit_sha means this spec does NOT move to done):\n` +
     `1. From ${fundScoreRoot}, run: ${codexScript}   (deep reasoning by default; scope --uncommitted).\n` +
