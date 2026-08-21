@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-20T18:13-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-20T18:21-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -3036,3 +3036,44 @@ them.
   the plain defect is safe.
   **Fitness for the owner: D-1 (ADR basis) FIT · D-4 (freshness bound) FIT · D-2 and D-5 FIT ·
   D-3 NOT FIT until B1 is corrected.**
+
+- 2026-08-20 18:21 — **U5 (L9) CORRECTIONS APPLIED, both re-derived by the worker rather than accepted on report.
+  Segment 0 is now fit for the owner. Two of its three Segment-1 blockers TAKEN AS LINE DECISIONS;
+  only D-1 goes to the owner.**
+  **B1 closed.** The worker independently reproduced the reviewer's classification: **exactly 7 of the
+  51 match only `etf_holdings_snapshots`** (solver included), ~22 are docstring/comment/prose only —
+  `exposure_xray` **explicitly disclaims** the book (*"NOT `holdings_snapshots.parquet`"*) — leaving
+  **~20 true direct readers**, each verified by inspecting the matching line. **The twin-refit sentence
+  is marked RETRACTED IN PLACE with the mechanism stated and credited to the reviewer, not silently
+  overwritten.** D-3 unchanged on the corrected facts.
+  **B2 closed, and better than asked. The worker could NOT reproduce the reviewer's exact 197/48/553
+  without its materiality cut — so it published its OWN computed range with the definition attached and
+  ATTRIBUTED the reviewer's figure rather than printing a number its run did not compute.** That is
+  [[verification-metric-must-be-non-degenerate]] applied to itself under pressure to agree. Its range:
+  **497 of 1,947 served / 125 of 601 "complete"** on the widest definition (clean cards **476**),
+  moving to 514 / 543 / 573 at >=0.5 pct / >=1 pct / >=2 pct NAV. **The reviewer's 553 falls inside that
+  range, so the two are consistent. The honest line is "clean cards 476-573, not 601".**
+  **All label fixes applied:** **63.9 pct / 1,244 / median 3.02 pct is now the TOP LINE**
+  (ruling-independent), with 69.1 pct shown as the ADR-authorised variant; p90 restated among affected
+  (8.66 pct union, 6.46 pct `Ra`, 4.13 pct `Rb`); F-S2.1's basis mixing flagged; **the FX pre-screen
+  disclosed** (9,002 pairs = 8,722 control / 232 `Rb` / 48 `Ra`; unscreened `Rb` 76.15/95.23 vs screened
+  76.2/95.3); the tail claim narrowed to the 15 largest by holder count; the chokepoint predicate
+  corrected; and **the seeded gate table is now PERSISTED** as `m16_gate_seeded_failure.py`, asserting
+  both the exact `(1947,0,0)` baseline and non-zero FP/FN under every perturbation.
+  **F-S2.16 — the new axis, MEASURED rather than noted, and it is the sharpest thing in the report:**
+  against 96 ETF series' historical US-ticker books, **`Ra` is 99.4 pct of value twin-VISIBLE but `Rb`
+  is 71.6 pct of value twin-INVISIBLE** — NVO, AZN, NVS, SHEL, SNY, TTE, BABA appear in **no** ETF's
+  historical US book. So authorising ADR pricing **pushes the false-twin-0.00 pct exposure off the
+  361-fund band and onto the 1,244-1,346 incomplete cards.** A second trap fell out of the same
+  measurement: **the ETF legs resolve CUSIP `064058100` to the stale ticker `BK` while the recovered
+  fund line would be `BNY` — the two sides would not join.** Both are blocking Segment-1b preconditions
+  and **D-1 now has a second dimension beyond return basis.** F-S2.16 is NEW analysis and is carried
+  forward UNVERIFIED — it gates Segment 1, not any decision the owner takes now, so it is reviewed then.
+  **DISPATCHER LINE RULINGS (reversible; nothing a user sees changes):** **D-3 = additive recovered
+  book, never an in-place migration** — ~20 readers including the serving scope is ample, and the
+  reviewer endorsed the recommendation on the corrected facts. **D-4 = adopt the 10-day freshness
+  bound** — it removes the entire stale-quote class (which fabricates 0 pct returns) at a cost of 1 of
+  47 and 3 of 116 funds; refusing to price a years-dead quote is a correctness requirement, not a
+  tunable, and it is the honest-data direction.
+  **TO THE OWNER: D-1 only** — it changes served financial figures at scale (+116 funds) and is S2-d
+  reopened as a measurement, now with the twin-invisibility dimension attached.
