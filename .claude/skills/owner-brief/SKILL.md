@@ -111,6 +111,18 @@ Same facts. The second one can be acted on by someone who has been doing other t
 - Keep the whole thing skimmable: a busy reader should be able to get the shape from headings and bold alone, then drop into the one block they care about.
 - **Never** open with process ("Five segments landed and all passed their checkpoints"). Open with what it means for the product or the decision.
 
+## The cold read — do this before publishing, as a step, not a glance
+
+The checklist below is not self-executing, and the failure it exists to catch is invisible from the inside. **You can always parse your own sentence, because you already know the answer.** "Trades that never happened" read as clear to me and as noise to the owner, and no amount of re-reading it *as the author* would have surfaced that.
+
+So run an explicit pass over the finished draft in which you are **a competent person who has never seen this project**. For each block, ask three things and fix what fails:
+
+1. **Could I explain the cause to a colleague after reading this once?** If the block gives an effect without a mechanism, it fails.
+2. **Is there any noun phrase here I'd have to already know to understand?** House shorthand, a coined label, a metric name. Define or replace it.
+3. **Do I know what I'm being asked and what happens under each option?** If the ask needs the reader to infer the consequence, it isn't written yet.
+
+Any sentence that survives only because *you* wrote it gets rewritten.
+
 ## Before you publish, check
 
 - [ ] Every decision block has all four beats, in order
