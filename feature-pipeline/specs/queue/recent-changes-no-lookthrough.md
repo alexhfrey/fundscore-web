@@ -8,6 +8,7 @@ depends_on:
 source_proposal: owner ruling 2026-08-21 (design challenge to recent-changes-te-ranked)
 created: 2026-08-21
 scope: global
+priority: 1
 model: opus
 effort: high
 lane: reviewed
@@ -61,6 +62,16 @@ Add a no-expansion mode to `scripts/pipeline/build_holdings_lookthrough_window.p
   so a consumer can never mistake one frame for the other. The panel builder's `METHOD_VERSION`
   must move too — the basis of `is_surfaced`/`surfaced_rank` changes, and v0.2 already set the
   precedent that a basis change forces a label change.
+
+## Also fix while you are in this check (carried codex advisory, L6 `6fca29f`)
+`scripts/checks/check_change_te_impact.py:121-127` — when the canonical panel predates v0.2 and
+lacks the TE columns, the in-memory fallback attaches TE fields and reorders ranks but **does not
+re-run the v0.2 surfacing rule that excludes `style` rows.** Those old surfaced style rows keep
+`classification = null`, so the new G7 baseline fails and the check exits 1 — while still
+presenting itself as having validated the code. **Either apply v0.2 surfacing in the fallback, or
+fail explicitly on a pre-v0.2 panel.** Do not leave a check that claims to validate what it cannot;
+that is the vacuous-check class in constraint 5, and this one was found by the gate rather than by
+us.
 
 ## What to measure — this is the deliverable, not the code
 The code change is small. **The measurement is the point**, because it is what the owner rules on.

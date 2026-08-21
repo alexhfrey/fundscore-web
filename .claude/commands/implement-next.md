@@ -32,9 +32,13 @@ Steps:
      and continue to step 1.
 1. Resolve WEBROOT (fundscore-web absolute path) and FUNDSCORE (`product.fund_score_repo` from
    `feature-pipeline/config/page-types.json`).
-2. Pick the next **ready** spec: the oldest `*.md` in `feature-pipeline/specs/queue/` whose
-   `depends_on` is empty OR whose dependency slug already has a spec in
-   `feature-pipeline/specs/done/`. **If an argument names a spec slug** (`/implement-next <slug>`),
+2. Pick the next **ready** spec. Ready = `depends_on` is empty OR every dependency slug already has
+   a spec in `feature-pipeline/specs/done/`. Among ready specs, order by:
+   **(a) `priority:` frontmatter ascending** — an optional integer, lower runs first; specs without
+   it sort after every spec that has one. This is how the owner steers the queue without
+   back-dating `created:`, which would falsify the record.
+   **(b) then oldest `created:`** — the default when no priority is set.
+   **If an argument names a spec slug** (`/implement-next <slug>`),
    pick that spec instead — but only if it is ready; if its dependencies aren't done, say which and
    STOP (never bypass depends_on). If nothing is ready (queue empty, or all remaining specs are
    blocked by unfinished backend dependencies), say so clearly and STOP — that is the honest
