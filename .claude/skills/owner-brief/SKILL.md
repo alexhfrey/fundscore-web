@@ -36,6 +36,8 @@ Beat 3 fails most often not by being wrong but by being **unexplained**. "Trades
 
 The second is three sentences longer and is the difference between a decision they can make and one they have to take on trust.
 
+**If the decision is a workaround, state the constraint it works around — and why the constraint exists.** A brief once proposed pricing foreign holdings via their US listings without ever saying *why we cannot price them directly*. The answer turned out to be one sentence — **we buy exactly one price dataset and it covers US exchanges only** — and it reframed the whole decision, because it separated the part that is free engineering from the parts that are a data purchase no amount of code reaches. A workaround presented without its constraint reads as arbitrary, and hides whether the real answer is "write code" or "buy something".
+
 Corollary: **never re-use a shorthand you coined without re-defining it.** "Phantom trades", "the twin", "the look-through" all read as established terms to the writer and as noise to the reader. If you named it, you owe the definition every time.
 
 ## Bring the data — a brief without numbers is an opinion
@@ -193,3 +195,4 @@ Any sentence that survives only because *you* wrote it gets rewritten.
 - [ ] Every defect is SIZED — scale, severity distribution, recency, timing pattern
 - [ ] At least one worked example with real numbers, end to end
 - [ ] Any third party is NAMED, not "our vendor"
+- [ ] If the ask is a workaround, the CONSTRAINT it works around is stated — and whether the real fix is code or a purchase
