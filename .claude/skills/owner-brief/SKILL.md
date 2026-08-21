@@ -38,6 +38,29 @@ The second is three sentences longer and is the difference between a decision th
 
 Corollary: **never re-use a shorthand you coined without re-defining it.** "Phantom trades", "the twin", "the look-through" all read as established terms to the writer and as noise to the reader. If you named it, you owe the definition every time.
 
+## Every count names its unit; every rule gets stated
+
+Two failures that look small on the page and make a decision unmakeable.
+
+**A bare number is not a fact.** "The rule reaches 9 of the 14 contradictions" — fourteen *what*?
+Securities, holdings, funds, filings? The writer knows and the reader is guessing, and the size of
+the problem is entirely different under each reading.
+
+> ✗ *"9 of the 14 contradictions"*
+> ✓ *"20 individual securities are served under two sector labels at once, across 2,580 holdings worth $8.2B. 14 of them are fixable by routing; the rule reaches 9 of those."*
+
+**If the decision turns on a rule, state the rule — in plain words, every time.** Naming it
+("the precedence rule", "B+G1", "the fill rule") is not stating it. One sentence, in the reader's
+vocabulary, on every re-appearance. They will not carry it between briefs, and a decision about a
+rule they can't see is a decision they have to take on faith.
+
+> ✓ *"Treat a foreign-filed line and a US-filed line as the same company only when the international ID literally contains the US identifier, and the name on the filing matches the name our US source holds."*
+
+**Related trap: check you are not describing two different problems as one.** A brief once said a
+shipped rule "reaches 9 of 14" when that rule fixed a *different* defect — holdings with no label
+at all — and the contradictions needed a second rule that had never been described. If a block
+covers more than one mechanism, split it and say which fixed what.
+
 ## Re-source a number every time you re-use it
 
 A figure carried forward across briefs stops being evidence and becomes folklore. **Before quoting any number you have quoted before, open the source again.**
@@ -118,6 +141,7 @@ The checklist below is not self-executing, and the failure it exists to catch is
 So run an explicit pass over the finished draft in which you are **a competent person who has never seen this project**. For each block, ask three things and fix what fails:
 
 1. **Could I explain the cause to a colleague after reading this once?** If the block gives an effect without a mechanism, it fails.
+1b. **Do I know what every number counts, and what every named rule says?** A bare count or a rule referred to but never stated both fail here.
 2. **Is there any noun phrase here I'd have to already know to understand?** House shorthand, a coined label, a metric name. Define or replace it.
 3. **Do I know what I'm being asked and what happens under each option?** If the ask needs the reader to infer the consequence, it isn't written yet.
 
@@ -137,3 +161,6 @@ Any sentence that survives only because *you* wrote it gets rewritten.
 - [ ] Every finding survives "but how would that even happen?" — mechanism, not label
 - [ ] Every shorthand you coined is re-defined, even if you used it last week
 - [ ] Every re-used number was re-opened at source, not carried forward
+- [ ] Every count names its unit — "14" is never a fact, "14 securities across 2,580 holdings" is
+- [ ] Any rule the decision turns on is STATED in plain words, not just named
+- [ ] No block silently merges two different mechanisms into one story
