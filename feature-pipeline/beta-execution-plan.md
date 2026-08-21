@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-21T10:16-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-21T10:44-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -3303,3 +3303,38 @@ them.
   would have swept it in and the owner was told it is separate); prove it is **inert on every
   single-sector ISIN**; seeded-failure demonstrations both ways (a contradiction it must resolve, an
   ambiguous-US case it must decline); and this run's falsification rules.
+
+- 2026-08-21 10:44 — **OWNER RULED decision 3: "fix the pipeline." SPECCED — and investigating HOW changed the
+  answer, so the dispatcher's own recommendation is corrected.**
+  **"Restore the two discarded fields" turns out to be the WORST of three options and the spec
+  forbids it.** Verified: `build_fund_daily_adj_close.py` reads `close_price`, `adj_close` and
+  `dividend` from both vendors and discards two at **line 61**
+  (`.select("ticker","date","adj_close","fetched_at")`). But **~40 files read that panel**, at least
+  **six with a bare `read_parquet()` and no column selection**; and **the drop was a CONSIDERED CALL,
+  not an oversight** — `src/fundscore/distributions.py` states in its own header that it reads
+  dividends straight from the raw vendor files and *deliberately* not from the consolidated panel,
+  because "carrying it through its source-collision / regime-detector / quarantine logic was judged
+  higher-risk than a dedicated reader." Widening would force the consolidation to decide **what a
+  dividend means when two vendors disagree on the same (ticker, date)** — precisely the risk that
+  judgement avoided.
+  **The spec takes the narrow fix instead: a distribution-coherence check inside the builder's
+  ALREADY-EXISTING quarantine machinery** (`fund_daily_adj_close_quarantine.parquet`,
+  `_quarantine_nonpositive`, `_quarantine_local_outliers`, `_extreme_jump_rows`,
+  `_format_quarantine_rows(reason=...)`). The two columns are in the frame **one line above where
+  they are dropped**. **No schema change, no consumer touched, and the panel becomes CORRECT rather
+  than merely inspectable** — the goal is not to distribute the evidence so 40 consumers can each
+  re-derive the truth.
+  **The identity is arithmetic, not a threshold:** on a stamped-distribution day, `s = raw + ly`
+  holds for a coherent adjustment; the defect is `s ~ ly` while `raw ~ 0` — the whole displayed move
+  is adjustment and none of it is price. The spec explicitly warns that **needing a tolerance means a
+  new constant, which must be briefed rather than chosen.**
+  **A memory trap that has already killed a process is carried verbatim:** the raw inputs are ~146M
+  rows with ~29M duplicated (ticker,date) pairs, and a global `group_by` was **killed at 18
+  CPU-minutes / 460GB VSZ on 2026-06-09**. The spec mandates the pattern `distributions.py` proved —
+  semi-join down to the **~2M dividend-bearing pairs** first.
+  **Why this is worth more than a fix: it produces the first MEASURED count of this defect.** Every
+  number so far came from a proxy that shrank five times (1,519 -> 1,374 -> 575 -> 537 -> 525). The
+  spec makes direct-vs-proxy comparison the headline deliverable, and uses the **56 pct December /
+  12 pct September concentration as a free falsification test** — a direct check that fails to
+  reproduce the distribution season is wrong. **This may close owner decision 3 outright**, and the
+  capital-gain item is reload fence #1.
