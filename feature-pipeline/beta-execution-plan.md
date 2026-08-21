@@ -65,9 +65,16 @@ three vendors (Sharadar + Tiingo + FMP) to one. **Provenance note, recorded beca
 needs it: display rights are confirmed BY THE OWNER, who holds the vendor relationship. The drafted
 inquiry (`reports/legal/eodhd_licensing_inquiry_email.md`) was never sent and no written confirmation
 is on file** — this is the owner's assertion, which is the authoritative answer, not a document.
-The spike's staged order stands: **(1) replace FMP with EODHD for the international layer and drop FMP
-· (2) migrate US sector + identity off Sharadar reference · (3) migrate US stock/ETF prices · (4) fund
-NAV LAST, and only after the mutual-fund distribution validation layer exists.**
+The spike's staged order stands: **(1) replace FMP with EODHD for the international layer · (2) migrate
+US sector + identity off Sharadar reference · (3) migrate US stock/ETF prices · (4) fund NAV LAST, and
+only after the mutual-fund distribution validation layer exists.**
+**OWNER REFINEMENT 2026-08-21 — do NOT delete FMP data; stop CALLING FMP going forward.** The spike said
+"drop FMP entirely"; the owner narrowed it. Keep every FMP-derived artifact on disk
+(`fmp_isin_sector_map`, `fmp_name_sector_map`, `fmp_isin_us_ticker_bridge`, the raw profile snapshots) —
+they are a frozen historical reference and several shipped items were measured against them. **Retire
+the API calls, not the files.** Practical consequence: the FMP fallback inside `attach_sector` keeps
+resolving from the existing snapshot until EODHD replaces that path, so nothing goes null in the
+interim.
 
 2026-08-06, batches 1–3: beta = FULL experience (pages + screener + X-Ray) · blocker bar =
 STRICTER (6 tagged items) · solver: cheapest-of-Fly/Railway, license gate pre-push, compaction
