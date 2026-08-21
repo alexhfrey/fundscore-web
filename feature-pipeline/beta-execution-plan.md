@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-20T17:54-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-20T18:13-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -2994,3 +2994,45 @@ them.
   Two real traps: **BBL** (right company, dead share line) and **BNY** (correct prices but a STALE
   ticker reference — **a validation built on `sharadar_tickers` would REJECT a correct bind**).
   Blockers for Segment 1: **D-1** (ADR basis), **D-3** (additive vs migration), **D-4** (freshness bound).
+
+- 2026-08-20 18:13 — **U5 (L9) Segment 0 CHECKPOINT: PASS-WITH-CORRECTIONS. Two blocking items, both SCOPE errors
+  rather than measurement errors — the same shape this run keeps finding. Corrections dispatched.**
+  Almost everything re-derived **exactly** with the reviewer's own code against raw sources: the
+  1,346 / 69.1 pct / median 4.14 pct / max 17.10 pct headline; the census (87.08 pct, 198,546 no-ticker
+  rows, split summing to \$1,645.4B **exactly**); +47/+116; **PRNEX 0.593 -> 0.730 -> 0.821 re-derived
+  independently from raw N-PORT**, with the shipped panel confirmed to suppress it today
+  (`insufficient_priced_coverage`, all three periods); F-S2.13's 1,080 pairs / 318 funds / 41.2 pct
+  median **verified atomically** — AGTHX files BOTH the TSM ADR (0.2394 pct) and the TW ordinary
+  (1.1822 pct) and `holdings_snapshots` keeps only the ADR, i.e. **17 pct of the true position**; both
+  wrong-company traps; the FX groups and control; non-mutation CLEAN and earned.
+  **B1 — the "51 consumers, including the L2 passive solver" claim is WRONG on its flagship example,
+  and it sits inside owner decision D-3.** The reviewer reproduced the identical 51-file list, then
+  applied the standard the report itself cites: **7 of the 51 match only the substring
+  `etf_holdings_snapshots` — a DIFFERENT artifact — and one of the 7 is the solver.** The solver reads
+  `holdings_complete` + `etf_holdings_snapshots`, and `holdings_complete` is built **directly from raw
+  N-PORT**. **There is no direct or transitive dependency of the L2 solver on `holdings_snapshots`.**
+  ~8 more of the 51 are docstring/comment-only. **True direct readers ~20-25** — still including
+  `build_return_attribution` and `build_profile_source_inventory` (the serving scope, verified at
+  lines 66/174). **D-3's additive-book recommendation SURVIVES on the corrected facts; the brief as
+  written does not.** This is [[consumer-audit-not-literal-grep]] — **and the dispatcher put that rule
+  in the REVIEWER's brief but not the IMPLEMENTER's. That omission is the dispatcher's.**
+  **B2 — "601 complete" was never tested against the report's OWN stale-quote axis.** Intersecting them:
+  **48 of the 601 (8.0 pct)** hold at least one line the shipped pipeline "prices" off a years-dead
+  quote, fabricating a 0 pct return; **197 of the 1,947** served funds do. **"Complete" is not
+  "correct" — clean cards are at most 553.** This STRENGTHENS the defect but the headline must not
+  imply 601 clean panels. **Note this is the run's own boundary-axis rule catching a violation in the
+  work of an agent that had been handed the rule — the rule is doing its job.**
+  **Label corrections dispatched:** the 69.1 pct silently includes `Rb` (ADR-dependent) — the
+  **ruling-independent figure is 1,244 (63.9 pct), median 3.02 pct**; p90 7.94 pct is all-served basis
+  (among affected **8.66 pct**); F-S2.1 mixes loose and strict bases in one column; **m8 silently
+  dropped 9,002 pairs (0.18 pct) at |diff| > 50pp before the FX stats** — immaterial but undisclosed
+  screens are what this run has been punishing; and F-S2.3's seeded gate table **had no saved script**
+  (the reviewer regenerated it bit-for-bit from archived spines and it holds).
+  **A genuinely new axis for Segment 1, not a fix now:** every recovered foreign line lands on a card
+  whose **twin column still comes from the historical US-only twin book** (session-1 F3.2), so recovery
+  **expands the false-twin-0.00 pct exposure** from the 361-fund band to the 1,346 incomplete served
+  funds. The report never connects F-S2.6 to F3.2. **Segment 1b must inherit the twin-honesty gate.**
+  Also: **`Rc` is literally one ticker — BNY, \$20.5B, 638 funds, genuinely US** — so folding it into
+  the plain defect is safe.
+  **Fitness for the owner: D-1 (ADR basis) FIT · D-4 (freshness bound) FIT · D-2 and D-5 FIT ·
+  D-3 NOT FIT until B1 is corrected.**
