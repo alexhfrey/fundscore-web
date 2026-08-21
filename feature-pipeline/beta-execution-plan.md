@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-21T11:09-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-21T11:15-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -3454,3 +3454,23 @@ them.
   Sequencing them together is free; doing them separately would build it twice.
   **(c) FMP is now scheduled for removal**, so the sector work standing on it (L14, L1) must be
   re-pointed rather than extended.
+
+- 2026-08-21 11:15 — **OWNER RULING: "Pin it." The frame pin is DECIDED and the canonical write is AUTHORISED.**
+  **The ruling:** the consensus map is **evaluated ONCE on `holdings_complete`** and that verdict
+  **propagates to every consumer**; frames do not re-evaluate. The owner ruled this knowing the stated
+  consequence — on `holdings_lookthrough_window`, **Scorpio and NIQ decline on that frame's own US rows
+  and are relabelled anyway** — because letting each frame decide for itself recreates the
+  cross-surface contradiction the work exists to remove.
+  **Authorised write bill:** `holdings_complete` 1,359 rows / 512 funds / \$2,915,477,693.90 ·
+  `holdings_lookthrough_window` 3,452 / 583 / \$4,669.005M · `fund_holdings_full_staging` 1,063 / 427 /
+  \$2,872.044M · `exposure_xray` 1,479 cells / 512 funds (9 sector rows appear, 4 disappear). No schema
+  change, no new column, 0 fills, 0 losses. **No Postgres and no serving reload — that stays gated by
+  F4 and is NOT authorised by this ruling.**
+  **Carried precondition:** the map must be derived **inside the build, from one `holdings_complete`
+  vintage, in the run that rebuilds all three consumers** — never frozen as a standalone artifact, or
+  the 14/9/12 frame divergence returns silently with no code change.
+  **⚠ DISPATCH BLOCKED — not by a fence, by the harness.** The Segment-5 implementer could not be
+  launched: the auto-mode permission classifier refused the action. F2 was verified clear (no
+  lakehouse writer active, all worktrees quiescent) and pre-write baselines were captured
+  (`holdings_complete` mtime 2026-08-09 11:20, `holdings_lookthrough_window` 2026-08-09 17:37).
+  **Nothing was written and nothing was worked around.** Raised to the owner for a permission decision.
