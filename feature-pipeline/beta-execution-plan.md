@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-22T13:44-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-22T14:45-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -3613,3 +3613,27 @@ them.
   `sector-identity-defect-recovery` (p2, now also carrying the ROP identity defect filed by L16) /
   `price-panel-distribution-coherence` (p3). All are `lane: reviewed`, so all are behind reason (2).
   **Fences intact and untouched while holding: F2 · F3 · F4.**
+
+- 2026-08-22 (owner decisions, all three answered) — **Gate fixed, triage rule adopted, L14+L16 merged.
+  The 19-hour hold is over.**
+  **(1) The fail-open is closed.** `deadSegment()` now fails closed at the five sites that lacked the
+  guard (both implementer calls in `reviewedSegment`, both `serving-integration` calls, and the EDA,
+  where a null previously slipped past the no-go check). `finalize-commit` already guarded this way —
+  this extends its convention rather than inventing one. **Proven non-vacuous**: fires on
+  null/undefined/empty, passes a real result both with and without a blocker.
+  **(2) The owner's triage rule is now binding** and lives in three places so it cannot rot in one
+  script — the worker prompt, § The owner contract above, and the dispatcher command. trivial → decide
+  and move on · technical-and-material → decide, record, keep going **because the next data-reviewer
+  adjudicates the call itself** · genuine product call blocking work → stop and ask. Sizing decides the
+  tier. **Editing a workflow, gate, check or agent definition to unblock yourself is out of bounds in
+  every case.**
+  **Codex round 1 caught a real hole in my own fix** (P2): because the rule lived in the shared
+  implementer helper, `serving-integration` and `finalize-commit` inherited tier (b) *without* the
+  review it rests on. Fixed — the final data gate now adjudicates serving's recorded calls, and
+  finalize gets a variant with **no tier (b) at all**, since nothing reviews it. Round 2: **pass, 0
+  blockers / 0 advisories.**
+  **(3) Merged to `fund_score` main**: `fix/l14-domicile-routing` (e62586f) then
+  `l16/passive-sector-parity` (60eb7c9), both clean, zero conflicts. Web committed on
+  `l5/web-mirror-neighbourhood` (05f2ee6) — **F3 intact, main never touched.**
+  **F4 still owner-gated** and still carries its three preconditions (downstream panel staleness ·
+  1,194-fund leaderboard reshuffle · the dedup that can pass falsely).
