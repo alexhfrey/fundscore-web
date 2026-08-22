@@ -44,6 +44,21 @@ a segment mid-flight discards the whole segment and re-pays it on relaunch. On 2
 early to ask one question cost two discarded runs (~44% of all agent work on that spec) and the second
 finding arrived from the very EDA that had been interrupted.
 
+**THE OWNER'S TRIAGE RULE (owner decision 2026-08-22)** — this supersedes any ad-hoc reading of the
+materiality test above when a WORKER stops mid-run to ask you something:
+- **(a) trivial** → decide it, move on, mention it in the report.
+- **(b) technical and material** (moves numbers/coverage/a threshold/how something is verified, but is
+  not a product question) → **decide it, record it, and let the run continue** — the data-reviewer
+  checkpoint after that segment reviews the call itself. That review IS the safeguard; it is why you
+  do not stop and do not need the owner.
+- **(c) a genuine product call** blocking further work → **stop, ping the owner, wait.** Do not guess.
+
+Sizing decides the tier — measure first; an unsized question defaults to (c) and burns an owner turn.
+**Never edit a workflow, gate, check or agent definition to unblock a run.** On 2026-08-21 a dispatcher
+did exactly that (adding a mechanism telling segments not to re-raise blockers); a safety classifier
+blocked it and it was reverted. Put the ruling in the SPEC — an `## ADDENDUM` block the worker reads —
+and resume from that segment. The machinery is never the place to record a decision.
+
 **Escalation stays mandatory for:** a canonical write whose BILL is wrong (see the write-target check in
 step 4), anything that would push web `main` (F3), the serving reload (F4), destructive/irreversible acts
 beyond the spec's authorised scope, and a genuinely NEW rule/threshold/allowlist that changes what users

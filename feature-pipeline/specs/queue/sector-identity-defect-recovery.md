@@ -54,3 +54,30 @@ Resolve identity before sector attach, so the US arm sees the rows it should:
 ## Also in scope
 Correct `reports/l14_segment4.md` §1 if `sector-consensus-canonical-write` has not already — it presents
 these six as genuine US-side disagreement, the framing that let a 47% value coverage read as acceptable.
+
+## Added by `passive-book-sector-basis-parity` (L16, 2026-08-21) — a THIRD binding surface
+
+L16 put the passive book on the fund book's sector basis and drove cross-basis disagreement to **0 on
+the consensus scope**. Its residual analysis surfaced one case that belongs here, not there, because it
+is the same **wrong-company-binding** class as SharkNinja / Shift4 — just reached through a different
+identifier.
+
+**`ROP` in `S000015906`** — 0.081pp of that fund's passive NAV. The passive book carries
+`security_id='ROP'`, `inv_country='US'`, sector **Technology**. The fund book carries the same ticker
+`ROP` bound to `isin='CH1499059983'`, `inv_country='CH'`, sector **Healthcare** — a Swiss line collapsed
+onto Roper Technologies' US ticker, with the sector read off the Swiss ISIN.
+
+Measured in-run on the post-write canonical book: the whole-book identity bridge finds `ROP` claiming
+**two** ISINs — `CH1499059983` and `US7766961061` (real Roper) — as **both** a `security_id` and a
+`security_ticker`. The honest-exclusion tie rule therefore **drops the key**, so `l16_cross_basis_parity`
+declines to measure the pair rather than reporting it clean. That is the correct behaviour for L16's
+ISIN-keyed rule and the reason this defect is invisible to it: the two books never share a
+`(series_id, ISIN)` pair.
+
+Scope note for whoever picks this up: `ROP` is **one of 360 excluded tie keys** in the whole-book bridge
+(180 `security_id` + 180 `security_ticker`). That set is the census of ticker-level wrong-company-binding
+candidates and should be triaged here, value-weighted, alongside the six CUSIP-side cases above. The
+existing rule "adjudicate from the join surface, tie → exclude honestly" already covers it; what is
+missing is the *recovery* step that resolves the tie from filed evidence.
+
+Do **not** treat this as widening L16 — the dispatcher ruled it out of that spec's scope on 2026-08-21.

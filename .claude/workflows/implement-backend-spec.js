@@ -33,6 +33,44 @@ const { webRoot, fundScoreRoot, specPath, slug, model, effort } = A
 if (!webRoot || !fundScoreRoot || !specPath || !slug)
   throw new Error('args requires webRoot, fundScoreRoot, specPath, slug')
 const implOpts = { model: model || 'opus', ...(effort ? { effort } : {}) }
+
+// OWNER TRIAGE RULE (owner decision 2026-08-22) — what a worker does when it hits a question the
+// spec does not answer. Previously there was no supported answer for a mid-run question, so a run
+// either halted or someone improvised around the gates. Now it is classified, and only tier (c)
+// stops the line.
+const TRIAGE_REVIEWED = `
+
+JUDGEMENT CALLS — the owner's triage rule. When you hit a question this spec does not answer,
+CLASSIFY it before you consider stopping:
+  (a) TRIVIAL — an implementation choice with an obvious right answer that changes nothing a user is
+      told. MAKE IT and move on. Do not return it as a blocker; just note it in your output.
+  (b) TECHNICAL AND MATERIAL — it moves numbers, coverage, a threshold, or how something is
+      verified, but it is not a product question. MAKE THE CALL, record it EXPLICITLY in your output
+      (what you chose, the numbers, why, and what it would take to reverse), and KEEP GOING. The
+      data-reviewer checkpoint immediately after you reviews the call itself — that IS your review,
+      and it is precisely why you do not need to stop for it. This tier EXISTS ONLY because a
+      reviewer follows you; it is never a licence to decide unreviewed.
+  (c) A GENUINE PRODUCT CALL that must be answered before work can continue — what users are told, a
+      new rule or threshold that changes a served answer, or an irreversible act outside this spec's
+      authorised scope. STOP. Put it in \`blocker\` WITH THE NUMBERS. The run halts and the owner is
+      asked. Never guess, and never proceed on an assumption you have not stated.
+Sizing decides the tier, so measure before you classify — an unsized question defaults to (c) and
+wastes the owner's turn. And NEVER edit this workflow, a gate, a check or an agent definition to
+unblock yourself: that is not one of the three options, under any circumstances.`
+
+// finalize-commit has NO reviewer after it, so tier (b) — "decide it, a reviewer checks it" — has
+// nothing to rest on there. At finalize a question is either trivial or it stops the line.
+// (codex P2 on this change, fixed before commit.)
+const TRIAGE_FINAL = `
+
+JUDGEMENT CALLS — the owner's triage rule, FINALIZE VARIANT. NOTHING REVIEWS YOU AFTER THIS SEGMENT,
+so the "decide it and let the reviewer check it" tier does NOT exist here. Only two outcomes:
+  (a) TRIVIAL — an obvious right answer that changes nothing a user is told and nothing about what
+      was built or gated. Do it, and note it in your output.
+  (c) ANYTHING ELSE — including a technical-or-material call you would have decided yourself earlier
+      in the line. STOP and put it in \`blocker\` WITH THE NUMBERS. Do not commit and do not move the
+      spec. An unreviewed call made here reaches done with nobody behind it.
+NEVER edit this workflow, a gate, a check or an agent definition to unblock yourself.`
 const sampleReviewModel = A.sampleReviewModel || 'fable'
 const fullReviewModel = A.fullReviewModel || 'opus'
 const gateModel = A.gateModel || 'fable'
@@ -116,7 +154,8 @@ const FINALIZE_SCHEMA = {
 const impl = (segment, extra = '', schema = SEGMENT_SCHEMA) =>
   agent(
     common.replace('PERSONA', 'backend-implementer') +
-      `\n\nDo ONLY the **${segment}** segment, then stop for review.${extra}`,
+      `\n\nDo ONLY the **${segment}** segment, then stop for review.` +
+      (segment === 'finalize-commit' ? TRIAGE_FINAL : TRIAGE_REVIEWED) + `${extra}`,
     { label: `impl:${segment}`, schema, phase: phaseOf(segment), ...implOpts }
   )
 // Re-reviews run the SAME full checklist (a fix can break what previously passed; rigor never
@@ -136,7 +175,12 @@ const review = (step, payload, prior) =>
       `source, aggregate sanity vs baseline, COVERAGE/RECALL gate [realized coverage % + honest-missing vs\n` +
       `recoverable-missing split, spot-checked on the raw source — a large recoverable miss is BLOCKING, not\n` +
       `acceptable "partial coverage"], statistical coherence, no-leakage, naming, fabrication scan).\n` +
-      `Return verdict pass/fail — any blocking issue is a fail.` +
+      `Return verdict pass/fail — any blocking issue is a fail.\n` +
+      `ADJUDICATE ANY JUDGEMENT CALL THE IMPLEMENTER RECORDED. Under the owner's triage rule an\n` +
+      `implementer decides technical-and-material questions itself and keeps going, BECAUSE YOU\n` +
+      `REVIEW THE CALL. So it is in scope: re-derive the numbers it cites, confirm it is not a\n` +
+      `product decision misfiled as a technical one, and FAIL the segment if it should have stopped\n` +
+      `for the owner or if the call is unsupported.` +
       reReviewNote(prior) +
       `\n\nIMPLEMENTER OUTPUT (JSON):\n${JSON.stringify(payload, null, 2)}`,
     { label: `review:${step}`, schema: REVIEW_SCHEMA, phase: phaseOf(step), model: reviewModelOf(step) }
@@ -149,12 +193,27 @@ function phaseOf(s) {
 }
 const stopped = (where, detail) => ({ status: 'stopped', stopped_at: where, detail, slug })
 
+// FAIL CLOSED ON A DEAD SEGMENT. agent() returns null when a worker dies on a terminal API error
+// (a transient 529 is enough), is blocked, or is skipped. `null?.blocker` evaluates to undefined, so
+// a bare `if (out?.blocker)` reads a segment that NEVER RAN as "no problem reported" and the line
+// walks straight past it — the final gate then narrows its own scope to match, and the run still
+// reports done. A missing result is a FAILURE, never an all-clear. finalize-commit already guarded
+// this way; every other segment now does too. (Owner decision 2026-08-22.)
+const deadSegment = (out, segment) =>
+  out && typeof out === 'object'
+    ? null
+    : [segment, `${segment} produced NO result — the worker died (e.g. a terminal API error), was ` +
+        `blocked, or returned no structured output. The stage did not run; a missing result is a ` +
+        `failure, not an all-clear. Resume the run or inspect the branch before trusting any gate below it.`]
+
 // Rubric revise-loop checkpoint: the data-reviewer's checklist is the rubric; a FAIL sends the
 // blocking issues back to the implementer to fix AT THE SOURCE (max 1 revision round), then
 // re-reviews with the same full gate. Review rigor never drops across rounds. A segment that
 // fails twice needs the owner, not a third opus round — the line stops.
 const reviewedSegment = async (segment, step, extra = '') => {
   let out = await impl(segment, extra)
+  let dead = deadSegment(out, segment)
+  if (dead) return { out, rev: null, stop: dead }
   if (out?.blocker) return { out, rev: null, stop: [segment, out.blocker] }
   let rev = await review(step, out)
   for (let round = 1; rev && rev.verdict === 'fail' && round <= 1; round++) {
@@ -165,6 +224,8 @@ const reviewedSegment = async (segment, step, extra = '') => {
         `issue at its source (never paper over data, never narrow a check to make it pass), then stop\n` +
         `for re-review.\nBLOCKING ISSUES (JSON):\n${JSON.stringify(rev.blocking_issues || [], null, 2)}`
     )
+    dead = deadSegment(out, segment)
+    if (dead) return { out, rev, stop: dead }
     if (out?.blocker) return { out, rev, stop: [segment, out.blocker] }
     rev = await review(`${step} (revision ${round})`, out, rev)
   }
@@ -200,7 +261,8 @@ const eda = await agent(
     `outside the spec's authorised scope. Always quantify a hazard — an unquantified one cannot be triaged.`,
   { label: 'eda', schema: DS_SCHEMA, phase: 'EDA', model: edaModel }
 )
-if (eda && eda.verdict === 'no-go') return stopped('EDA', eda)
+if (!eda) return stopped('EDA', 'EDA produced no result — the worker died, was blocked, or returned no structured output. The feasibility read never happened, so nothing below it can be trusted.')
+if (eda.verdict === 'no-go') return stopped('EDA', eda)
 if (eda?.coverage_estimate) log(`EDA coverage ceiling: ${eda.coverage_estimate}`)
 // Coverage is a first-class gate: every data-reviewer checkpoint below must verify the realized
 // coverage and split honest-missing vs recoverable-missing (a large recoverable miss is BLOCKING),
@@ -230,6 +292,8 @@ const ds2 = await agent(
 // /check-data protocol over every built output, with ONE revision round on fail.
 phase('Serving')
 let s3 = await impl('serving-integration')
+let d3 = deadSegment(s3, 'serving-integration')
+if (d3) return stopped(d3[0], d3[1])
 if (s3?.blocker) return stopped('serving-integration', s3.blocker)
 
 const builtOutputs = () => [...new Set([...(s2?.output_paths || []), ...(s3?.output_paths || [])])]
@@ -246,7 +310,11 @@ const finalGate = (payload, tag, prior) =>
       `    ${JSON.stringify(builtOutputs(), null, 2)}\n` +
       `Write ONE combined markdown report to ${fundScoreRoot}/reports/${slug}_check_data.md and return\n` +
       `its path in report_path. verdict = fail if ANY blocking issue or any check FAILs; put check-data\n` +
-      `WARNs in warnings.` +
+      `WARNs in warnings.\n` +
+      `ADJUDICATE ANY JUDGEMENT CALL THE IMPLEMENTER RECORDED — you are the ONLY review the serving\n` +
+      `segment gets. Under the owner's triage rule it decides technical-and-material questions itself\n` +
+      `BECAUSE YOU REVIEW THEM: re-derive the numbers each call cites, confirm none is a product\n` +
+      `decision misfiled as a technical one, and FAIL if a call should have stopped for the owner.` +
       reReviewNote(prior) +
       `\n\nIMPLEMENTER OUTPUT (JSON):\n${JSON.stringify(payload, null, 2)}`,
     { label: `final-data-gate${tag}`, schema: FINAL_GATE_SCHEMA, phase: 'Serving', model: gateModel }
@@ -261,6 +329,8 @@ if (r3 && r3.verdict === 'fail') {
       `paper over data, never narrow a check to make it pass), then stop for re-review.\n` +
       `BLOCKING ISSUES (JSON):\n${JSON.stringify(r3.blocking_issues || [], null, 2)}`
   )
+  d3 = deadSegment(s3, 'serving-integration')
+  if (d3) return stopped(d3[0], d3[1])
   if (s3?.blocker) return stopped('serving-integration', s3.blocker)
   r3 = await finalGate(s3, ' (revision 1)', r3)
 }
