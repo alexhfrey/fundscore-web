@@ -282,3 +282,85 @@ you touch anything, and do not absorb it silently either way.
 **Your obligation:** re-measure this baseline at the START of your first segment and quote it. Any
 red beyond what is listed here is YOURS. Do not let the count drift unnoticed, and do not reduce the
 count by weakening a check or rebuilding gold.
+
+### R-G. Dispatcher rulings on the nine EDA hazards (2026-08-24, EDA verdict `go`)
+
+The EDA is accepted. Its control-arm validation confirms R-B with numbers: the rebuilt expansion-ON
+arm reproduces the served payload (20,894 rows / 3,265 funds), and differs from `panel_r1.parquet` by
+exactly the L14/L16 confound R-B predicted (panel sector 3,911 → 3,921; served sector 2,043 → 2,046).
+Had `panel_r1` been used as the control, that 3-row served difference would have been attributed to
+turning look-through off. Use the rebuilt arm.
+
+Rulings, in EDA hazard order. All are tier (b) unless marked: not live (F4-gated, `_tmp`-only writes),
+sized below, and none changes WHETHER this ships. The data-reviewer checkpoints adjudicate them.
+
+**H1 — gold-default write paths → GUARD IT. Authorised.** `build_holdings_lookthrough_window.py:60`
+defaults `--out` to the canonical 133 MB gold frame under `--full`, and
+`build_positioning_changes_panel.py` defaults `--out` to the canonical panel. One omitted flag
+overwrites a canonical artifact that the panel builder and 3 checks read. **Mirror the existing
+line-614 refusal guard for `--no-expansion` and for a mode-stamped frame.** This is not the forbidden
+"edit machinery to unblock" — it *strengthens* a write guard and directly serves constraint 1. It is
+also the R-F trap in code form: the base already tells readers to run a command that writes gold.
+
+**H2 — `is_unresolved_wrapper` → emit NULL, and make coverage/partial NULL in this mode too.** The
+EDA proved by running both that the flag alone has no downstream effect: all-False and all-null each
+yield `lookthrough_coverage 1.0` / `full_lookthrough True` via polars null-skipping sum. So **the
+spec's instruction cannot be satisfied by choosing a value** — either choice makes all 3,245 served
+sections assert "we looked through everything" in a mode where nothing was looked through, silently
+flipping the 88 sections now carrying `lookthrough_partial: true` and the 54 carrying coverage < 0.99
+to clean. That is a fabricated coverage claim, which this project forbids outright. Change
+`coverage_by_fund_quarter` to emit null coverage/partial under no-expansion so the section reads *not
+applicable*. Honest-null over a confident wrong value — already settled policy, not a new rule.
+
+**H3 — Check 6 in `check_positioning_changes_panel.py` → DO NOT EDIT IT. Document instead.** It will
+read as a regression by design (THEQ 0.000pp → 26.688pp; `frac_le1` 99.3% → 98.5%), because it asserts
+the panel's sector weights reproduce Exposure X-Ray off `holdings_complete` — which is the looked-
+through basis this mode abandons. It is registered `mode='marker'` and sets no exit code, so **it
+blocks nothing, and editing a check that is not blocking you is squarely what the hard rule forbids.**
+Record the measured marker delta in the report as an expected consequence of the mode. Making Check 6
+mode-aware belongs to the promotion decision, not to this measurement run.
+
+**H4 — "rebuild-twice, decision columns bit-identical" → split the criterion.** As written it already
+fails on float noise, not on decisions: two identical rebuilds differ on 81,181 `change_z` rows at
+max |Δ| 4.3e-14 and 95 `change_magnitude` rows at one ULP, from unpinned float reduction order — while
+`is_surfaced`, `surfaced_rank`, `status`, `suppression_reason`, `classification`, `te_rank` and
+`method_version` differ on **0** rows. The criterion is met by: **exact equality on decision columns,
+≤1e-9 on continuous columns**, with the seeded 1-cell flip proving the comparison can fail. Do not
+relax the decision half, and do not fail a good build on the continuous half. Supersedes R-D's
+sort-then-diff, which stands as the prerequisite.
+
+**H5 — the spec's own suggested fix for `check_change_te_impact.py` → take the SECOND option: refuse.**
+The EDA verified the first option crashes: `finalize()` returns `df.select(PANEL_COLS)`, `floor_ok` is
+not in `PANEL_COLS`, so `assign_surfaced()` on a finalized panel raises `ColumnNotFoundError`. **Make
+the fallback refuse a pre-v0.2 panel outright** rather than re-implementing surfacing logic inside a
+check — a check that reimplements the builder is the next vacuous check. This also resolves R-E(2):
+`make check FEATURE=positioning_changes` is RED on this base before you start; establish that first.
+
+**H6 — stale user-facing copy → OUT OF SCOPE for this run, escalated to the promotion decision.**
+`fundscore-web/src/lib/methodology/registry.ts:485` pins `positioning_changes_v0.1` (already one behind
+today) and tells the reader the section uses "the same exposure classifications used by Exposure
+X-Ray", which no-expansion makes untrue. It is displayed under all 3,245 served sections. Do not touch
+it here: it is web-side, F4-gated, and it is part of what the owner rules on when promoting.
+
+**H7 — the cross-section contradiction → record it, do not resolve it here.** Recent Changes would
+stand on the raw filed book while Exposure X-Ray on the same page stands on the looked-through book
+(THEQ 3.03% vs 29.7% Technology). Sized and self-suppressing: of 20,432 rows served in both arms, **0**
+sector and **0** theme rows move more than 5pp, because wrapper funds' sector rows sit below the 5pp
+floor and never surface. It reaches the panel and Check 6 but not the served payload. It becomes
+user-visible only if a later change lowers the sector floor or surfaces panel values directly — say
+exactly that in the report, and do not let a reviewer record it as either "resolved" or "live".
+
+**H8 — D8-3 → the spec's held sequencing question is ANSWERED, and this is the headline.** Verified
+independently: `076562f` is not an ancestor of this base, and no `wrapper_ledger`/`basis_break` symbol
+exists in the checkout. So the 195 basis breaks and 34 false served rows measured here are the **live**
+behaviour of the expansion-ON arm, not a residual after a fix — the A/B is clean of that confound.
+Report it as: no-expansion **moots D8-3 for this section** (the class it suppresses is structurally
+absent — 0 basis breaks, seeded detector returns 3, so the 0 is evidence), **but not for the lakehouse**,
+because `holdings_lookthrough_window` also feeds the Exposure X-Ray basis and
+`l14_classified_weight_regression`, which still look through. Give the owner both halves.
+
+**H9 — the null-skipping `.all()` trap → binding on every bucket count.** The EDA caught and corrected
+it itself (`pl.col('suppression_reason').eq(X).all()` returns True when all values are null, which
+mis-bucketed 473/454 into the correct 286/194). Every remainder bucket in the final report must come
+from an explicit priority rule over `suppression_reason` + `filing_lag_days`. Any reviewer re-deriving
+these must reproduce 58 / 286 / 194 / 295 summing to 833, or say plainly that they could not.
