@@ -135,3 +135,109 @@ assume it either way, and report the consequence explicitly.**
 - Non-mutation CLEAN with its seeded self-test green.
 - Nothing committed by the implementer; the dispatcher owns the commit and the codex gate.
 - Stops for a `data-reviewer` checkpoint before any canonical write.
+
+---
+
+## ADDENDUM — dispatcher rulings (2026-08-24)
+
+All four rulings below FAIL the materiality test and are therefore the line's call, not the owner's:
+(1) nothing here is live to users — spec constraint 1 confines every write to `data/_tmp/<slug>/`, and
+serving is F4-gated regardless; (2) they are sized in the numbers below; (3) every option still ships —
+they change HOW this is measured, never WHETHER it ships. They are tier (b): recorded explicitly here,
+and the data-reviewer checkpoint after each segment reviews the calls themselves.
+
+### R-A. Base branch: `l6b/recent-changes-no-lookthrough` = main + L6 (NOT either alone)
+
+Work in the worktree `/Users/alexfrey/Projects/fund_score-wt-l6b` (branch
+`l6b/recent-changes-no-lookthrough`), NOT in the main checkout and NOT in `fund_score-wt-l6`.
+`data/` is symlinked to the shared lakehouse there; use `uv run python`.
+
+Neither branch alone can carry this spec:
+
+| base | what it has | what it is missing |
+|---|---|---|
+| `main` @ 60eb7c9 | L14 seg 6 (`8590fc5`, sector US-consensus write) + L16 (`781d638`) | still `positioning_changes_v0.1` — no TE ranking, no style-row exclusion, **no `scripts/checks/check_change_te_impact.py` at all**, which this spec devotes a section to fixing |
+| `feat/l6-...` @ 6fca29f | `positioning_changes_v0.2` | forked at `75980a3` (2026-08-17); **LACKS L14 seg 6 and L16** |
+
+This is material because `holdings_lookthrough_window.parquet` **has no `sector` column** (verified:
+14 cols, no `sector`) — sector is attached at READ time by the code path L14/L16 changed. Building on
+an L6-only base would attach pre-consensus sector labels to the very rows measurement #2 counts.
+Confirming evidence: the merged panel builder carries `--sector-basis {consensus,pre}` (L14's flag,
+default `consensus`) — on an L6-only base that flag does not exist.
+
+The merge is committed and was clean on **all code**; the single conflict was
+`reports/product/positioning_changes_check_data.md`, resolved to the L6 side after proving both sides
+carry the identical 6-fund set (parsed the ids; seeded-difference self-test returns False, so the
+check is non-degenerate).
+
+### R-B. The A/B control MUST be rebuilt on this base — do NOT use `data/_tmp/l6/panel_r1.parquet` as the control
+
+The spec body says to compare against `panel_r1.parquet`. **That is now an invalid control**, for the
+same reason the spec's own "⚠ A comparison that is INVALID" section gives: `panel_r1` was built on the
+L6-only base, so a no-expansion panel built on THIS base differs from it by **two** changes at once —
+the expansion switch (the thing under test) and the L14/L16 sector-consensus relabel (a confound).
+
+Required instead: build **both arms on this same base at the same pinned eval date and the same
+`--sector-basis consensus`** — expansion-ON as the control, expansion-OFF as the treatment. `panel_r1`
+may still be quoted as a provenance reference for the R1 lineage, never as the control arm. State for
+every number which two artifacts it compares, as the spec already requires.
+
+### R-C. Grounding verified — the spec's quoted figures reproduce exactly
+
+Re-derived from `data/_tmp/l6/serving_facts_staging_r1.parquet` → `positioning_changes.rows`
+(the SERVED payload — not the panel's surfaced rows, which are 58,933 on v0.2 / 11,677 on v0.1):
+
+| figure | spec | re-derived | |
+|---|---|---|---|
+| served rows | 20,894 | **20,894** | ✓ |
+| theme | 2,671 | **2,671** (1,359 funds) | ✓ |
+| sector | 2,043 | **2,043** (1,293 funds) | ✓ |
+| sector+theme share | ~22.6% | **22.6%** | ✓ |
+| funds with a section | — | **3,265** | — |
+
+Also `position` 15,309 (2,955 funds), `concentration` 639, `cash` 232. Use these as the denominators
+for measurement #2; they are confirmed current, so a re-derivation that disagrees is a finding, not a
+correction to be quietly absorbed.
+
+### R-D. The "rebuild-twice, bit-identical" acceptance check must sort before diffing
+
+The merge conflict above was caused by **unstable ordering in the generated check-data report** —
+identical content, different order, in both hunks. The acceptance criterion "rebuild-twice, decision
+columns bit-identical" will therefore false-fail on ordering noise. Sort on a stable key before
+diffing — and per [[rebuild-twice-proves-determinism]], never dismiss a diff as "probably row order"
+without proving set-equality, because that same dismissal previously hid a real non-determinism bug
+(`l2_blend_etfs`, 117 funds, genuinely differing ETF sets).
+
+### Unchanged and still binding
+The advisory in `scripts/checks/check_change_te_impact.py` is **live, not already fixed**: the merged
+code fails explicitly on PARTIAL TE columns (good), but the `if not had:` fallback still attaches TE
+and re-orders **without** re-running the v0.2 surfacing rule that excludes `style` rows. Fix it as the
+spec directs. All other spec references verified present on this base: `pick_endpoints` (in BOTH
+`build_holdings_lookthrough_window.py:73` and `build_positioning_changes_panel.py:105` — the two-jobs
+trap is real), `--lookthrough-frame` (:603), `exposure_xray.sector_weights` (:237) / `theme_members`
+(:264). `--no-expansion` does not yet exist and is yours to add.
+
+### R-E. Three P2 advisories from the codex gate on the base merge — carried to you
+
+The base merge (`ec6b572`) passed its codex gate high-tier with **0 blockers, 6 advisories (3 distinct
+P2s)**. None blocked the merge; all three are in the same family as the advisory this spec already
+carries, so fix them here rather than re-filing them:
+
+1. **`scripts/pipeline/build_change_te_impact_sample.py:108-110`** calls `validate()` straight after
+   `attach_te_impact()` without `apply_te_ordering()`. The production builder and the check fallback
+   both order before validating, so **the advertised sample command exits `GATE FAILURE`** whenever a
+   sampled fund's old `surfaced_rank` disagrees with TE impact.
+2. **`scripts/checks/run_checks.py:109-114`** registers `change_te_impact` as a **gating default**
+   while the canonical panel is still v0.1 — so `make check FEATURE=positioning_changes` is **red on
+   this base** until the gold panel is rebuilt. This is the same defect the spec's "Also fix" section
+   describes, seen from the registration side rather than the fallback side; fix both together and
+   make the check either non-default or explicitly targeted at the rebuilt panel.
+3. **`src/fundscore/serving/fact_assembler.py:1143-1144`** silently **drops** surfaced rows whose
+   `classification` is null instead of failing closed, serving a truncated Recent Changes section.
+   Serving can run independently of the builder's G7, so this is a genuine fail-open at the serving
+   boundary — the exact class this project keeps getting bitten by. Detect surfaced null/out-of-enum
+   classifications and abort rather than filter.
+
+Note for your own gates: because of (2), a red `make check FEATURE=positioning_changes` on this base
+is **pre-existing, not yours**. Establish that it is red BEFORE you start, so you can prove what you
+changed. Do not "fix" it by weakening the check.
