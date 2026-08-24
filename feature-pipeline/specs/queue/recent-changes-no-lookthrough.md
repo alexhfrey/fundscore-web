@@ -663,3 +663,49 @@ rode that join" failure ([[join-through-aux-frame-couples-coverage]]).
 Its code is codex-gated and green, so merging is safe — but the merge **ships TE-ranked Recent
 Changes as well as no-look-through**. That is a bigger user-visible change than "switch off ETF
 expansion" alone, and it is now authorised. Recorded so it is not discovered later as a surprise.
+
+### R-J. Round 4 results — and TWO CORRECTIONS to numbers already briefed to the owner
+
+**Correction 1 — the "195 basis breaks / 103 funds" and "34 false served rows → 7" figures are
+WITHDRAWN. Neither generating definition survives** in `_tmp` or the repo, so round 4 could not
+reproduce them and correctly refused to restate them as its own. What replaces them, both
+independently derived and both non-degenerate:
+
+| | verified figure |
+|---|---|
+| frame-level expansion-state basis breaks | control **35 / 30 funds** → treatment **0** (seeded 3 → detector returns 3) |
+| **served-level phantom rows vs RAW N-PORT** | control **138 rows (1.01%) on 33 funds** → treatment **0** (seeded 5 → detector returns 5) |
+
+The served-level 138 → 0 is the end-to-end number and the one to quote. Note the direction: the
+**mechanism** count was overstated (195 → 35) but the **reader-facing harm** was UNDERSTATED
+(34 → 138). Within those 33 funds, **81.2% of served entered/exited rows are phantom**, and **20 of
+the 29 funds that lose their section are in that cohort** — the coverage cost is dominated by
+removing sections that were mostly fabricated.
+
+**Correction 2 — R-I's "12 contested rows / 0.024%" is an undercount.** R-I keyed on
+`.unique(["series_id","tkr"])` (one arbitrary quarter's verdict); the builder aggregates with
+`suppressing.any()`, so a key that disagrees at one endpoint and agrees at the other suppresses.
+Same population under the builder's own rule: **402 / 15 / 48**, i.e. **15 panel rows on 13 funds =
+0.030%**, adjudicated 11 SERVED_NAME_OK + 1 SERVED_NAME_WRONG (FAEQX `MFUS`) + **3 unadjudicated**
+(ONEZ `JULZ`/`DECZ`/`MAYZ`, left as residual unknown rather than folded into either side). R-I's
+ruling direction is unchanged; its number was wrong and is corrected here.
+
+**M1 moved, M2 did not.** Served funds 3,265 → **3,244**, net **−21** (29 lost / **8** gained,
+−0.64%). The lost set is the identical 29 tickers pre and post; the only change is **FAEQX drops out
+of GAINED**, because its single surfaced row WAS the wrong-company row. M2 is untouched (sector
+2,046 → 2,027, theme 2,671 → 2,603) because H-1 fires only on wrapper-naming `position` rows.
+M4 FCNTX identical across arms.
+
+**A trap round 4 caught that would have silently corrupted the result:** the EDA's full no-expansion
+frame **had no `lookthrough_mode` column** (it predates the stamp), so reusing it made the builder
+read `basis = expanded`, label the TREATMENT arm `positioning_changes_v0.2`, and emit a fabricated
+`lookthrough_coverage = 1.0`. It rebuilt (33 min) rather than reuse. Absent-stamp-means-expanded is
+correct for legacy artifacts and dangerous for new ones.
+
+**Guard live-fire CAPTURED** (no classifier block this time): both guards fired at the real canonical
+`--out`, with gold sha256 identical before and after. Line-number drift for the record: the panel
+guard is at `:793`/`:795` on HEAD, not `:738`. Both guards left unmodified.
+
+**Test baseline: zero drift** — 6 failed / 28 errors / 1,345 passed before AND after, with 0 ids
+only-before, 0 only-after, 0 outcome changes. Non-mutation CLEAN with `captured_at_utc` stamped
+inside both JSONs, closing the R-H objection.
