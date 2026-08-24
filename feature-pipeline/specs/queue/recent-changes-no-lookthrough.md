@@ -770,3 +770,28 @@ and ready.
   implementation is confirmed correct (seeded 5 → 5), but the 0 is a **design consequence, not an
   independent empirical discovery**. The residual risk moves entirely onto the identity axis — which
   is precisely where B-1 lives. Do not let the brief imply the 0 proves more than it does.
+
+### R-L. Provenance + commit hygiene for finalize (round 4's own flag, adopted)
+
+Round 4 re-woke after reporting and observed uncommitted edits in its worktree. **That is the K-1 fix
+round, dispatched after round 4 reported — sequential, not a collision** (round 4's last artifact
+write 16:35; K-1's first code edit 17:23). No F2 breach: one worktree, one writer at a time. But two
+of its points are adopted:
+
+1. **Round-4 numbers were measured on pristine `2cfe22c` and are NOT reproducible on today's tree.**
+   Provenance is pinned in `evidence/r4_code_provenance.txt` (per-file sha256 as-measured vs as-now;
+   every artifact mtime ≤16:35; no tracked `.py` touched between 14:30 and 17:23). **A reviewer
+   verifying round 4 must check out `2cfe22c` clean.** Three of its identity figures are deliberately
+   superseded by K-1 and must NOT be carried forward: the 28 NOT_ASSESSABLE-served rows become 25,
+   the "0 disagreement among served" becomes non-zero, and the 15-row/13-fund suppressed class grows.
+   M1/M2 can move again if a K-1-suppressed row is a fund's only served row — the FAEQX pattern.
+2. **Do NOT `git add -A` at finalize.** Round 4 changed no code, so the only tracked edits are K-1's
+   (`lookthrough_window.py`, `build_positioning_changes_panel.py`) — but untracked reports and
+   check-run artifacts are also present, and a blanket add would hand the codex gate a diff nobody
+   scoped. Stage the K-1 files explicitly. And **round 4's "clean tree" line must not be quoted as a
+   verification result** — it was true when measured and is false now.
+
+**Both canonical-write guards verified intact by CONDITION, not by message text** (round 4 briefly
+mis-grepped on the message and thought guard 2 was gone, then self-corrected):
+`build_holdings_lookthrough_window.py:137` unchanged, and the panel guard now at `:812` — moved from
+`:793` purely by K-1's insertions above it, not relaxed and not made basis-aware.
