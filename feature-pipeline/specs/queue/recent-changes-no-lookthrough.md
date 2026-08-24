@@ -502,3 +502,66 @@ them again, leaving the weaker condition-evaluation claim standing rather than d
 absent); the KSA row with `fund_ticker=null`; the stale committed
 `reports/product/positioning_changes_check_data.md` (my call at finalize); M4's wording narrowed;
 the H5 deviation named explicitly in the final report.
+
+---
+
+## ⛔ STOPPED BY OWNER — 2026-08-24. Spec stays in `queue/`; do NOT treat as done.
+
+**Owner instruction:** *"Let's stop after this round, we're spending too much here on a small item."*
+The spec is deliberately NOT moved to `specs/done/`. Read this block before resuming anything.
+
+### What is FINISHED and proven
+
+| | |
+|---|---|
+| `--no-expansion` mode on the window builder | built; mode stamped into the frame; the panel builder DERIVES the basis from the frame's own stamp, never from a CLI claim; unknown/mixed/null stamp fails closed |
+| `METHOD_VERSION` split | control `positioning_changes_v0.2` · treatment `positioning_changes_v0.3_no_expansion`, closed enum |
+| Two canonical-write guards | `build_holdings_lookthrough_window.py:137`, `build_positioning_changes_panel.py:738` — conditions verified True on canonical targets / False on `_tmp`, and each lexically precedes every write |
+| H2 (coverage honesty) | `lookthrough_coverage` / `lookthrough_partial` NULL on any non-look-through basis instead of a fabricated `1.0 / False` |
+| The three base-merge P2 advisories | fixed (`build_change_te_impact_sample` ordering, `run_checks` default, `fact_assembler` fail-open) |
+| H-1 identity suppression | **built and smoke-proven** — see below |
+
+**H-1 smoke test (2026-08-24 14:01, sample arm, 8 funds):** 1,651 (fund,instrument) keys assessed,
+19 name a wrapper line → coherent 18 / disagreement 1 / not_assessable 0. The contested key is
+stamped `identity_incoherent`, `status=missing`, `is_surfaced=false`; invariant 19 PASSes with 0
+violating rows. **The FAEQX `MFUS` wrong-company row flips `is_surfaced` true → false** and surfaced
+totals move 60 rows/6 funds → **59 rows/5 funds**, exactly the predicted M1 change ("gained {FAEQX},
+net +1" → "gained {}, net 0"). The constraint-6 boundary is encoded as
+`IDENTITY_SUPPRESSING = (IDENTITY_DISAGREEMENT,)` with NOT_ASSESSABLE explicitly excluded in code.
+
+### The measurement — usable NOW, and it answers the held D8-3 question
+From the EDA + round-1/2 evidence, all windowed-vs-windowed on one base (see R-B):
+- **Phantom-trade class ELIMINATED**: 195 expansion-state basis breaks across 103 funds → **0**
+  (seeded detector returns 3, so the 0 is evidence). At the served layer, 34 false rows (27 false
+  "entered", 7 false "exited") → 7 honest ones. Traced to raw N-PORT: GBXC's wrapper LEI changes
+  between filings, serving "entered SPYM +99.94pp" plus 8 phantom "exited" rows.
+- **Coverage cost**: −20 funds net (29 lost / 9 gained), −0.49pp; 0 funds lost to endpoint loss.
+- **Sector/theme**: served sector 2,046 → 2,027, theme 2,671 → 2,603.
+- **FCNTX unchanged** (META −6.01, BRK.A −6.21 identical across arms).
+- **D8-3**: no-expansion moots it **for this section**, NOT for the lakehouse —
+  `holdings_lookthrough_window` still feeds the Exposure X-Ray basis and
+  `l14_classified_weight_regression`.
+- **H-2 (prefer-LEI recovery) REJECTED on evidence**: full universe 49,231 surfaced position rows →
+  465 wrapper-naming → 405/12/48 → **1** actually wrong; LEI-recovery would **corrupt 11 correct
+  names**. Closed question, not an open owner decision.
+
+### What is NOT done — the exact resume point
+1. **A/B numbers are still PRE-H-1 headlines.** The sample is re-cut (above); the FULL-universe
+   panels are not. Full M1/M2 move by the 12 suppressed rows.
+2. **No data-reviewer pass on the H-1 round.** Rounds 1–2 were reviewed; this one was not.
+3. **Guard live-fire refusal transcripts** never captured into `evidence/` (the condition-evaluation
+   claim stands; the end-to-end one does not).
+4. **Post-round test baseline not re-measured.** The pre-round run was still in flight when the
+   implementer died. Recorded base: 6 failed / 28 errors / 1,345 passed, ONE root cause (v0.2 code
+   vs v0.1 gold panel). Re-measure and diff BY TEST ID before trusting anything.
+5. Carried: sample attrition (11 tickers → 7 funds, DODGX named but absent) · the KSA row with
+   `fund_ticker=null` · the stale committed `reports/product/positioning_changes_check_data.md`
+   (regenerated copy lives in `_tmp`) · M4 wording to be narrowed · **the H5 deviation must be named
+   explicitly in any final report** (dispatcher adopted the implementer's better approach over R-G).
+
+### Ground truth for whoever resumes
+Worktree `/Users/alexfrey/Projects/fund_score-wt-l6b`, branch `l6b/recent-changes-no-lookthrough`
+(base merge `ec6b572` = main + L6). `data/` symlinks the shared lakehouse. **Zero writes ever landed
+outside `data/_tmp/recent-changes-no-lookthrough/`** — gold frame mtime is still 2026-08-09 and the
+gold panel 2026-08-21. Fences held: F2 one lakehouse worktree, F3 web main untouched, F4 no reload.
+`feature-pipeline/reviews/` on the branch carries the codex verdicts.
