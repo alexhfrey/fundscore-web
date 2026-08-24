@@ -364,3 +364,79 @@ it itself (`pl.col('suppression_reason').eq(X).all()` returns True when all valu
 mis-bucketed 473/454 into the correct 286/194). Every remainder bucket in the final report must come
 from an explicit priority rule over `suppression_reason` + `filing_lag_days`. Any reviewer re-deriving
 these must reproduce 58 / 286 / 194 / 295 summing to 833, or say plainly that they could not.
+
+### R-H. Dispatcher rulings on checkpoint-1 FAIL (2026-08-24 12:33)
+
+The checkpoint verdict is accepted in full. Both blocking issues are real and correctly found.
+
+**On blocking issue 1 (FAEQX served as `MFUS` when the instrument is PIMCO RAE US Small Fund).**
+This is the wrong-company-binding class, which this project has already ruled is worse than honest
+null ([[fmp-foreign-sector-collision-defects]], [[deterministic-wrong-worse-than-nondeterministic]]).
+The reviewer's attribution is the important half and is upheld: the `cusip_reference` 72202L defect
+is **pre-existing gold**, but the **exposure is new to this mode** — the control arm expands the
+sleeve via LEI into the correct fund's book, so wrapper identity never rode `cusip_reference` before.
+Under no-expansion the wrapper ticker IS the served claim. That makes it ours to handle, not
+upstream's to fix first.
+
+**RULING H-1 (tier b, decide and proceed): SUPPRESS, do not rename.** When a surfaced wrapper row's
+identity surfaces disagree — `security_ticker` (via cusip→ticker) vs `security_name` (filed title)
+vs LEI→series resolution — **do not serve the row**. Suppress it with an explicit, reason-stamped
+suppression (e.g. `identity_incoherent`), the same way `positioning_classification_low` already
+works. This is **not a new rule**: it is the standing "adjudicate from the join surface, tied or
+contradictory claimants → exclude honestly" doctrine, applied to a surface it had not reached. It
+fails safe, it needs no owner turn, and all three identity surfaces are already carried in the frame,
+so nothing new has to be joined.
+
+**RULING H-2 (tier c, DEFERRED TO THE OWNER — do NOT implement it): identity RECOVERY.** Actively
+preferring the LEI→series resolution to *recover* the correct name (turning a suppressed row back
+into a correct served row) is a genuinely new identity-adjudication rule that changes what users are
+told. It is **out of scope for this run.** Build the detection and the suppression; do not build the
+preference. Instead, **measure it at implement-full and hand me the numbers**: how many surfaced
+wrapper rows across the full universe have incoherent identity, on how many funds, what share of
+served rows, and for how many of them the LEI resolves cleanly to a single known series (i.e. how
+many are *recoverable* vs genuinely ambiguous). An unsized question defaults to (c) and wastes the
+owner's turn — so size it, and I will brief with numbers rather than with a hypothesis.
+
+**RULING H-3 (tier b): M3's "no new artifact replaces them" is WITHDRAWN as measured.** The reviewer
+is right that the audit is structurally blind to this class — it resolves surfaced tickers through
+the very `cusip_reference` mapping under suspicion, so a misidentified row maps back into the filed
+book and reads clean **by construction**. Re-scope the claim exactly as the reviewer specifies: "no
+phantom TRADES; instrument identity NOT verified by this detector." Then add the identity-coherence
+check as an independent detector and **prove it non-degenerate against the class it claims to
+cover** — the FAEQX row is a known-positive already in hand, so the detector must fire on it. A
+detector that cannot fire on the one live instance we possess is not evidence.
+
+**RULING H-4: file the upstream defect, do not fix it here.** Open a `fix-data` backlog item for
+`cusip_reference.parquet`'s 72202L block (five distinct cusips — RAE US Small 421, RAE US 462, RAE
+Intl 512, RAE EM 645 — all bound to ticker `MFUS`, while true MFUS is 72202L371). It is gold, it is
+outside this spec's authorised write scope, and constraint 1 forbids touching it here.
+
+### Counter-signatures on the checkpoint's warnings
+
+- **H5 deviation — COUNTER-SIGNED, approved.** R-G/H5 ruled "refuse a pre-v0.2 panel outright"; the
+  implementer instead applied the v0.2 section exclusion through a shared builder function
+  (`pc.apply_section_exclusion`) plus a fail-closed `method_version` guard. That is **better than my
+  ruling** and I am adopting it: it avoids the check-local reimplementation H5 actually feared,
+  avoids the `assign_surfaced`/`floor_ok` crash, fails closed on unknown labels, and keeps `make
+  check FEATURE=positioning_changes` meaningful instead of permanently red while the gold rebuild
+  stays owner-gated. The reviewer re-ran all 12 seeded defects itself. **Record it in the final
+  report as an explicit H5 deviation** — the objection was that it was never *named* as one, and that
+  objection is correct.
+- **Guard live-fire — required in the fix round.** Condition-evaluation plus lexical precedence is
+  good but is not end-to-end. Capture one actual refusal transcript per guard into `evidence/`. If
+  the permission classifier blocks the live-fire again, say so plainly and leave the weaker claim
+  standing; do not upgrade the wording to imply evidence you could not obtain.
+- **Sample attrition — must be disclosed at implement-full.** 11 requested tickers → 7 funds, with
+  DODGX named in the report but present in no output. State the attrition and its causes; counts are
+  unaffected (both arms share the identical 20 fund-quarters) but an unexplained 11→7 reads as
+  silent truncation.
+- **M4 wording — narrow it.** "FCNTX bit-identical across arms" is overbroad: `classified_weight`
+  differs by 1 ULP on 5 rows, plus the by-design basis columns. The enumerated claim (same rows,
+  order, magnitudes, `te_impact_bps`) is exact — say that instead.
+- **Stale committed report — dispatcher call, deferred to commit time.** `reports/product/
+  positioning_changes_check_data.md` is stale (142,216/11,679 vs regenerated 142,221/11,677). I will
+  decide at finalize; leave the regenerated copy in `_tmp`.
+- **Non-mutation snapshot — noted, not blocking.** The `nm_before`/`nm_after` pair share a 12:00
+  mtime so it cannot prove the "before" predates the run. Moot here because the reviewer's
+  independent scan proved the stronger fact (zero lakehouse writes anywhere today), but future runs
+  must stamp a capture timestamp inside the JSON.
