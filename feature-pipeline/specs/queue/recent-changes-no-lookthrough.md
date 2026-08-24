@@ -610,3 +610,56 @@ The remaining work is one implementer round + one data-reviewer pass + codex. Sc
 3. **Guard live-fire refusal transcripts** into `evidence/` — or a plain statement that the
    permission classifier blocked them, leaving the weaker claim standing.
 4. **Test baseline before/after, diffed by test id** against 6 failed / 28 errors / 1,345 passed.
+
+---
+
+## 🟢 OWNER AUTHORISATION 2026-08-24 — all three gates opened
+
+**Owner: "I want you explicitly to do all 3 things that you say are gated on me. Let's efficiently
+bring this home."** This authorises (1) the canonical gold rebuild, (2) the F4 serving reload, and
+(3) merging L6 + this branch into `fund_score` main. Recorded here because a canonical write and a
+serving reload need their authorisation on the record, not in a chat scrollback.
+
+### ⚠ ARCHITECTURE CALL (tier b, dispatcher): the gold FRAME stays EXPANDED. Only the PANEL switches.
+
+Do **not** overwrite `data/gold/holdings_lookthrough_window.parquet` with a no-expansion frame. It is
+not the positioning section's private input — it is read by **7 modules**, including
+`sector_attach.py`, `l14_classified_weight_regression.py`, `check_positioning_changes_panel.py` and
+the Exposure X-Ray basis (EDA hazard H8). Replacing it would silently move X-Ray and the L14
+regression onto a basis nobody agreed to, which is the "repointing a source couples everything that
+rode that join" failure ([[join-through-aux-frame-couples-coverage]]).
+
+**Promotion shape instead:**
+- `data/gold/holdings_lookthrough_window.parquet` — UNCHANGED, still expanded, still X-Ray's basis.
+- `data/gold/holdings_lookthrough_window_no_expansion.parquet` — NEW sibling artifact, mode-stamped
+  (convention already exists in gold: `positioning_changes_panel_directbook_baseline.parquet`).
+- `data/gold/positioning_changes_panel.parquet` — rebuilt FROM the new sibling. This is the switch.
+- The canonical-panel guard **inverts rather than disappears**: after promotion the canonical panel
+  must come FROM the no_expansion frame and must refuse an `expanded` one. The guard is not deleted
+  — a guard that only ever refused is replaced by a guard that enforces the new truth.
+
+### F4's three recorded preconditions — how each is handled, not waived
+1. **Stale downstream panels (incl. 5 funds crossing the sector-tilt floor)** — rebuild the affected
+   downstream panels BEFORE the reload rather than reloading over staleness. This is the actual fix.
+2. **1,194-fund leaderboard reshuffle** — an expected consequence, not a defect. Report the realised
+   number after the rebuild; do not present a reshuffle as a regression.
+3. **The parity-check dedup that can pass falsely** — known latent (already filed in the backlog).
+   It may return a false clean, so **it does not count as evidence**; verify the reload with a
+   row-level served==gold comparison instead of leaning on that check.
+
+### Order of operations
+1. Finish the in-flight verification round + one data-reviewer pass. **No gold write on unverified
+   numbers.**
+2. Invert the guard; build the no-expansion gold sibling; rebuild `positioning_changes_panel`.
+3. Rebuild downstream consumers, then serving staging.
+4. Reload serving (TRUNCATE+COPY in one transaction), verified row-level served==gold.
+5. Flip the web methodology copy (`registry.ts:485`) **in the same step as the reload**, never before.
+6. Merge L6 + `l6b/recent-changes-no-lookthrough` into `fund_score` main.
+
+### ⚠ Scope note the owner should hold: merging L6 ships MORE than this spec
+`feat/l6-recent-changes-te-ranked` carries the TE-impact ranking feature (`positioning_changes_v0.2`,
+`change_te_impact.py`, the surfacing rule that drops `style` rows). Its own spec
+(`recent-changes-te-ranked`) is still in `queue/`, blocked on `unify-te-decomposition-global-basis`.
+Its code is codex-gated and green, so merging is safe — but the merge **ships TE-ranked Recent
+Changes as well as no-look-through**. That is a bigger user-visible change than "switch off ETF
+expansion" alone, and it is now authorised. Recorded so it is not discovered later as a surprise.
