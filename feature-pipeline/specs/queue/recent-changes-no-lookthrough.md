@@ -709,3 +709,64 @@ guard is at `:793`/`:795` on HEAD, not `:738`. Both guards left unmodified.
 **Test baseline: zero drift** — 6 failed / 28 errors / 1,345 passed before AND after, with 0 ids
 only-before, 0 only-after, 0 outcome changes. Non-mutation CLEAN with `captured_at_utc` stamped
 inside both JSONs, closing the R-H objection.
+
+### R-K. FINAL GATE = FAIL. My R-I boundary was wrong on its premise. Reload is HELD until fixed.
+
+The gate reproduced **every** round-4 headline independently — served cut, M1, M2, M3(a), M3(b), M4,
+R-I, coverage buckets, frame honesty, tests, non-mutation, both guard live-fires. It then found
+something none of us had: **B-1**.
+
+**B-1 — three rows would tell readers "increased TFGZ" when the instrument is a cash fund.** Funds
+**THOAX** (+6.78pp, rank 5), **THMGX** (+4.18pp, rank 5) and **TXUE** (+5.44pp, rank 4) serve ticker
+`TFGZ`, which `cusip_reference` names *Thornburg Focus Growth Fund*. Every raw observation says the
+instrument is the **Thornburg Capital Management Fund**, an affiliated cash vehicle: cusip `885216739`
+appears in filings ONLY under that name, its filed LEI `549300GLR0WG6ALV5277` resolves in our own map
+to `S000051223 "Thornburg Capital Management F…"`, and TFGZ's other reference cusip `885216671`
+appears in **zero** filings. *"Added to a growth-fund bet"* versus *"parked more cash"* is a
+materially different story. **This is a REGRESSION created by the promotion** — the control arm serves
+0 of these, because expansion opened the wrapper via LEI into the correct book.
+
+**MY RULING R-I WAS WRONG, and this is the correction.** R-I said NOT_ASSESSABLE stays served because
+*"absence of a cross-reference is not evidence of contradiction."* That premise is false for this
+sub-class: **a cross-reference EXISTS here** — the LEI resolves, and together with the filed title it
+*affirmatively contradicts* the served ticker. What made these rows NOT_ASSESSABLE was merely that
+`TFGZ` is absent from `data/tmp_sec_mf_tickers.json`, so `series_from_ticker` returned null.
+
+The structural consequence is the serious part: **the detector's ticker surface is null for any
+ETF-style ticker**, so *any* wrapper mis-bound by `cusip_reference` to a non-mutual-fund ticker lands
+in NOT_ASSESSABLE-and-served. FAEQX/`MFUS` was caught only because `MFUS` happens to be in the MF
+class file. We fixed an instance and left the class open.
+
+**RULING K-1 (tier b — existing doctrine, not a new rule): close the sub-class, then re-cut.**
+Reclassify as DISAGREEMENT (and therefore suppress) any wrapper row where **the ticker is
+unresolvable in the class file BUT the filed LEI resolves to a series AND the filed title contradicts
+the served ticker.** Absence of evidence still stays served — 25 of the 28 NOT_ASSESSABLE served rows
+have filed titles that match their ticker (QQQ ×12, SPY ×7, …) and must remain served. Only the 3
+contradicting rows change. This is the standing "contradictory claimants → exclude honestly" doctrine
+reaching the surface R-I mistakenly exempted; it needs no owner turn.
+
+**RULING K-2: also file the upstream block.** Add `885216671`/`885216739 → TFGZ` to the H-4
+`cusip_reference` backlog item as a second proven bad block alongside the 72202L→MFUS one. Do not fix
+gold reference data inside this spec.
+
+**Cost of the fix: ≤3 rows.** All three funds keep 4 other surfaced rows, so **no fund loses its
+section**; M1 is unchanged, M2 position rows move by −3.
+
+**RELOAD IS HELD** until B-1 is fixed and this gate re-runs on the delta. Everything else is verified
+and ready.
+
+### Corrections the gate forced on our own record
+- **The 3 ONEZ rows are DECIDED, not unknown.** TrueShares monthly ETFs reorganised into Elevation
+  Series Trust mid-window; filed titles match the served ticker at BOTH endpoints, both LEIs resolve.
+  **SERVED_NAME_OK.** So H-1's true cost is **14 correct rows removed of 15 (1 genuinely wrong)** at
+  0.030% — not "11 OK / 3 unknown". Suppression still fails safe, but the record must say 14/15.
+- **"Reproduces the payload bit-for-bit" is overbroad.** The four headline counts are exact, but 16
+  row keys and 59 sector magnitudes (max |Δ| 4.4pp) differ from the staging payload — all confined to
+  the known L14/L16 sector-consensus relabel, exactly as R-G predicted. Say **"identical up to the
+  L14/L16 relabel"**.
+- **M3(b)'s treatment 0 is STRUCTURAL, and must be stated that way.** Under no-expansion the served
+  name is drawn from the fund's own filed rows through the same cusip→ticker resolution the detector
+  inverts, so a phantom TRADE is impossible absent a code bug. The class elimination is real and the
+  implementation is confirmed correct (seeded 5 → 5), but the 0 is a **design consequence, not an
+  independent empirical discovery**. The residual risk moves entirely onto the identity axis — which
+  is precisely where B-1 lives. Do not let the brief imply the 0 proves more than it does.
