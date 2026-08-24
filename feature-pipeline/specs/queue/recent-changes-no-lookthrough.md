@@ -241,3 +241,44 @@ carries, so fix them here rather than re-filing them:
 Note for your own gates: because of (2), a red `make check FEATURE=positioning_changes` on this base
 is **pre-existing, not yours**. Establish that it is red BEFORE you start, so you can prove what you
 changed. Do not "fix" it by weakening the check.
+
+### R-F. ⚠ The base has a KNOWN code/data skew — and its error message tells you to violate constraint 1
+
+Test baseline measured on this base (`uv run pytest tests/`, l6b @ ec6b572):
+**6 failed, 28 errors, 1,345 passed** vs the recorded main baseline of **5 failed / 1,374 passed**.
+
+**Almost all of the drift is ONE root cause**, not 29 defects: the merged L6 code is
+`positioning_changes_v0.2`, but `data/gold/positioning_changes_panel.parquet` on disk is still
+**v0.1** — L6's gold rebuild was never run (which is also why `recent-changes-te-ranked` is still
+queued and blocked). Verified directly:
+
+```
+fact_assembler.py:1134  SystemExit: data/gold/positioning_changes_panel.parquet is missing
+  ['te_impact_bps','te_impact_basis','te_rank','classification'] — it predates L6
+  (positioning_changes_v0.2). Rebuild it with `make build-positioning-changes` ...
+```
+
+That single `SystemExit` fires in the `rows_by_sid` fixture, which is why **all 28 errors are the
+same failure counted 28 times**, all in `tests/test_serving_fact_assembler.py`. The one new FAILED,
+`test_positioning_changes::test_panel_schema_and_invariants`, is the same skew from the other side —
+invariant 16 demands `method_version = positioning_changes_v0.2` while disk says v0.1, plus 164
+surfaced `style` rows that v0.1 emitted and v0.2 excludes.
+
+**🚫 DO NOT RUN `make build-positioning-changes`.** The error message above instructs you to, and the
+spec's constraint 1 forbids it: **zero writes under `data/gold/`**. The code's own remediation advice
+is out of bounds here. Rebuilding that panel would also change what a future serving reload picks up,
+which is fence F4 and owner-gated. Build your panels into `data/_tmp/<slug>/` and point your readers
+at them; never "fix" the base by writing gold.
+
+**Attribution, so you can prove what is yours.** Of the 5 recorded pre-existing reds, 4 reproduce
+here as FAILED (`test_manager_people` ×2, `test_openfigi::test_resolve_batch_splits`,
+`test_return_attribution::test_gate_a_keeps_north_stars`). The 5th,
+`test_serving_fact_assembler::test_nav_series_matches_gold_and_matched_grid`, is **masked** — it is
+now one of the 28 setup ERRORs, so it cannot report its own status. One further red,
+`test_serving_fact_assembler::test_fund_family_served_gold_spot_check_across_families`, is not in the
+recorded set and is **unattributed** — establish whether it is skew-caused or genuinely new before
+you touch anything, and do not absorb it silently either way.
+
+**Your obligation:** re-measure this baseline at the START of your first segment and quote it. Any
+red beyond what is listed here is YOURS. Do not let the count drift unnoticed, and do not reduce the
+count by weakening a check or rebuilding gold.
