@@ -440,3 +440,65 @@ outside this spec's authorised write scope, and constraint 1 forbids touching it
   mtime so it cannot prove the "before" predates the run. Moot here because the reviewer's
   independent scan proved the stronger fact (zero lakehouse writes anywhere today), but future runs
   must stamp a capture timestamp inside the JSON.
+
+### R-I. Counter-signature after the round-2 FAIL (2026-08-24) — and H-2 is ANSWERED
+
+**First, the sequencing error is mine, and it is on the record.** R-H was committed at 13:15:35;
+the revision round's final snapshot is 13:15:59. The implementer had 24 seconds and did not see
+H-1. The reviewer judged the segment against the spec as it stands — correct — but the cause was a
+dispatcher writing a ruling into a round already closing, not a worker ignoring one. **Rulings land
+between rounds, never into a live one.**
+
+**H-2 IS ANSWERED — no owner brief, and the answer is NO.** I deferred "prefer the LEI-resolved
+identity to recover the correct name" to the owner and asked for full-universe sizing before
+briefing. The sizing arrived in the same round and **disproves the rule**:
+
+| | |
+|---|---|
+| surfaced position rows (full universe) | 49,231 |
+| → wrapper-naming rows | 465 |
+| → COHERENT / DISAGREEMENT / NOT_ASSESSABLE | 405 / **12** / 48 |
+| → actually serving a wrong name | **1** (FAEQX `MFUS`) |
+| of the 12 contested, LEI-recovery would **corrupt a correct name** | **11** |
+
+The 11 were traced individually, not assumed: `549300X7CW3B8850WA94` → iShares MSCI Australia (would
+corrupt IEMG/ESGE), `SMW62R66J4CAWU1R4S26` → VFISX (would corrupt VGSH), the `549300G3FWQPUM47D181`
+"Old Name" LEI across the IWM/IWO/IWD/IWF/SCZ/USMV/KSA/IVV block, `TN5Y392EHJ8T3X0XI337` → pre-reorg
+Pioneer (STRKX). **Prefer-LEI is rejected on evidence, not deferred.** Record it in the promotion
+brief as a closed question with these numbers. This is what sizing-before-classifying is for: the
+measurement dissolved the owner question instead of spending an owner turn on it.
+
+**COUNTER-SIGNATURE ON H-1's COST — requested by the reviewer, and it is UPHELD.** Suppressing on
+DISAGREEMENT removes **12 surfaced rows, of which 11 are adjudicated SERVED_NAME_OK.** So H-1 costs
+11 correct rows to remove 1 wrong one, across 12 funds, at **0.024% of surfaced position rows**. I
+ruled H-1 believing disagreement ≈ wrong; it does not. Re-ruling with the true trade in hand:
+
+**H-1 STANDS.** There is no rule-free alternative that never serves a wrong company: prefer-LEI is
+disproven above, and hand-adjudication does not scale past this sample. Honest exclusion at 0.024%
+is the doctrine's own price, the loss is a *missing* row rather than a *wrong* one, and the upstream
+`cusip_reference` fix filed under H-4 progressively empties the class. I am not trading a
+wrong-company display for 11 rows of recall.
+
+**BOUNDARY (standing constraint 6) — state it explicitly in code AND report.** H-1 fires on
+**DISAGREEMENT only**:
+- **NOT_ASSESSABLE (48 surfaced rows) is NOT in the suppressed class** and stays served — these are
+  dominated by QQQ/SPY UITs absent from the SEC class file whose filed titles visibly match the
+  served ticker. Absence of a cross-reference is not evidence of contradiction.
+- The **24 fan-in>1 rows** T1 cannot flag stay **reported-as-unknown**, as the implementer already
+  has them.
+Do not silently widen or narrow this. A reader must be able to see which of the three buckets each
+row landed in and why.
+
+**What the H-1 round must deliver.** (1) The suppression itself, reason-stamped
+(`identity_incoherent`), following the `positioning_classification_low` pattern — the detection half
+already exists, is non-degenerate in both directions, and fires on the FAEQX known-positive as H-3
+demanded. (2) **Re-cut every A/B number**: the reviewer is right that all current figures are
+pre-H-1. The sample headline "M1 gained {FAEQX}, net +1" becomes "gained {}, net 0", because that
+row is FAEQX's only surfaced row; full-universe M1/M2 move by the 12. (3) The two guard live-fire
+refusal transcripts into `evidence/` — or a plain statement that the permission classifier blocked
+them again, leaving the weaker condition-evaluation claim standing rather than dressed up.
+
+**Carried forward, unchanged:** sample attrition disclosure (11 tickers → 7 funds, DODGX named but
+absent); the KSA row with `fund_ticker=null`; the stale committed
+`reports/product/positioning_changes_check_data.md` (my call at finalize); M4's wording narrowed;
+the H5 deviation named explicitly in the final report.
