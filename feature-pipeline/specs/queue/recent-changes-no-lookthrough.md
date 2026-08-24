@@ -565,3 +565,48 @@ Worktree `/Users/alexfrey/Projects/fund_score-wt-l6b`, branch `l6b/recent-change
 outside `data/_tmp/recent-changes-no-lookthrough/`** — gold frame mtime is still 2026-08-09 and the
 gold panel 2026-08-21. Fences held: F2 one lakehouse worktree, F3 web main untouched, F4 no reload.
 `feature-pipeline/reviews/` on the branch carries the codex verdicts.
+
+---
+
+## ✅ OWNER DECISION 2026-08-24 — SWITCH TO NO-LOOK-THROUGH. Un-parked.
+
+**Owner ruling: "Yes switch it."** No-expansion becomes the design for Recent Changes. The `⛔ STOPPED
+BY OWNER` block above is superseded; the spec is live again. Decided on the measurement as it stood:
+phantom-trade class eliminated (195 basis breaks → 0), coverage cost −20 funds (−0.49pp), FCNTX
+unchanged, D8-3 mooted for this section but not for the lakehouse.
+
+### What this ruling DOES and does NOT authorise
+
+**Authorised:** finishing the verification (below), on the same `_tmp`-only footing as before.
+
+**NOT authorised by this ruling — still separately owner-gated, do not do them:**
+1. **The canonical gold rebuild.** `positioning_changes_panel.parquet` on the no-expansion basis is a
+   canonical write. Standing constraint 1 still binds, and the guard built in this very spec
+   (`build_positioning_changes_panel.py:738`) actively refuses it. **Leave that guard in place.** It
+   is the safety net while we finish verifying; making it basis-aware is part of the promotion step,
+   not this one. A design decision is not a write authorisation.
+2. **The serving reload (F4)**, which still carries its three recorded preconditions — stale
+   downstream panels incl. 5 funds crossing the sector-tilt floor · the 1,194-fund leaderboard
+   reshuffle · the dedup in the parity check that can pass falsely.
+3. **Merging L6 + this branch into `fund_score` main.** The owner merges (F2/F3 pattern).
+
+### Sequencing note that matters for the reader-facing copy
+
+`fundscore-web/src/lib/methodology/registry.ts:485` pins `positioning_changes_v0.1` and tells the
+reader the section uses "the same exposure classifications used by Exposure X-Ray". Under
+no-expansion that sentence becomes false. **It must flip WITH the serving reload, not before** —
+landing it early would describe a basis the served data does not yet have. Prepare it; ship it in the
+promotion step.
+
+### The finishing round — bounded, and deliberately NOT the full shipping stack
+
+Per the retro ([[lane-must-match-deliverable]]): EDA and the sample round are done and do not repeat.
+The remaining work is one implementer round + one data-reviewer pass + codex. Scope:
+1. **Full-universe re-cut with H-1 applied**, both arms, one base, pinned eval date,
+   `--sector-basis consensus`. The full no-expansion frame already exists from EDA (2,600,937 rows /
+   5,062 series) — do not rebuild it if it is still valid; verify and reuse.
+2. **Restate M1–M4 post-suppression**, each naming the two artifacts compared, windowed-vs-windowed.
+   Current headlines are pre-H-1 and will move by the 12 suppressed rows.
+3. **Guard live-fire refusal transcripts** into `evidence/` — or a plain statement that the
+   permission classifier blocked them, leaving the weaker claim standing.
+4. **Test baseline before/after, diffed by test id** against 6 failed / 28 errors / 1,345 passed.
