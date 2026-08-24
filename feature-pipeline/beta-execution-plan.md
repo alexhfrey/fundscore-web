@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-22T14:45-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-24T09:47-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -3637,3 +3637,31 @@ them.
   `l5/web-mirror-neighbourhood` (05f2ee6) — **F3 intact, main never touched.**
   **F4 still owner-gated** and still carries its three preconditions (downstream panel staleness ·
   1,194-fund leaderboard reshuffle · the dedup that can pass falsely).
+
+- 2026-08-24 09:45 — **Backstop tick after ~43h: run verified dead, nothing in flight, and the drain
+  never restarted.** Queue still at 14, newest done still `passive-book-sector-basis-parity`, no commit
+  in either repo since 08-22, **0 gold writes in 48h**, no `.loop-state.json`, no worker process; the
+  only transcript written in that window is this session's own. **The 08-22 handoff to a fresh session
+  was never picked up.**
+  **Not draining here, deliberately — and this is not the 08-21 stall repeating.** That one waited on
+  an unanswered question. This one is the owner's own stated plan: they asked whether to run the next
+  spec in a fresh context, the answer was yes (so the new fail-closed guard and triage rule get
+  exercised by a session with no memory of who wrote them), and they took a handoff prompt to do it.
+  Starting the drain here would override that and risk **two dispatchers on one lakehouse — an F2
+  violation** and the worktree-thrash failure already on record.
+  **Checked for collision-free work first** rather than assuming none existed: the one non-reviewed
+  item in the queue (`prod-serving-data-load-beta-runbook`, `lane: lean`, docs) is a **Track D**
+  artifact, and Track D is **ICED** — "keeps its blockers AND is deliberately not worked". So there is
+  no safe parallel work; the queue is genuinely reviewed-lane-only right now.
+  **Standing state:** `fund_score` main pushed at 60eb7c9 (L14+L16 merged); web on
+  `l5/web-mirror-neighbourhood` @ 42ec180, pushed; **web main untouched (F3)**; test baseline 5 red /
+  1374 green, all 5 proven pre-existing. **F4 owner-gated with its three preconditions.**
+
+- 2026-08-24 09:47 — **Fresh dispatcher session picked up the 08-22 handoff.** This is the session the
+  09:45 backstop tick declined to pre-empt: a context with no memory of authoring the fail-closed
+  `deadSegment` guard or the triage rule, so both get exercised by a reader rather than their writer.
+  Backstop heartbeat cron re-armed (`11,41 * * * *`) — it died with the previous session, as designed.
+  **State re-verified, not inherited:** `fund_score` main @ `60eb7c9` == `origin/main` (L14+L16 merged);
+  web on `l5/web-mirror-neighbourhood` @ 42ec180, **main untouched (F3)**; no `.loop-state.json`, no
+  worker process, both trees clean apart from this file and one stray untracked codex verdict in
+  fund_score. Dispatching `/implement-next` over the 14-item queue; **F4 stays owner-gated — no reload.**
