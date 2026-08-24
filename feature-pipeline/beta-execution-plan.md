@@ -3665,3 +3665,28 @@ them.
   web on `l5/web-mirror-neighbourhood` @ 42ec180, **main untouched (F3)**; no `.loop-state.json`, no
   worker process, both trees clean apart from this file and one stray untracked codex verdict in
   fund_score. Dispatching `/implement-next` over the 14-item queue; **F4 stays owner-gated — no reload.**
+
+- 2026-08-24 14:20 — **STOPPED BY OWNER after one spec.** Owner: *"Let's stop after this round, we're
+  spending too much here on a small item."* `recent-changes-no-lookthrough` is **committed but NOT
+  done** — it stays in `specs/queue/` with a `⛔ STOPPED BY OWNER` block naming the exact resume point.
+  Backstop heartbeat cron **cancelled** (it would otherwise have auto-resumed the drain ~50 min after
+  the last stamp — stopping without cancelling it would have restarted the spend).
+  **Committed:** fund_score `l6b/recent-changes-no-lookthrough` @ `2cfe22c` (base merge `ec6b572` =
+  main + L6). Codex on the final diff: **pass, high, 0 blockers, 0 advisories**.
+  **The measurement is usable now and answers the held D8-3 question**: phantom-trade class eliminated
+  (195 basis breaks → 0, seeded detector returns 3 so the 0 is evidence; 34 false served rows → 7
+  honest), coverage cost −20 funds (−0.49pp), FCNTX unchanged. D8-3 is mooted for THIS SECTION, not
+  for the lakehouse. **H-2 (prefer-LEI identity recovery) is REJECTED on evidence, not deferred** —
+  of 12 contested rows only 1 is genuinely wrong and recovery would corrupt 11 correct names, so no
+  owner turn is needed.
+  **Not done:** full-universe A/B numbers are still pre-H-1 headlines · no data-reviewer pass on the
+  H-1 round · guard live-fire transcripts not captured · post-round test baseline not re-measured.
+  **Fences all held:** F2 one lakehouse worktree · **F3 web main untouched** (last moved 2026-08-17,
+  never pushed) · **F4 no reload**, and gold is byte-untouched — frame mtime still 2026-08-09, panel
+  2026-08-21, zero lakehouse writes outside `data/_tmp/` all day.
+  **Retro (owner asked why a measurement cost ~4h):** the lane was mismatched to the deliverable —
+  a report-only spec ran the full reviewed *shipping* stack though nothing could reach a user
+  (`_tmp`-only writes, F4-gated). `/implement-next` only guards UNDER-gating, so nothing questioned
+  it. Recorded as [[lane-must-match-deliverable]]. Second cost: a dispatcher ADDENDUM committed 24s
+  before a live round closed, failing the worker against text it could not read — burned the only
+  revision round; recorded as [[rulings-land-between-rounds]].
