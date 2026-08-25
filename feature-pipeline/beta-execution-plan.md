@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-24T18:14-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-24T19:16-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -3690,3 +3690,29 @@ them.
   it. Recorded as [[lane-must-match-deliverable]]. Second cost: a dispatcher ADDENDUM committed 24s
   before a live round closed, failing the worker against text it could not read — burned the only
   revision round; recorded as [[rulings-land-between-rounds]].
+
+- 2026-08-24 19:15 — **PROMOTION IN FLIGHT (owner opened all three gates).** Owner: *"I want you
+  explicitly to do all 3 things that you say are gated on me."*
+  **Done and verified:** gold sibling `holdings_lookthrough_window_no_expansion.parquet` built from
+  committed code (2,600,937 rows / 5,062 series — reproduces the gated artifact exactly, endpoint sets
+  identical, `no_expansion` stamped, coverage NULL) · canonical `positioning_changes_panel.parquet`
+  rebuilt on that basis (`positioning_changes_v0.3_no_expansion`, 139,231 rows, surfaced key sets
+  IDENTICAL to the gated run, 20 `identity_incoherent` rows with 0 surfaced, the 3 wrong-company TFGZ
+  rows suppressed while each fund keeps 4 real rows) · backup taken
+  (`.pre-no-lookthrough-bak`) · **canonical FRAME untouched** (Aug 9 bytes) per the architecture call.
+  **The guard INVERTED, not deleted, and was proved to refuse**: pointing the expanded frame at the
+  canonical panel is rejected and gold's sha256 is unchanged after the refused run. Comment corrected
+  after round 5 noted it refuses BOTH `expanded` and `direct_book` — the latter deliberately, since
+  direct_book carries no `lei` column so the identity test cannot run on it at all.
+  **Checked, not assumed — no downstream rebuild needed:** neither `fund_takeaways` (Aug 6; inputs are
+  expense/passive_match/skill/holdings/corporate_actions, no positioning, no positioning-targeted
+  takeaway) nor `value_offering_reframed_panel` (Aug 17; positioning feeds structural/tactical bet
+  TAGGING, not row citation) cites positioning rows, so leaving them preserves today's behaviour
+  instead of creating a visible contradiction with the new Recent Changes.
+  **⚠ REALISED RELOAD SCOPE, measured:** **21 of the 39** gold panels serving reads have changed since
+  the last reload (2026-08-07 05:44) — neighbourhood ×4, value_score, return_attribution ×2,
+  te_decomposition, positioning_context, fee_peer_percentile, alternatives ×2, fund_family ×2,
+  value_offering_reframed, profile_nav ×2, exposure_xray ×2, positioning_changes. **The reload ships
+  17 days across ~9 sections, not one section** — this is the mechanism behind the recorded 1,194-fund
+  leaderboard reshuffle precondition. Building `--staging-only` FIRST (no DB write) to measure the
+  delta before loading.
