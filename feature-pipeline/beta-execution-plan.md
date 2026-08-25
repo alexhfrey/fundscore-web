@@ -8,10 +8,10 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-25T12:26-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-25T12:41-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
-`run-state: complete — session closed 2026-08-25; everything pushed (fund_score main 29969d7, l6b + l5 branches; web main merged LOCALLY only, F3). Next: sector-identity-defect-recovery in a fresh context (handoff issued)`
+`run-state: active — pre-check RETURNED and refuted its hypothesis (see spec ADDENDUM R-1..R-8, committed before dispatch); test-contract fix done, awaiting codex --uncommitted gate; full by-id baseline running. Next: dispatch the reviewed backend lane.`
 ← the dispatcher sets this WITH every heartbeat re-stamp. Values: **`active`** (drain in progress — a
 stale heartbeat means investigate), **`paused-on-owner: <what>`** (the line is idle BY DESIGN, waiting
 on a decision — a stale heartbeat is EXPECTED; any backstop check should re-stamp and STOP, never run
