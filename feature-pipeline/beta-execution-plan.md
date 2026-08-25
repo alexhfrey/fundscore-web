@@ -8,10 +8,10 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-25T12:41-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-25T17:00-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
-`run-state: active — pre-check RETURNED and refuted its hypothesis (see spec ADDENDUM R-1..R-8, committed before dispatch); test-contract fix done, awaiting codex --uncommitted gate; full by-id baseline running. Next: dispatch the reviewed backend lane.`
+`run-state: complete — sector-identity-defect-recovery SHIPPED. fund_score `sid/sector-identity-defect-recovery` @ 13b5199 (pushed, NOT merged — owner merges); web `l5/web-mirror-neighbourhood` @ d882bd8 (web main untouched, F3). Spec in done/, .loop-state.json cleared, 5 follow-ons filed. NOT LIVE — F4 stands, Postgres still serves old labels. Next: nothing in flight; queue has 11 specs.`
 ← the dispatcher sets this WITH every heartbeat re-stamp. Values: **`active`** (drain in progress — a
 stale heartbeat means investigate), **`paused-on-owner: <what>`** (the line is idle BY DESIGN, waiting
 on a decision — a stale heartbeat is EXPECTED; any backstop check should re-stamp and STOP, never run
@@ -729,6 +729,93 @@ them.
 | 10 | Still-live BETA BLOCKERs not on the S3 path: **L2** wrong price series (WMSIX tracks a muni index), **L3** nondeterministic named ETFs, **L4** ~139 stale-fee scores, **L7** V-spike corruption (174 funds), **L8** taxonomy misroutes, **L12** twin-label, **L13** active-share. | see backlog | deprioritized by owner directive, not fixed |
 
 ## Run log
+
+- 2026-08-25 17:00 — **`sector-identity-defect-recovery` SHIPPED** (`wf_77725aed-f6b`, 11 agents, ~4h10m,
+  2.19M subagent tokens). fund_score `13b5199` on `sid/sector-identity-defect-recovery` (pushed, owner
+  merges); web `d882bd8`; **web main untouched (F3)**; **NOT LIVE — F4 stands**, every write is
+  gold/product and Postgres still serves the old labels.
+  **Result:** the 20-ISIN footprint goes **14/20 → 20/20 resolved, value coverage 1.0**, residual
+  honest- and recoverable-missing both **0**. Multi-sector ISINs 6 → 1 in gold, 7 → 2 served.
+  Checkpoints sample/full/final all **pass**; the final gate FAILED first on B1+B2, one revision round
+  fixed it, re-gate clean. Codex: **pass, high, 0 P0/P1**.
+  **The dispatcher pre-check paid for itself four times over.** (1) R-1 refuted the shared-root-cause
+  hypothesis — all seven were step-3 exact vendor hits, never the step-4 prefix fallback, so the
+  ladder was never opened for a write. (2) R-2 caught that the spec said SIX and named FIVE (Genie
+  Energy missing) — a literal implementation would have shipped five and reported six. (3) R-4 re-based
+  the $8.2B headline as a FOOTPRINT, and the shipped commit states the denominator and explicitly
+  refuses the "recovers $8.2B" claim. (4) W-2 added `passive_blend_holdings` to the bill after L16 made
+  it inherit from the fund book — the predecessor spec had ruled it out and that ruling had gone stale.
+  **W-3 was honoured and proved non-vacuous:** the passive re-relabel was confirmed by an independent
+  SET-WISE pre-dedup comparison (**9 crossed pairs → 0** over 439,385) precisely because
+  `l16_cross_basis_parity`'s `unique(keep="first")` under-reports this multi-label class. Likewise
+  served==gold was re-proven NULL-SAFE after codex found the reviewed check silently dropped all
+  532,794 null-key rows: 1,248,450 keys, 0 mismatched, **control vs the pre-sid book 90 mismatched** —
+  non-vacuous inside the very blind spot ([[vacuous-check-and-boundary-axis]]).
+  **R-8 blast radius measured, and the broad lever REFUSED on the numbers:** scoping the LABEL on the
+  same predicate would have darkened **6,144 US rows / $94.0B to fix a $16M defect**. The adopted
+  remedy scopes WHO MAY VOTE instead, so `cusip_reference` stayed out of the bill entirely. That is the
+  measure-before-adopting requirement working exactly as written.
+  **Tests:** full suite **5 failed / 1385 passed** — the recorded baseline red set **BY TEST ID**, no
+  new red (count rose because the run added tests; the by-id bar is why that reads as a pass).
+  **Filed, not fixed (5):** ROP ticker-side binding (1 of 360 tie keys) · Burford Capital, out of the
+  overlay's reach (3 rows / $245,354.64; root cause is the holdings-inclusion contract, 8.3% of served
+  keys have no gold row) · `build_holdings_complete` non-determinism (8.3e-15, pre-existing) ·
+  `positioning_changes` check FAILing on main since 08-24, proven identical before/after · R-7
+  `999999999` sentinel, measured ZERO gold footprint.
+  **Dispatcher defect found and fixed at close:** the workflow left `.loop-state.json` on disk after
+  moving the spec to `done/`. A stale checkpoint means the next `/implement-next` tries to RESUME a
+  finished run. Cleared by hand; worth a machinery fix in the finalize stage, filed as a chore rather
+  than edited mid-run.
+
+- 2026-08-25 16:44 — **Backstop tick: heartbeat 60 min stale, run verified ALIVE, nothing resumed.**
+  Transcript written that minute; process 3.7% CPU. **The final data gate did its job**: it returned
+  `fail` with two blocking issues (B1 + B2), the workflow bounced them to a serving-integration
+  revision round, and the re-gate returned **`pass`, 0 blocking**. Finalize (codex + commit) running.
+  Recorded because a clean end-to-end pass would have been the weaker outcome — a gate that has been
+  seen to return non-zero on this run is a gate whose green is worth something
+  ([[vacuous-check-and-boundary-axis]]).
+
+- 2026-08-25 15:44 — **Backstop tick: heartbeat 60 min stale, run verified ALIVE, nothing resumed.**
+  Transcript written that minute, journal advanced 15:42, process 4.5% CPU, worktree carrying real edits
+  to `cusip_mapping.py`, `sector_attach.py`, `identity_bridge.py`, `relabel_passive_sector_basis.py`
+  (the W-2 artifact the dispatcher added to the bill) and a NEW `identity_triangulation.py`.
+  **Six segments cleared, every one a pass:** EDA (`caution`) · implement-sample · sample data-reviewer
+  **PASS** · implement-full · full-build data-reviewer **PASS** (spot-checked SharkNinja against raw
+  N-PORT: 17 US rows on cusip `79970Y105` named "SharkNinja Inc." while `cusip_reference[79970Y105]`
+  = SNECQ — the filed-cusip-wrong mechanism confirmed at source, exactly as R-1 predicted) ·
+  data-scientist output review **PASS** · serving-integration ready.
+  **Two dispatcher rulings verifiably landed:** implement-full led its headline with VALUE-weighted
+  coverage and stated the denominator basis (R-4), and the serving-integration segment touched
+  `serving.ts` COMMENT-ONLY — no column, no type change, **no F3 exposure**.
+  R-7 remains carried; it goes in as an ADDENDUM between rounds, not into the live segment.
+
+- 2026-08-25 14:44 — **Backstop tick: heartbeat 53 min stale, run verified ALIVE, nothing resumed.**
+  Transcript `agent-a90ffca2f0d57ea36.jsonl` written 14:43, journal advanced 14:03, process 6% CPU.
+  Segments cleared: EDA (`caution` — flags the spec scope as under-drawn) · implement-sample
+  (`ready_for_review`, no blocker) · **sample data-reviewer checkpoint PASS, 0 blocking issues**.
+  **Carried warning:** the checkpoint found that **R-7 (cusip `999999999` → MOUNTAIN PARENT INC.
+  REVOLVER), which the dispatcher ruled INTO scope in ADDENDUM 1 before dispatch, was neither
+  addressed nor mentioned by the implementer.** The ruling pre-dated the round, so this is a genuine
+  miss and not a [[rulings-land-between-rounds]] artifact — the timestamps were checked. It will be
+  re-issued as an ADDENDUM **between** rounds; the full-build segment is live and would not read it.
+  **Second bookkeeping lapse of the session** — the 13:51 re-stamp aged out during a 50-min segment
+  with no intervening tick. The rule holds and needs no change; the gap is simply that ticks fire on
+  a fixed cadence while segments run longer than the staleness window, so a long segment will always
+  cost one forensics cycle. Cheap and correct — recorded so it is not re-diagnosed a third time.
+
+- 2026-08-25 13:44 — **Backstop tick: heartbeat 57 min stale, run verified ALIVE, nothing resumed.**
+  Liveness proven before touching anything ([[verify-run-dead-before-resuming]]): workflow transcript
+  `agent-af961a3a7c7798d3a.jsonl` written **that minute**, journal advanced 13:36, worker process at
+  4.7% CPU / 120 min CPU time. `wf_77725aed-f6b` had cleared two segments (EDA → `caution`;
+  implement-sample → `ready_for_review`, no blocker) and was inside the sample data-reviewer checkpoint.
+  **Dispatcher bookkeeping lapse, recorded because it is the SECOND instance of a known defect** (see
+  the 2026-08-21 entry): the heartbeat was stamped at dispatch (12:47) and then not re-stamped across
+  four backstop ticks, because the dispatcher was idle-waiting on a long workflow and treated
+  "answering a tick" as not being a unit of work. It is. **Rule reaffirmed: a tick that CONFIRMS
+  liveness re-stamps the heartbeat** — otherwise a live run keeps presenting the exact signature of a
+  dead one, which is what makes a false resume possible. The `run-state:` line did its job here: it
+  said `active`, so the tick ran real forensics instead of the no-op it would have done on
+  `paused-on-owner`/`complete`.
 <!-- newest entries appended at the end of this section -->
 
 - 2026-08-06 20:30 — plan created; W1–W6 READY; C1 with campaign session; all L blocked on F1.
