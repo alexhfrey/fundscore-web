@@ -795,3 +795,44 @@ of its points are adopted:
 mis-grepped on the message and thought guard 2 was gone, then self-corrected):
 `build_holdings_lookthrough_window.py:137` unchanged, and the panel guard now at `:812` — moved from
 `:793` purely by K-1's insertions above it, not relaxed and not made basis-aware.
+
+### R-M. DELTA RE-GATE = PASS. B-1 closed. Reload cleared to proceed.
+
+The gate re-derived everything **from raw inputs, not from round 5's outputs**, and returned **pass,
+no blocking issues**, with an explicit *"Proceed… nothing that would be wrong on a fund page after
+the reload."*
+
+Verified independently: all 33 TFGZ frame lines fire (`disagreement`/`name_contradiction`) and
+exactly the 3 served rows are removed — THCGX/TVAFX are stamped too but sat at surfaced_rank 28/23,
+outside the top-8 cut, which is why 5 stamped → 3 removed. The 25 spared rows were checked **one at a
+time against raw sources**, and the spare is *layered rather than lucky*: QQQ/SPY are spared at
+condition 2 (UIT LEIs present with `series_id = null`), and the CRTOX filer typo
+(`"Invesco QQQ Trust, Sries 1"` — real) would still be spared at condition 4 by the registry surface.
+Seeded both ways by the reviewer's own seeds (its first TFGZ seed was degenerate; it re-ran).
+Adjudication reconciles to 20 = 14 OK + 6 WRONG with **zero unadjudicated**.
+
+**The `_names_match` root cause is CONFIRMED by execution**, not inference: the reviewer ran it —
+`_names_match("THORNBURG FOCUS GROWTH FUND","THORNBURG CAPITAL MANAGEMENT FUND")` → **True**, while
+`fund_name_is_shortening` on the same pair → **False**. And it checked the other displayed surface:
+**0 TFGZ rows in `holdings_complete.parquet`**, so no fund page serves the mis-name today. Filed
+upstream with root cause (backlog K-2).
+
+**Warnings adopted (none blocking):**
+- **"Control payload byte-identical" is overbroad — the same claim-class R-K already corrected once.**
+  `change_z` IS a served column (`fact_assembler.py:1197`) and differs on 4,617/20,890 control served
+  rows at ≤2.3e-14 — pre-existing float-summation jitter, present pre-K-1, invisible at any display
+  precision. Row sets and all 32 other columns are bit-identical, so M3(b)'s phantom figures stand.
+  Say **"identical up to pre-existing ≤2e-14 `change_z` jitter"**. The delta-audit's `VALUE_COLS`
+  should have included it.
+- **No regression test guards the K-1 predicate.** Deferring it was legitimate for a round that had
+  to diff a by-id baseline, and both directions were live-fired twice — but after this session
+  nothing red protects `normalize_fund_name` / `fund_name_is_shortening` / `name_route_verdict`, and
+  a future "cleanup" of the single-char-token drop would silently re-open B-1 or over-fire.
+  **File the unit tests to land at finalize**, when the baseline legitimately moves anyway.
+- The 9 MoA firings are false positives from **stale reference names** (pre-rebrand), not collisions —
+  name that explicitly in the H-4 item, which is currently framed around collisions only.
+- `identity_route` is a frame-level column and is **not persisted in the panel parquet** — true as a
+  code claim, not queryable in the artifact.
+- Non-mutation's r5 capture window closed 17:21, before the 17:41 builds; the reviewer **closed that
+  gap itself** (nothing modified after 17:21 outside `_tmp`; both canonical golds re-hashed to their
+  pre-run values).
