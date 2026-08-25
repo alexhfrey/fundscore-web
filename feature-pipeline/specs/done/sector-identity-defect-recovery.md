@@ -1,7 +1,7 @@
 ---
 id: sector-identity-defect-recovery
 title: Recover the 6 unresolved sector contradictions — they are identity defects, not genuine disagreements
-status: queued
+status: done
 track: backend
 repo: fund_score
 depends_on: sector-consensus-canonical-write
@@ -24,6 +24,15 @@ company. This fixes the plumbing so those six resolve too.
 `sector-consensus-canonical-write` resolved 14 of 20 contradictory securities — **70% by count but only
 47.0% of contradicted filed value** ($3.856B of $8.199B), because the two largest contradictions in the
 book are both unresolved: **SharkNinja ($3.19B)** and **Shift4 ($0.99B)**.
+
+> **CORRECTED per ADDENDUM R-4 (basis must travel with the figure).** `$8.199B` is the **total filed
+> value of the 20 multi-sector ISINs, both sides of every contradiction** — a *footprint*, not
+> dollars mislabelled. Quoted without that basis it overstates the exposure by roughly 500×. The
+> actually-defective rows are **$15.871M / 27 rows (0.194% of the footprint)** on the pre-write book;
+> re-measured against the served labels after the fix, **28 US rows / $14,398,544.44 / 28 funds** were
+> carrying a label different from the one they now serve. **No artifact from this run may say it
+> "recovers $8.2B of contradicted value."** This does not lower the priority — a wrong-company binding
+> is the confidently-wrong class this project ranks above an honest gap regardless of dollars.
 
 Its EDA read every US-filed row of all six declines and checked the raw N-PORT filings. **Not one is a
 genuine two-opinion disagreement.** All six are identity defects on a small minority of rows:
@@ -308,3 +317,127 @@ to be the finalize comparison point, not an adjudication of the five.
 finalize run. Mid-round, run **scoped** tests only (the modules you touched). The finalize bar is **no NEW
 red vs the five above**, by test id — not by count. A count match is not a pass: the composition is what
 matters, and this run's 5/1374 coincidentally equals a prior tree's 5/1374 with different members.
+
+
+---
+
+## Implementation Result — SHIPPED 2026-08-25 (fund_score `13b5199`, web — this commit)
+
+**Lead with value-weighted coverage, and state the denominator's basis** (per ADDENDUM R-4).
+Denominator = the **footprint** of the 20 multi-sector ISINs — total filed value on **both sides**
+of every contradiction, `$8,198,940,258.43 / 2,580 rows`. It is not dollars mislabelled, and no
+artifact from this run says the write "recovers $8.2B".
+
+| basis | before (2026-08-21) | **after** |
+|---|---:|---:|
+| **contradicted filed VALUE** | $3.857B / $8.199B = 47.0% | **100.0%** |
+| contradicted ROWS | 1,618 / 2,580 = 62.7% | **100.0%** |
+| SECURITY COUNT | 14 / 20 = 70.0% | **20 / 20 = 100.0%** |
+| securities lacking US rows | 0 | **0** |
+| **residual honest-missing / recoverable-missing** | — | **0 / 0** |
+
+**The honest "dollars relabelled" figure — the third basis: 28 US rows / $14,398,544.44 / 28 funds**
+were carrying a label different from the one they now serve.
+
+### What the fix actually is: scope WHO MAY VOTE, never darken a label
+
+The spec's hypothesis (the `_prefix_match` / `_names_match` step-4 fallback) was **refuted** by the
+pre-check and is not the root cause. Two real mechanisms, both handled per-row:
+
+1. **The US arm could not identify the row.** A US line whose filed CUSIP does not resolve — the
+   literal `'N/A'` **string** sentinel, or simply no vendor row — MISSES the join. No null check
+   catches it: `attach_sector`'s `coalesce` (correct by design for a US line with a non-US ISIN)
+   hands it the FMP-by-ISIN label, and it then **voted with that label** — manufacturing a US-side
+   "disagreement" out of one vendor's opinion stated twice. `attach_sector(us_identified_col=...)`
+   now emits the boolean the fallthrough destroys. Such a row no longer votes; **it keeps its
+   sector**. Scoping the LABEL on the same predicate would have darkened 6,144 US rows / $94.0B to
+   fix a $16M defect — measured, and refused.
+2. **The filed CUSIP binds a different company.** `79970Y105` → Sanchez Energy (SharkNinja rows),
+   `292766102` → Enerplus (Shift4), `369604301` → GE Aerospace (Genie). This is the **step-3 exact
+   vendor join, ungated by design**: the key resolves *correctly*, to the wrong issuer, because the
+   FILER wrote it. A binding-level gate is the wrong altitude — `292766102 → ERF` is a correct
+   binding. New `reference/identity_triangulation.py` adjudicates per row from the join surface the
+   row itself carries (filed name × CUSIP-implied company × ISIN-implied company) on the **one**
+   shared name predicate, now exported as `cusip_mapping.names_match` so a second predicate cannot
+   drift from the binding gate. Majority wins; **a tie is excluded honestly**. Such a row neither
+   VOTES nor RECEIVES the consensus label — it keeps its own correct one.
+
+Scope on the triangulation is load-bearing and was measured, not assumed: unscoped it returns
+4,799 rows / $41.3B of mostly junk (vendor placeholder names, corporate renames like
+Daimler→Mercedes-Benz); restricted to the rows the US vote actually reads it returns **21 distinct
+triples / 120 rows**, small enough to adjudicate by hand — which is what makes it safe as a write
+input.
+
+**Two mechanics make it hold across surfaces.** (a) Vote scoping is wired **once**, in
+`sector_attach.derive_us_consensus_map`; both callers go through it, so they cannot drift into one
+security taking two sectors on two frames. (b) `excluded_cusips` travels **with** the map and is
+part of `consensus_map_fingerprint` — two builders agreeing on 20 labels while disagreeing on which
+rows may take them no longer certify as clean — and a frame carrying live exclusions but no `cusip`
+column **raises**; `cusip_col=None` is the explicit passive-side opt-out, never an omission,
+because failing open would relabel precisely the rows the exclusion protects.
+
+### The write — 6 artifacts, each backed up as `.pre-sid-bak`
+
+| artifact | change |
+|---|---|
+| `gold/holdings_complete.parquet` | **165 sector rows / 111 funds / $98,189,485.85**; 0 fills, 0 losses |
+| `product/fund_profiles/fund_holdings_full_staging.parquet` | 100 rows / 77 funds / $97,081,673.12; 0 fills, 0 losses; non-sector columns byte-identical |
+| `gold/positioning_changes_panel.parquet` | long format — 139,231 rows, key set identical |
+| `gold/exposure_xray_panel.parquet` (+ `_contributors`) | long format — net +8 sector rows |
+| `gold/passive_blend_holdings.parquet` | **123 rows** (W-2: it inherits this basis since L16, so it desyncs unless re-relabelled in the same pass) |
+
+`gold/cusip_reference.parquet` stayed OUT of the bill: the step-3 gate of R-8 was **not** adopted —
+the adjudication is per row, so the ungated vendor branch never needed changing.
+
+Multi-sector ISINs on the served `sector` column: **7 → 2** on `fund_holdings_full_staging`, **6 → 1**
+on `gold/holdings_complete` — two different bases, both measured, neither interchangeable.
+
+### Verification highlights
+
+- **served == gold**, re-proven **null-safe** in the finalize round after the codex gate's P2 showed
+  the reviewed §B check dropped all 532,794 null-key served rows: **1,248,450 keys compared, 0
+  mismatched**, control vs the pre-sid book **90 mismatched** — non-vacuous inside the very blind
+  spot. (`reports/feature_pipeline/sid_serving/{verify_serving6_nullsafe.py,FINALIZE_NOTE.md}`.)
+- **Rebuild-twice determinism**: the `sector` column bit-identical; map fingerprint `97b1f2e89e3f`
+  on both runs and all four in-run derivations.
+- **Boundary probe on the exclusion** (ON vs OFF): the `General Electric Co` row `S000094339` /
+  $1,750,017.48 reads Industrials with the exclusion ON, Utilities with it OFF — the check is shown
+  able to return the other answer.
+- **W-3 honoured**: `l16_cross_basis_parity` collapses each `(series_id, ISIN)` with
+  `unique(keep="first")` and therefore under-reports exactly this multi-label class, so the passive
+  re-relabel was confirmed by an **independent set-wise, pre-dedup** comparison — 9 crossed pairs
+  before → **0** after, over 439,385 pairs. The green parity gate is recorded as secondary evidence
+  only.
+- **Tests**: full suite `5 failed, 1385 passed` — **exactly the W-6 baseline red set by test id**,
+  no new red (+11 passing = the new `test_identity_triangulation.py`).
+- **Codex gate**: `CODEX_GATE: pass`, high reasoning, no P0/P1.
+
+### Two survivors, both correct-by-record — measured and filed, not fixed
+
+- `US3722842081` **Genie Energy** — the honest exclusion working as designed. One `General Electric
+  Co` line filed under Genie's ISIN keeps GE's Industrials rather than being handed Genie's
+  Utilities. Note the trap this avoids: scoped to the 20 consensus ISINs alone, `GE` resolves
+  "cleanly" to Genie's ISIN and would have relabelled GE Aerospace as Utilities **across 1,044
+  funds**.
+- `GG00BMGYLN96` **Burford Capital** — same wrong-CUSIP class, **out of the overlay's reach**: its 3
+  defective fund-quarters carry **0 rows** in `holdings_complete`, so the map never sees a
+  contradiction. 3 served rows / $245,354.64 stay wrong. Root cause is the holdings inclusion gap —
+  **113,098 of 1,361,548 served keys (8.3%) have no gold row at all**; filed with sizing.
+
+### Filed, not fixed (all on `feature-pipeline/backlog.md`)
+
+`ROP` ticker-side wrong-company binding (Roche's Swiss line on Roper's US ticker — on **no** CUSIP
+path; correctly dropped today by the tie rule, 1 of 360 excluded tie keys) · Burford + the 8.3%
+inclusion gap · `build_holdings_complete.py` not byte-deterministic on `valUSD`/`weight`/`pct_nav`
+(max rel delta 8.3e-15, pre-existing) · `positioning_changes` check FAILing on `main` since
+2026-08-24, unmeasured because the L6 promotion rebuilt the panel after the last check run (proven
+identical before/after this write) · `cusip_reference` sentinel `999999999` → `BAPG0TF0` wrong
+TICKER/NAME binding (sector-inert here, two independent reasons) · `cusip_reference` has no
+`match_method`/`source` provenance column.
+
+### Not live yet
+
+**Fence F4 stands.** Every write is gold/product. Postgres still serves the OLD labels and the
+reload remains a separate owner decision; `risk_decomposition` → `holdings_exposure_path` →
+`value_offering_reframed_panel` are stale on the new labels until then. The web change was a
+**comment-only** edit to `src/lib/db/schema/serving.ts` — no column, no type, no F3 exposure.

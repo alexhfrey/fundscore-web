@@ -224,8 +224,27 @@ export const fundHoldingsFull = pgTable(
     //      that security. The verdict is decided once on gold/holdings_complete and
     //      propagated, so this column, the Exposure X-Ray and positioning_changes
     //      cannot disagree about the same company.
-    // Null where neither reference resolves (5.7% of served rows; 2.3% of asset_cat
-    // 'EC' equity-common rows, measured 2026-08-21).
+    //   3. identity gate on that overlay (sector-identity-defect-recovery,
+    //      2026-08-25) — the overlay's two failure modes were both identity, not
+    //      opinion. (a) A US line whose filed CUSIP does not resolve (the literal
+    //      'N/A' sentinel, or no vendor row) falls through to the FMP-by-ISIN label
+    //      and then VOTES with it, manufacturing a US-side "disagreement" out of one
+    //      vendor's opinion stated twice — such a row no longer votes. (b) A line
+    //      whose filed CUSIP resolves to a DIFFERENT company than its ISIN and name
+    //      (a filer typo: a GE Aerospace CUSIP on a Genie Energy ISIN) neither votes
+    //      nor receives the consensus label — it keeps its own correct one. Where the
+    //      claimants tie, the security is excluded rather than bound to a
+    //      stable-but-wrong winner. Measured ON THIS TABLE (the gold book is a
+    //      different basis and reads 6 -> 1): ISINs served under two different
+    //      sector labels fell 7 -> 2, relabelling 100 rows across 77 funds. Of the
+    //      two remaining, US3722842081 (Genie Energy) is case (b) working as
+    //      designed; GG00BMGYLN96 (Burford Capital) is the same wrong-CUSIP
+    //      class but out of the overlay's reach — its three defective fund-quarters
+    //      carry no gold rows, so the consensus map never sees the security.
+    //      Measured and filed 2026-08-25; neither is an unresolved disagreement.
+    // Null where neither reference resolves — an HONEST null: it means "we could not
+    // identify this line", never "no sector exists". 5.73% of served rows; 2.25% of
+    // asset_cat 'EC' equity-common rows (re-measured 2026-08-25, unchanged by (3)).
     sector: text("sector"),
     assetCat: varchar("asset_cat", { length: 16 }), // filed assetCat raw code (display labeling is frontend)
   },
