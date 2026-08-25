@@ -210,3 +210,101 @@ bindings the gate would reject, and what they are worth. Rejections beyond the s
 *desired* direction (more wrong bindings caught), but a large or false-positive-heavy rejection set is a
 **checkpoint question**, not a thing to ship on the line's own authority. **Every rejection must resolve
 to an honest null, never to a stable-but-wrong second choice** ([[deterministic-wrong-worse-than-nondeterministic]]).
+
+---
+
+## ADDENDUM 2 — 2026-08-25 dispatcher WRITE-TARGET CHECK (landed before dispatch; no round in flight)
+
+Ran against the real parquet schemas in the run worktree, never inferred from prose or from a builder
+that mentions the column. **The inherited write bill was wrong. Corrected bill below — build to THIS.**
+
+### W-1 — Two of the four inherited targets have NO `sector` column. They are LONG-FORMAT.
+
+| target | `sector` column? | shape |
+|---|---|---|
+| `gold/holdings_complete.parquet` | **yes** (String, 14 cols) | wide — a true relabel |
+| `product/fund_profiles/fund_holdings_full_staging.parquet` | **yes** (String, 16 cols) | wide — a true relabel |
+| `gold/positioning_changes_panel.parquet` | **NO** (33 cols) | long — sector is a VALUE: `change_type == 'sector'`, `change_id = 'sector::<Name>'` |
+| `gold/exposure_xray_panel.parquet` | **NO** (24 cols) | long — sector is a VALUE keyed by `target_id` / `exposure_type` |
+
+On the two long-format panels a relabel is **not** a value swap: rows **merge, appear, vanish and change
+rank**. The predecessor measured exactly that — *"sector rows 39,533 → 39,538 (6 appear, 1 vanish, 1,412
+move / 461 funds)"* (`specs/done/sector-consensus-canonical-write.md:260`). **Do not claim or gate on a
+"0 fills, 0 losses" swap for these two**; the correct check is a per-fund row-level diff vs backup that
+accounts for appearance/disappearance/rank movement.
+
+### W-2 — ADD `gold/passive_blend_holdings.parquet` to the bill. Its inheritance is NEW since the ruling that excluded it.
+
+`specs/done/sector-consensus-canonical-write.md:141` ruled *"`passive_blend_holdings.parquet` is NOT
+authorised and must NOT be rebuilt in this run."* **That ruling is now stale.** L16
+(`passive-book-sector-basis-parity`, shipped 2026-08-21) put the passive book on the fund book's basis:
+`scripts/pipeline/relabel_passive_sector_basis.py:59,162-171` reads `gold/holdings_complete.parquet` and
+relabels the passive book from `pinned_us_consensus_map(holdings_complete=hc_path)`.
+
+**So any change this spec makes to fund-book consensus labels desyncs the passive book unless it is
+re-relabelled** — and `l16_cross_basis_parity`, which L16 drove to **0** disagreement, would go non-zero.
+
+**Dispatcher ruling (materiality test stated out loud, per the triage rule):** (1) live to users? **No** —
+every write here is gold/product behind the F4-gated serving reload. (2) how big? confined to the six +
+Genie + ROP and their passive-side footprint, which the run must measure. (3) does it change WHETHER this
+ships, or only HOW? **only how** — it adds one artifact and one re-run. **Fails the materiality test →
+decided on the line, recorded here, not sent to the owner.** Add `passive_blend_holdings.parquet` to the
+write bill, re-run the L16 relabel after the fund-book write, and re-run the parity gate.
+
+### W-3 — Do NOT trust `l16_cross_basis_parity` alone to confirm W-2, on this spec specifically.
+
+A recorded latent trap sits directly in this spec's blast path: the gate collapses each
+`(series_id, ISIN)` with `unique(keep="first")`, so **when a shared security carries two labels on one
+side and the retained row happens to match, a genuinely crossed row is dropped before comparison** — it
+under-reports exactly the multi-label case. This spec is *entirely about* multi-label securities, so the
+one gate that would confirm the passive re-relabel is blind in precisely this class.
+
+**Verification requirement (not a scope expansion):** confirm the passive re-relabel with an independent
+**row-level** comparison of distinct sector SETS per security, before any de-duplication. Reporting a
+green `l16_cross_basis_parity` as the evidence is **not** acceptable here
+([[vacuous-check-and-boundary-axis]] — a check must be shown able to return non-zero). Fixing the gate
+itself stays OUT of scope; it belongs to the queued three-trap L16 item.
+
+### W-4 — LANE-VS-DELIVERABLE: the reviewed lane STANDS. Do not lighten it.
+
+The over-gating check asks whether every write is `_tmp`-scoped with an owner-read report as the
+deliverable. It is not: this spec writes **five canonical gold/product artifacts** that downstream
+SYSTEMS read. `lane: reviewed` is correct and is not to be downgraded
+([[lane-must-match-deliverable]] cuts the other way here).
+
+### W-5 — Corrected write bill (build to this)
+
+| # | artifact | kind | note |
+|---|---|---|---|
+| 1 | `gold/holdings_complete.parquet` | wide relabel | `sector` is a real String column |
+| 2 | `product/fund_profiles/fund_holdings_full_staging.parquet` | wide relabel | `sector` is a real String column |
+| 3 | `gold/positioning_changes_panel.parquet` | **long** | rows merge/appear/vanish/move — diff accordingly |
+| 4 | `gold/exposure_xray_panel.parquet` | **long** | same |
+| 5 | `gold/passive_blend_holdings.parquet` | **ADDED (W-2)** | re-relabel after #1, verify per W-3 |
+| 6 | `gold/cusip_reference.parquet` | conditional | only if the step-3 gate (R-8) is adopted; every rejection → **honest null**, never a stable-but-wrong second choice |
+
+Back up every target as `<name>.parquet.pre-sid-bak` before overwriting, per the predecessor's protocol.
+
+### W-6 — TEST BASELINE, measured on this branch. Do NOT re-run the full suite mid-round.
+
+Measured `2026-08-25` on `sid/sector-identity-defect-recovery` @ `e2a7ca2` (= main `29969d7` + the
+test-contract fix), `uv run pytest tests -q -p no:randomly`: **5 failed, 1374 passed, 609s.**
+
+```
+FAILED tests/test_manager_people.py::test_gold_universe_matches_source_inventory
+FAILED tests/test_manager_people.py::test_gold_family_series_count_reconciles
+FAILED tests/test_openfigi.py::TestOpenFIGIClient::test_resolve_batch_splits
+FAILED tests/test_return_attribution.py::test_gate_a_keeps_north_stars
+FAILED tests/test_serving_fact_assembler.py::test_nav_series_matches_gold_and_matched_grid
+```
+
+**None is attributable to this branch**: the only tree change vs main is `tests/test_positioning_changes.py`,
+which is **13/13 green**. The previously-recorded 28-error class (v0.1 gold panel skew) has dissolved with
+the panel rebuild. **Honest limit on this claim:** these five are carried from the standing record as
+pre-existing and were **not** each re-proven from first principles in this run — the baseline's job here is
+to be the finalize comparison point, not an adjudication of the five.
+
+**TEST ECONOMICS — binding on this spec.** Full suite at most **twice**: this baseline (spent) + one
+finalize run. Mid-round, run **scoped** tests only (the modules you touched). The finalize bar is **no NEW
+red vs the five above**, by test id — not by count. A count match is not a pass: the composition is what
+matters, and this run's 5/1374 coincidentally equals a prior tree's 5/1374 with different members.
