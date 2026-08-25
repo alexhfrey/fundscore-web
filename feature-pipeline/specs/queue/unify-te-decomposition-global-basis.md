@@ -605,3 +605,36 @@ Scoring/Value Score basis (unchanged — the global basis does not improve predi
 β-adjusted target); exposure-path and fund-identity rewires (separate follow-ups); per-stock TE
 contributions (needs a stock-residual covariance model — separate decision, see the Crescent
 productionization backlog item).
+
+---
+
+## ADDENDUM — 2026-08-25: you now have a LIVE downstream consumer. Rebuild it after you land.
+
+`recent-changes-te-ranked` shipped to production on 2026-08-25 (inside the
+`recent-changes-no-lookthrough` reload) and was closed as done. It was previously listed as depending
+on THIS spec; that dependency was re-examined at source and downgraded to a **rebuild-ordering
+constraint**, because:
+
+- the 35-factor basis it needed **already exists** — `global_basis_returns.parquet` carries 35
+  distinct factors on `global_basis_v0.2_nothemes`, and the live ranking's σ reproduces
+  `sqrt(diag(Σ))` of it to **8.33e-17** (gate G2, non-degenerate: the raw-σ substitution turns it RED
+  at 1.395e-01);
+- the ranking never reads `te_decomposition` for its basis — only to **pin its σ window**, by reading
+  rather than hardcoding, "so the two stay pinned together".
+
+**What that means for you.** `build_positioning_changes_panel.py` reads the σ window out of
+`te_decomposition.parquet` at build time. **If this spec changes that window, the live positioning
+panel silently falls out of pin** — it will not be wrong, but it will be estimating on a window the
+TE decomposition no longer uses, and the two numbers on one page stop being commensurable.
+
+**Therefore: rebuild the positioning panel as part of landing this spec**, and re-serve it. Both
+targets, in order — the panel's canonical input is now the no-expansion frame:
+
+```
+make build-holdings-lookthrough-window-no-expansion
+make build-positioning-changes
+```
+
+Then re-verify: the panel's `method_version` must be `positioning_changes_v0.3_no_expansion`,
+invariant 16 must pass, and served must equal gold row-level. Do not treat the positioning panel as
+untouched by this work — it is a live consumer now, with 20,861 rows in front of readers.

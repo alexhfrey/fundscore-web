@@ -1,10 +1,10 @@
 ---
 id: recent-changes-te-ranked
 title: Rank recent positioning changes by estimated tracking-error impact, classified by bet type
-status: queued
+status: done
 track: backend
 repo: fund_score
-depends_on: te-decomposition-by-bet, unify-te-decomposition-global-basis
+depends_on: te-decomposition-by-bet   # unify-* was a REBUILD-ORDERING constraint, not a design blocker — see ADDENDUM 2026-08-25
 source_proposal: feature-pipeline/proposals/approved/profile-redesign-eight-sections.md
 created: 2026-07-01
 scope: global
@@ -95,3 +95,53 @@ the payload must keep serving the dual as-of stamps so the UI shows the lag prom
 - Estimate abuse: a reader taking "TE impact" as measured risk — mitigated by labeling + copy.
 - Surfacing root-cause may reveal a wider suppression bug (then fix via /fix-data conventions —
   sweep for sibling inconsistencies per project memory).
+
+---
+
+## ADDENDUM — 2026-08-25: this shipped ahead of its own spec. Closing the inversion.
+
+**What happened.** This spec's code went LIVE on 2026-08-25 inside the
+`recent-changes-no-lookthrough` reload — the two changes share one rebuilt panel, so publishing one
+published both. It is what took the section from 8,818 to 20,861 served rows. That left an inversion:
+**shipped code, unfinished spec.** This block closes it by verifying the spec's own acceptance
+criteria against production rather than by re-running a build.
+
+### The blocking dependency was already satisfied — verified, not assumed
+
+The 2026-07-22 sequencing note said this must wait for `unify-te-decomposition-global-basis` because
+"the TE impact ranking must be computed on the unified 35-factor global basis that spec establishes".
+Checked at source:
+
+- `data/gold/risk_model/global_basis_returns.parquet` **already carries 35 distinct factors** on
+  `global_basis_v0.2_nothemes` (14,490 rows, 2018-06-22..2026-05-22). That IS the target basis.
+- The shipped ranking's σ **reproduces `sqrt(diag(Σ))` of that shipped basis to 8.33e-17** across 33
+  factors (gate G2), and G2 is non-degenerate: substituting raw `target_return_series` σ turns it RED
+  at 1.395e-01. So the ranking is demonstrably on the right basis, not merely claimed to be.
+- The ranking never consumes `te_decomposition` for its BASIS. It reads that artifact only to pin its
+  σ **window** — deliberately, "never hardcoded, so the two stay pinned together".
+
+**So the dependency was never a design blocker; it is a REBUILD-ORDERING constraint.** Recorded as
+such: when `unify-te-decomposition-global-basis` changes `te_decomposition`'s σ window, **rebuild the
+positioning panel afterwards** so the ranking re-pins. Until then the live ranking is internally
+coherent with the `te_decomposition` that exists today.
+
+### Acceptance criteria, re-tested against LIVE serving (not a scratch build)
+
+| criterion | result |
+|---|---|
+| ranking stable / no rank-vs-impact inversion | **2,813 funds checked, 0 inversions** |
+| no row claims a TE impact whose basis column is missing | **0 of 20,861** — probe proven able to fire on a seeded row |
+| dual as-of stamps present | **3,244 / 3,244 funds** carry `eval_date`; single `method_version` |
+| FCNTX serves its real changes, "none available" defect gone | **8 real rows served** |
+
+**One honest deviation from the spec's wording.** The spec (written 2026-07-01) expected FCNTX's
+top-3 to be led by a Healthcare cut. Live, the top-3 by TE rank are **META −6.01pp (206.6 bps),
+AI Infrastructure +4.93pp (113.2 bps), BRK.A −6.21pp (96.6 bps)**. The underlying data moved in the
+intervening eight weeks, so the specific example no longer holds; the substantive criterion — the
+"none available" defect is gone and the fund serves real, correctly-ranked changes — is met. Note
+BRK.A has the LARGER magnitude yet ranks below META: that is the feature working as designed,
+ordering by risk impact rather than by size of trade.
+
+### Status
+Acceptance met in production. Moved to `done/`. The residual is the rebuild-ordering constraint
+above, which belongs to `unify-te-decomposition-global-basis` and is recorded in its spec.
