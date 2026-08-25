@@ -59,6 +59,16 @@ did exactly that (adding a mechanism telling segments not to re-raise blockers);
 blocked it and it was reverted. Put the ruling in the SPEC — an `## ADDENDUM` block the worker reads —
 and resume from that segment. The machinery is never the place to record a decision.
 
+**Rulings land BETWEEN rounds, never into a live one.** A spec ADDENDUM is read at SEGMENT START:
+appending one while a segment is in flight is invisible to the running worker yet fully visible to the
+reviewer that follows it, so the ruling lands as a failure instead of an instruction. On 2026-08-24 a
+ruling committed 24 seconds before a round closed got the worker FAILED against text it could not have
+read — burning the run's only revision round ([[rulings-land-between-rounds]]). Before committing any
+ADDENDUM: check whether a segment is running (agent-transcript mtimes / process table). If one is,
+either hold the ruling until it returns, or commit it WITH a note that it post-dates the running round.
+Symmetrically: when a reviewer reports "the implementer ignored ruling X", compare the ruling's commit
+timestamp to the round's last write before believing it.
+
 **Escalation stays mandatory for:** a canonical write whose BILL is wrong (see the write-target check in
 step 4), anything that would push web `main` (F3), the serving reload (F4), destructive/irreversible acts
 beyond the spec's authorised scope, and a genuinely NEW rule/threshold/allowlist that changes what users
@@ -131,6 +141,20 @@ Steps:
      (`passive_blend_holdings` inherited `sector` from the holdings frames and was missing from the bill).
      If a write target fails any of these, the write bill is wrong — fix the bill BEFORE dispatching;
      a mid-run discovery costs a whole discarded segment.
+   - **LANE-VS-DELIVERABLE CHECK (over-gating — the write bill is now in hand, so spend 30 seconds
+     on the OTHER direction too).** The lane rules above only guard against UNDER-gating; nothing
+     catches a measurement dressed as a shipping run. On 2026-08-24 a spec whose own text said "the
+     code change is small. The measurement is the point" ran the full reviewed assembly line for ~4h
+     with every write confined to `data/_tmp/` — nothing it produced could reach a user
+     ([[lane-must-match-deliverable]]). Ask: **does any write in the bill land on a canonical
+     artifact (gold/product/serving), and is the deliverable something a SYSTEM reads — or a report
+     the OWNER reads?** If every write is `_tmp`-scoped and the deliverable is a report/decision, do
+     NOT dispatch the full reviewed workflow. Run a bounded loop instead: implementer (EDA only if
+     the spec demands it) → **one adversarial data-reviewer pass on the numbers** → codex — and state
+     the downgrade and its reason in the report. Quality holds because the adversarial review still
+     covers every number the owner will act on; what is skipped is the serving phase and gates that
+     protect artifacts this spec never touches. **Lane is a floor for RISK, not a ceiling for COST.**
+     If the spec DOES write canonical data, the reviewed lane stands — never lighten it.
    - **All references resolve →** continue to step 5.
    - **Any reference is missing / moved / renamed →** do NOT build against a stale spec. Bounce it: hand
      the spec to the revise flow (`/review-specs`, which runs `revise-specs` — the spec-writer re-grounds
@@ -181,7 +205,10 @@ Steps:
    frontend, but the harness path works from either repo).
    The script runs **deep reasoning by default — one clean pass IS the gate**; there is no medium→high
    ladder to climb (`--medium` exists only for cheap intermediate rounds when you genuinely expect several;
-   a medium pass never gates anything). Docs/prompt-only changes may skip codex if `git diff --check` and
+   a medium pass never gates anything). **Batch related fixes into ONE commit so the gate runs once**: the
+   verdict is keyed to the pending diff, so a commit-per-file cadence multiplies 10-minute high-tier
+   runs for zero added safety (three sequential gates on one branch on 2026-08-24/25 were each
+   necessary only because the work was committed in separate slices). Docs/prompt-only changes may skip codex if `git diff --check` and
    the nearest render/lint validation pass; state the skip explicitly.
    If `CODEX_GATE: blocked`, fix every P0/P1 finding (or hand it back to the implementer), then re-run;
    repeat until `CODEX_GATE: pass`. Cap ~3 rounds, then escalate. **The spec may NOT move to `done/` until

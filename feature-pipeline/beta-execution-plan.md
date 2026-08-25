@@ -8,8 +8,17 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-25T11:14-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-25T12:14-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
+
+`run-state: paused-on-owner — next pickup undecided (sector-identity-defect-recovery recommended; owner also owes the fund_score main push)`
+← the dispatcher sets this WITH every heartbeat re-stamp. Values: **`active`** (drain in progress — a
+stale heartbeat means investigate), **`paused-on-owner: <what>`** (the line is idle BY DESIGN, waiting
+on a decision — a stale heartbeat is EXPECTED; any backstop check should re-stamp and STOP, never run
+verify-run-dead forensics and never resume the drain), **`complete`** (nothing in flight, nothing
+owed). Added 2026-08-25: the 2026-08-24 ship/hold wait burned ~20 backstop cycles of process-table
+forensics that one glance at this line would have answered. The heartbeat itself is still stamped
+from `date` output only — this line changes what a STALE stamp means, never fakes a fresh one.
 
 ---
 

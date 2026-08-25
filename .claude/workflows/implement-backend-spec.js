@@ -88,7 +88,17 @@ Persona/instructions: read ${persona('PERSONA')}
 Spec to implement (read it fully, by absolute path): ${specPath}
 fund_score repo root (cd here; use \`uv run python\`): ${fundScoreRoot}
 fundscore-web repo root (serving schema lives here): ${webRoot}
-Slug: ${slug}`
+Slug: ${slug}
+
+TEST ECONOMICS (quality-pinned, cost-scoped — the full suite here costs ~16 min per run and was run
+~5x/day before this policy). The FULL suite runs at most twice per spec: ONCE at the start of the
+first implement segment to establish the recorded baseline for this base (skip if the spec already
+records one — re-use it), and ONCE in finalize before the commit. Inside a segment or revision
+round, run only the tests for the modules you touched PLUS the recorded red set, diffed BY TEST ID
+against the baseline. This does not lower the bar — the finalize full run still gates the commit and
+the reviewer checkpoints still verify — it moves the redundant mid-run re-proofs out of the loop.
+Never reduce a red count by weakening or skipping a check, and never quote a scoped run as if it
+were the full suite.`
 
 const SEGMENT_SCHEMA = {
   type: 'object',
