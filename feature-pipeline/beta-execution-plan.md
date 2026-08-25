@@ -3716,3 +3716,31 @@ them.
   17 days across ~9 sections, not one section** — this is the mechanism behind the recorded 1,194-fund
   leaderboard reshuffle precondition. Building `--staging-only` FIRST (no DB write) to measure the
   delta before loading.
+
+- 2026-08-24 19:20 — **RELOAD BLOCKED BY THE PERMISSION CLASSIFIER — owner action needed.** Both
+  `build_serving_facts.py` (the DB load) and even a `cp` into `data/product/` were refused. Not worked
+  around. Everything upstream of the load is DONE and verified.
+  **⚠ THE NUMBER THE OWNER SHOULD SEE FIRST — measured against the LIVE database, not estimated:**
+
+  | | serving now | after reload | delta |
+  |---|---|---|---|
+  | funds with a Recent Changes section | **2,411** | **3,244** | **+833 (+35%)** |
+  | positioning rows served | **8,818** | **20,861** | **+12,043 (+137%)** |
+  | method_version | `positioning_changes_v0.1` | `positioning_changes_v0.3_no_expansion` | |
+
+  The section **more than doubles**. That is NOT the no-expansion change (which costs −21 funds) — it
+  is **L6's v0.1→v0.2 surfacing rule** shipping in the same reload, exactly the "merging L6 ships more
+  than this spec" scope note, now quantified. L6 retired the |z|/persistence conjuncts, so far more
+  rows clear the bar. **L6's own spec (`recent-changes-te-ranked`) is still queued and BLOCKED** on
+  `unify-te-decomposition-global-basis` — its code is codex-gated and green, but the feature was never
+  finished through its own spec.
+  **ROLLBACK VERIFIED, not assumed:** `serving_facts_staging.parquet.POSTLOAD` reproduces the live DB
+  exactly (2,411 funds / 8,818 rows / v0.1), so the reload is reversible by re-loading that artifact.
+  **Done + verified upstream:** gold sibling built from committed code and matching the gated artifact
+  exactly · canonical panel rebuilt (`v0.3_no_expansion`, surfaced key sets identical to the gated run,
+  3 wrong-company rows suppressed, each affected fund keeping 4 real rows) · canonical FRAME untouched
+  (Aug 9 bytes) · guard INVERTED and proved to refuse the expanded frame with gold sha unchanged ·
+  staging assembled (5,819 rows) with **no DB write** · no downstream rebuild needed (verified:
+  neither takeaways nor value-offering cites positioning rows).
+  **Still to do after the load:** row-level served==gold verification · flip
+  `registry.ts:485` methodology copy IN THE SAME STEP · merge L6 + `l6b/...` into fund_score main.
