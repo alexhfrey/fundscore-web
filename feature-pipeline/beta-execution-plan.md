@@ -80,6 +80,15 @@ on every worker, reviewer and dispatcher:
 **Sizing decides the tier**, so measure before classifying — an unsized question defaults to (c) and
 spends the owner's turn for nothing. **A worker or dispatcher may NEVER edit a workflow, gate, check
 or agent definition to unblock itself.** That is not a fourth tier; it is out of bounds in every case.
+(Editing that machinery **deliberately, with nothing in flight**, is different and allowed — the ban is
+on doing it to get past a gate that is currently in your way.)
+
+**A ruling that RETIRES a rule must sweep the tests that encode it, in the same commit** (added
+2026-08-25). Retiring a rule is not self-executing: a test still asserting the old rule does not fail at
+retirement, it fails later, far from its cause, and reads as a regression in whoever's work is in flight.
+The `sustained` surfacing conjunct was retired by owner ruling on 2026-08-20 and its test went unswept
+for five days before surfacing as an apparent regression inside an unrelated spec. Sweep at retirement;
+re-point the assertion at the rule that is now live rather than weakening it.
 
 ## Decision register (answered — never re-ask)
 
@@ -311,9 +320,18 @@ lakehouse-writing session at a time, in a dedicated worktree.
   Respect the fences and the owner contract. Park product uncertainties; never stall."* Self-paced
   (ScheduleWakeup); long externally-tracked waits use 1200s+ fallbacks.
 - **Usage-limit resilience** (night-drain v2): at run start register the backstop cron
-  (`11,41 * * * *`) that reads this file's `heartbeat:`; <50 min old → no-op; stale → verify the
+  (`11,41 * * * *`) that reads this file's **`run-state:` FIRST, then `heartbeat:`**. On
+  `complete` / `paused-on-owner` a stale stamp is EXPECTED — re-stamp and STOP, no forensics, no
+  resume. On `active`: <50 min old → no-op; stale → verify the
   run is actually dead (agent-transcript mtimes, [[verify-run-dead-before-resuming]]) → resume
-  in-flight workers via SendMessage (NEVER relaunch — context survives), re-arm the loop. Limits
+  in-flight workers via SendMessage (NEVER relaunch — context survives), re-arm the loop.
+  **A tick that CONFIRMS liveness re-stamps the heartbeat** (added 2026-08-25, measured): ticks fire
+  every 30 min, the staleness window is 50 min, and reviewed-lane segments run 20–40 min — so a long
+  segment ALWAYS ages the stamp past the window and buys a full forensics cycle on a run already known
+  to be alive. Two such cycles were paid on 2026-08-25. Re-stamping on a confirmed-live tick costs one
+  `ls` and removes the whole class. The stamp still comes from `date` output only — this changes WHEN
+  it is written, never fakes a value. Corollary the same day: **answering a tick IS a unit of work**;
+  the dispatcher's idle-waiting is exactly when the stamp rots. Limits
   kill in-flight agents: workers write outputs/files EARLY and iterate
   ([[interruption-resilient-agent-runs]]). Long lakehouse builds run as `nohup … & disown`
   background Bash with full log redirection, owned by the session not a subagent

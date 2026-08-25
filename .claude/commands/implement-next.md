@@ -121,6 +121,37 @@ Steps:
      real gold/product parquet (a quick `duckdb`/`uv run python` read of the panel schema) — not merely
      that the field name appears in the spec's prose. Delegate a broad sweep to one `Explore` agent if
      the spec references many things.
+   - **CAUSAL-CLAIM CHECK (reviewed lane; ~10 minutes; the highest-leverage step in this gate).**
+     Everything above verifies that the spec's references RESOLVE. Nothing above verifies that the
+     spec's *explanation of the defect is true*. A spec does not merely name files — it asserts a
+     MECHANISM ("the filer wrote a bad CUSIP", "a prefix fallback mis-bound it", "the sentinel leaks
+     through a `!= sentinel` filter"), and the implementer will build the remedy that mechanism implies.
+     If the mechanism is wrong, every reference can resolve and the fix still targets a defect that is
+     not operating.
+     **Do this:** list the spec's mechanism claims, and for each, name the CHEAPEST DISCRIMINATOR that
+     could FALSIFY it — then run it. Treat the spec's own account as a hypothesis, not a finding;
+     resolve it with evidence, and do not settle for confirming it (a check you only ever run in the
+     confirming direction is the vacuous-check failure in a new costume).
+     Dispatch it as one read-only agent, write-scoped to a `_tmp` dir, told to report
+     `unresolved: <what I'd need>` rather than guess on anything it cannot settle in the time box.
+     **Measured worth (2026-08-25, `sector-identity-defect-recovery`):** ~10 min / 101k tokens against a
+     4h10m / 2.19M-token run — **~4%** — and it REFUTED the spec's root cause (all seven cases were exact
+     vendor hits, never the prefix fallback the spec pointed at, so the module the spec named was never
+     opened for a write), caught that the spec said SIX and named FIVE, caught two misattributed
+     accession numbers, and re-based the headline value **~500×**. A literal implementation would have
+     fixed five of six and reported six.
+     Any claim it falsifies goes into the spec as an `## ADDENDUM` **before** dispatch — that is the one
+     moment when no round is in flight and a ruling cannot land as a failure
+     ([[rulings-land-between-rounds]]).
+   - **INHERITED-RULING CHECK (~1 minute, and it is NOT the reference check).** Where the spec inherits
+     a scope decision from a predecessor — "artifact X is NOT authorised", "Y is out of scope", "Z was
+     already handled" — **re-verify the PREMISE, not the conclusion.** Ruling text ages differently from
+     code: every path in it can still resolve while the reason it was written has evaporated. Ask what
+     shipped BETWEEN that ruling and now, and whether it changed the dependency graph the ruling assumed.
+     **Measured (2026-08-25):** the predecessor spec correctly ruled `passive_blend_holdings.parquet`
+     out of the write bill; L16 shipped four days later and put the passive book on the fund book's
+     sector basis, so the artifact now INHERITS the very column the new spec rewrites. The exclusion was
+     right when written and wrong when inherited — and nothing but this check ages a ruling.
    - **WRITE-TARGET CHECK (any spec that writes an artifact — do this, it is ~30 seconds and it is the
      one the gate used to miss).** "The reference resolves" is NOT the same as "the target can receive
      the write." For **every artifact the spec says it will write**, read the target's ACTUAL schema and
@@ -155,7 +186,12 @@ Steps:
      covers every number the owner will act on; what is skipped is the serving phase and gates that
      protect artifacts this spec never touches. **Lane is a floor for RISK, not a ceiling for COST.**
      If the spec DOES write canonical data, the reviewed lane stands — never lighten it.
-   - **All references resolve →** continue to step 5.
+   - **All references resolve AND no mechanism claim was falsified →** continue to step 5.
+   - **A mechanism claim was falsified (references still fine) →** do NOT bounce the spec to the revise
+     flow for this alone; that re-pays a whole spec-writing round to fix something you have just measured.
+     Land the correction as an `## ADDENDUM` before dispatch and continue. Bounce only if the falsified
+     mechanism means the spec's REMEDY is now the wrong remedy — then it is a real scope change and
+     `/review-specs` owns it.
    - **Any reference is missing / moved / renamed →** do NOT build against a stale spec. Bounce it: hand
      the spec to the revise flow (`/review-specs`, which runs `revise-specs` — the spec-writer re-grounds
      it against current code), then re-run this gate. If it can't be cleanly re-grounded because the data
@@ -221,7 +257,25 @@ Steps:
    `SKIP_CODEX_GATE=1` overrides deliberately (say why in the commit message). For the reviewed lane the workflow already enforces
    this inside its finalize stage; verify its returned `codex.gate == pass` + `commit_sha` instead of
    re-running the gate on an unchanged branch. Surface P2/P3 advisories as warnings.
-7. **Reconcile the backlog, then report.** If the spec moved to `done/` AND a line in `backlog.md`'s
+7. **Close out, reconcile the backlog, then report.**
+   **FIRST, before anything else: if the spec is now in `specs/done/`, DELETE
+   `feature-pipeline/.loop-state.json`.** Do it as the first action of this step, not as part of the
+   report — the reviewed lane's workflow moves the spec to `done/` itself and does NOT clear the
+   checkpoint, so on 2026-08-25 a completed run left the file on disk. Step 0 guards the read side (a
+   state file whose spec is already in `done/` is deleted, not resumed), so this is tidiness rather
+   than a landmine — but a stale checkpoint is a lie about what is in flight, and the next session
+   reads it before it reads anything else.
+   **RULING → TEST SWEEP (do this whenever this run retired or superseded a rule).** If an owner ruling,
+   a method-version promotion, or a basis change made an old rule obsolete, **grep the test suite for
+   assertions encoding that rule and re-point them IN THE SAME COMMIT.** A test asserting a retired rule
+   does not fail loudly at retirement — it goes red later, at a distance from its cause, and reads as a
+   regression in whatever work happens to be in flight. **Measured (2026-08-25):** the `sustained`
+   surfacing conjunct was retired by owner ruling on **2026-08-20** and its test stayed unswept for five
+   days, then surfaced as an apparent regression in an unrelated spec; the same run found a second such
+   test still validating against the superseded `v0.2` method version. Never fix this by weakening the
+   assertion — re-point it at the rule that is now live, and prove the new assertion can still FAIL
+   ([[vacuous-check-and-boundary-axis]]).
+   Then: if the spec moved to `done/` AND a line in `backlog.md`'s
    `## Specced (in queue)` section references this slug (`→ specs/queue/<slug>.md`), change its `- [~]` → `- [x]`
    and move it to the top of `## Done`, then trim `## Done` to its 3 newest entries — overflow moves to the
    TOP of `feature-pipeline/backlog-archive.md` (specs that came from the critique→proposal pipeline have no

@@ -368,7 +368,11 @@ const s4 = await impl(
     `non-pass gate or empty commit_sha means this spec does NOT move to done):\n` +
     `1. From ${fundScoreRoot}, run: ${codexScript}   (deep reasoning by default; scope --uncommitted).\n` +
     `2. On CODEX_GATE: blocked — fix every P0/P1 finding at its source, then re-run. Max 2 gate rounds.\n` +
-    `3. Commit on the feature branch ONLY after CODEX_GATE: pass. Then move the spec to done/.\n` +
+    `3. Commit on the feature branch ONLY after CODEX_GATE: pass. Then move the spec to done/, and in\n` +
+    `   the SAME action delete ${webRoot}/feature-pipeline/.loop-state.json if it exists — that file is\n` +
+    `   the dispatcher's "a run is interrupted here" checkpoint, and this workflow is what moves the\n` +
+    `   spec, so leaving it behind states that finished work is still in flight (seen 2026-08-25).\n` +
+    `   \`rm -f\` it; never leave it for the caller to notice.\n` +
     `4. If the gate still blocks after 2 rounds, or cannot execute at all (network/CLI error): do NOT\n` +
     `   commit, do NOT move the spec, and return codex_gate: blocked|error with the blocker field set —\n` +
     `   never treat an unrunnable gate as a pass.\n` +
