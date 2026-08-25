@@ -482,26 +482,28 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     title: "Portfolio Shifts",
     tagline:
       "How a fund's exposures moved between its two most recent filings.",
-    methodVersion: "positioning_changes_v0.1",
+    methodVersion: "positioning_changes_v0.3_no_expansion",
     asOf:
       "Current holdings 2026-04-30 versus the prior qualifying filing (as early as 2024-01-31).",
     measures: [
       "Portfolio Shifts compares a fund against its own recent history — how its sector, theme, region, style, concentration and top-position exposures changed between its two most recent filings — so you can see where a manager is leaning in or out.",
     ],
     method: [
-      "We reconstruct both filing endpoints and difference them across six exposure families, surfacing the largest moves and guarding against changes that are really security-identifier renames rather than real trades.",
+      "We reconstruct both filing endpoints from the fund's own filed holdings and difference them across six exposure families, surfacing the largest moves. When a fund holds an ETF or another fund, we report the trade in that holding itself rather than looking inside it — buying a semiconductor ETF is described as buying the ETF, not as buying each chipmaker in it.",
     ],
     sources: [
       "SEC N-PORT holdings at two filing endpoints",
-      "The same exposure classifications used by Exposure X-Ray",
+      "Sector and theme classifications applied to the fund's own filed holdings",
     ],
     notMeaning: [
       "A shift describes what changed, not whether it will pay off.",
+      "Because we do not look inside a held fund or ETF, a shift in this section is not a statement about the individual companies underneath it.",
     ],
     limitations: [
       "A fund needs a qualifying prior filing within the lookback window; without one, no shift is shown.",
       "Where classified-weight coverage is too low to anchor a diff, the affected family is suppressed.",
-      "Probable security-identifier changes are flagged and excluded so a rename doesn't read as a trade.",
+      "A fund that expresses a bet through a held ETF shows that ETF trade rather than an underlying sector or theme shift, so some exposure moves are not surfaced here.",
+      "Where a holding's identifiers disagree about which security it is, the row is withheld rather than shown under a name we cannot stand behind.",
     ],
   },
   {
