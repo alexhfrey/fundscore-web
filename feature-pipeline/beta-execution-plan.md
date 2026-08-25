@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-25T08:14-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-25T10:05-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 ---
@@ -3744,3 +3744,35 @@ them.
   neither takeaways nor value-offering cites positioning rows).
   **Still to do after the load:** row-level served==gold verification · flip
   `registry.ts:485` methodology copy IN THE SAME STEP · merge L6 + `l6b/...` into fund_score main.
+
+- 2026-08-25 09:50 — **✅ SHIPPED AND CLOSED: `recent-changes-no-lookthrough`.** Owner ruled *"Ship
+  it"* after seeing the measured breadth. All three gates executed.
+  **LIVE:** reload ran (manifest id=57 active, 5,819 fact rows + 1,398,380 holdings rows + 2,104
+  attribution rows in ONE transaction). Recent Changes now serves **3,244 funds / 20,861 rows** on
+  `positioning_changes_v0.3_no_expansion`, up from 2,411 / 8,818 on v0.1. **Verified row-level:
+  20,861 served rows checked against gold — 0 not-in-gold, 0 magnitude mismatches — with a seeded
+  bogus key proving the check can fail. 0 wrong-company rows served.**
+  **The fabricated-trade class is gone from the product**: 138 phantom served rows across 33 funds →
+  0. Within that cohort 81.2% of shown entered/exited rows were fabricated, and 20 of the 29 funds
+  that lose their section belong to it — the coverage cost is mostly deleting fiction.
+  **Web copy flipped IN THE SAME STEP** (never before): methodVersion → v0.3_no_expansion, and the
+  false claim that this section uses "the same exposure classifications used by Exposure X-Ray" is
+  removed — X-Ray still looks through wrappers and this section no longer does. Two honest new
+  limitations added. Codex raised exactly this sequencing risk; it was already satisfied because the
+  order was honoured, and that is recorded in the commit rather than waved off.
+  **MERGED** to `fund_score` main (`60eb7c9` → `29969d7`, fast-forward, **L6 now an ancestor**).
+  **NOT PUSHED — the owner pushes.** Web main untouched throughout (F3).
+  **The gate blocked the merge once, correctly:** inverting the canonical guard broke
+  `make build-positioning-changes`, which still defaulted to the expanded frame. Fixed at the DEFAULT
+  plus a new `build-holdings-lookthrough-window-no-expansion` target — not by weakening the guard.
+  Then it caught the validation report asserting a version its own rows contradicted, in TWO places
+  (header + invariant 16's expected value), so a correct panel failed itself. 21/22 → 22/22, and
+  invariant 16 proven non-degenerate three ways.
+  **Still open, filed:** the `cusip_reference` wrong-binding blocks (72202L→MFUS, 885216→TFGZ) and
+  their root cause — `_names_match` treats a shared sponsor token as a match, so the reference layer's
+  own gate is structurally unable to reject a same-sponsor collision. K-1 suppresses the DISPLAY; the
+  binding is still wrong in gold and every other consumer still reads it.
+  **Also now live without its own spec finished:** `recent-changes-te-ranked` (the TE-impact ranking)
+  shipped inside this reload — it is what took the section from 8,818 to 20,861 rows. Its spec stays
+  queued and blocked on `unify-te-decomposition-global-basis`. **That inversion — shipped code,
+  unfinished spec — is worth closing next.**
