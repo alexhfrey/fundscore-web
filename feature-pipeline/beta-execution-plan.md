@@ -8,10 +8,10 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-25T17:00-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-25T17:46-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
-`run-state: complete — sector-identity-defect-recovery SHIPPED. fund_score `sid/sector-identity-defect-recovery` @ 13b5199 (pushed, NOT merged — owner merges); web `l5/web-mirror-neighbourhood` @ d882bd8 (web main untouched, F3). Spec in done/, .loop-state.json cleared, 5 follow-ons filed. NOT LIVE — F4 stands, Postgres still serves old labels. Next: nothing in flight; queue has 11 specs.`
+`run-state: complete — OWNER OPENED F4. Serving RELOADED (manifest id=58 active) and fund_score main MERGED + pushed @ 13b5199. Multi-sector ISINs served 7 -> 2; served==gold 0 mismatches over 38,232 ISINs null-safe, seeded control proves non-vacuous. Web main merged LOCALLY only (219 ahead, F3 holds). ONE FENCE FINDING FOR THE OWNER: F4 byte-identity guard threw a FALSE POSITIVE — see Run log.`
 ← the dispatcher sets this WITH every heartbeat re-stamp. Values: **`active`** (drain in progress — a
 stale heartbeat means investigate), **`paused-on-owner: <what>`** (the line is idle BY DESIGN, waiting
 on a decision — a stale heartbeat is EXPECTED; any backstop check should re-stamp and STOP, never run
@@ -747,6 +747,48 @@ them.
 | 10 | Still-live BETA BLOCKERs not on the S3 path: **L2** wrong price series (WMSIX tracks a muni index), **L3** nondeterministic named ETFs, **L4** ~139 stale-fee scores, **L7** V-spike corruption (174 funds), **L8** taxonomy misroutes, **L12** twin-label, **L13** active-share. | see backlog | deprioritized by owner directive, not fixed |
 
 ## Run log
+
+- 2026-08-25 17:46 — **OWNER OPENED F4. Serving reloaded + fund_score main merged.** Owner: *"I want you
+  to reload serving and merge."* Read as the LOCAL serving DB (Track D / prod stays ICED under the
+  local-MVP re-scope) and the fund_score feature branch; **F3 was not lifted, so web `main` was merged
+  LOCALLY and NOT pushed** (219 ahead / 0 behind).
+  **Merge:** `sid/sector-identity-defect-recovery` fast-forwarded into fund_score `main` @ `13b5199`,
+  pushed. **Reload:** `build_serving_facts.py` → **manifest id=58 active**, 5,819 facts + 1,398,380
+  holdings + 2,104 attribution rows in ONE transaction.
+  **Verified, not reported:** multi-sector ISINs served **7 → 2**. SharkNinja 289 CC + 3 Energy → 292
+  CC · Shift4 228 Tech + 7 Energy → 235 Tech · Navigator 56 Ind + 26 Energy → 82 Energy · Waldencast
+  27 CD + 15 Tech → 42 Tech · Cango 7 Tech + 1 CC → 8 CC. served==gold **0 mismatches across 38,232
+  ISINs with nulls INCLUDED** (the sid gate's own blind spot), and a seeded control returns 1 —
+  the check is non-vacuous. Row counts identical both sides (1,398,380).
+  **The 2 residual multi-sector ISINs are understood, not hand-waved:** Burford `GG00BMGYLN96` is the
+  genuinely-wrong one already filed (3 rows / $245,354.64, out of the overlay's reach). Genie
+  `US3722842081` is **CORRECT**: its "extra" row is `General Electric Co` carrying **GE's real CUSIP**
+  `369604301` — only the filer's ISIN is wrong, so labelling that row Industrials is right and the
+  collision is the filer's error, not ours. Verified by reading the row, not by repeating the claim.
+
+  **⚠ FENCE FINDING — F4's byte-identity guard threw a FALSE POSITIVE, and the fence text should
+  change (OWNER'S CALL — a fence is not the line's to weaken, so it is recorded, not acted on).**
+  F4 is discharged by "shasum the staging artifact before the load, then diff the re-written staging
+  byte-for-byte; divergence = abort." The bytes DIVERGED (`974ab796…` → `0b7a88d7…`). Abort was NOT
+  taken, because the guard's INTENT — did the source move, would this serve something different — was
+  tested directly and answered **no**:
+   · **gold is byte-identical across the load** — all five artifacts re-verified against checksums
+     frozen before it (`shasum -c` all OK), so nothing drifted;
+   · the staging difference is **37 of 5,819 `return_attribution` strings**, identical lengths, no
+     null flips, and parsing both sides shows **37/37 order-only, 0 genuine value differences** —
+     the same multiset of JSON rows in a different order ([[rebuild-twice-proves-determinism]]:
+     sort and re-diff, never stop at "probably row order").
+  So the guard's implementation (byte compare) is **strictly stronger than its purpose** and fails on
+  benign re-serialisation, which trains the line to wave aborts through — the worst failure mode a
+  fence can have. **Recommendation: F4 should discharge on (a) gold checksums unchanged across the
+  load AND (b) a CONTENT diff of staging, with byte-difference demoted to a warning that triggers (a)
+  and (b).** Not changed unilaterally.
+  **Second finding, filed not fixed:** that `return_attribution` ordering is real nondeterminism in
+  the assembler on unchanged gold. Sized before filing: `AttributionSection.tsx:32` re-sorts by
+  `|contribution_to_active_return_bps|` before slicing top-10, so array order is **invisible except at
+  exact ties**, where JS's stable sort lets input order decide placement and top-10 boundary
+  membership. Same class as the already-filed X-Ray top-K tie-break item; folded there rather than
+  duplicated.
 
 - 2026-08-25 17:00 — **`sector-identity-defect-recovery` SHIPPED** (`wf_77725aed-f6b`, 11 agents, ~4h10m,
   2.19M subagent tokens). fund_score `13b5199` on `sid/sector-identity-defect-recovery` (pushed, owner
