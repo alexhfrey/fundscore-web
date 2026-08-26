@@ -59,6 +59,36 @@ const DEMO_TYPES = [
   "trade_outcome",
 ];
 
+// The demo-era CHILD tables are DISCOVERED, not hard-coded. `funds` cannot be
+// dropped while FK constraints point at it, and the first --apply attempts failed
+// twice (2026-08-26) because Postgres reports dependents INCREMENTALLY — the error
+// named 5, then 3 more. Guessing from error text converged slowly and would have
+// left tables behind; querying the constraint graph is exact and stays correct if
+// the schema changes. Measured at the time of writing: 13 children, 14,078 rows,
+// the largest being monthly_returns (12,000).
+//
+// They are the same fabricated seed as `funds` itself: `stock_picks` (250) and
+// `sector_bets` (220) are what the invented "batting average of 50.8%" and
+// "Recent successes include ServiceNow Inc. (+23.9%)" prose in `funds.analyst_note`
+// was dressed up from. Verified before dropping: none appears in
+// src/lib/db/schema/ (the mirror carries only enums/index/ops/serving/waitlist)
+// and no snake_case name or camelCase accessor appears in src/ or scripts/. Note
+// `holdings` here is the 250-row DEMO table, NOT the 1.4M-row serving table
+// `fund_holdings_full` — different table, and the serving one is untouched.
+//
+// Dropped children-first rather than with CASCADE: a CASCADE drops the
+// CONSTRAINTS and leaves the child TABLES behind, which is half a cleanup.
+async function discoverChildren(sql) {
+  const rows = await sql`
+    SELECT tc.table_name AS child
+    FROM information_schema.table_constraints tc
+    JOIN information_schema.constraint_column_usage ccu
+      ON ccu.constraint_name = tc.constraint_name
+    WHERE tc.constraint_type = 'FOREIGN KEY' AND ccu.table_name = 'funds'
+    GROUP BY 1 ORDER BY 1`;
+  return rows.map((r) => r.child);
+}
+
 const sql = postgres(url, { max: 1, prepare: false });
 let exitCode = 0;
 try {
@@ -76,10 +106,24 @@ try {
     `  demo enum types     : ${types.length ? types.map((r) => r.typname).join(", ") : "none"}`,
   );
 
+  const children = await discoverChildren(sql);
+  let childRows = 0;
+  for (const child of children) {
+    const [{ n }] = await sql.unsafe(`SELECT count(*)::int AS n FROM public.${child}`);
+    childRows += n;
+    console.log(`  ${child.padEnd(22)}: ${n} rows`);
+  }
+  console.log(`  ${"(children total)".padEnd(22)}: ${children.length} tables, ${childRows} rows`);
+
   if (!apply) {
     console.log("\ndry run — nothing changed. Re-run with --apply to drop.");
   } else {
     await sql.begin(async (tx) => {
+      // children first. Same transaction, so this is all-or-nothing: a failure
+      // leaves the demo cluster exactly as it was.
+      for (const child of children) {
+        await tx.unsafe(`DROP TABLE IF EXISTS public.${child}`);
+      }
       await tx`DROP TABLE IF EXISTS public.funds`;
       for (const type of DEMO_TYPES) {
         await tx.unsafe(`DROP TYPE IF EXISTS ${type}`);

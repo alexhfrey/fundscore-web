@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-26T05:47-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-26T08:50-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 `run-state: complete — NIGHT DRAIN 2026-08-25/26 CLOSED. Five items shipped, all codex-clean: F3 posline (web `b110f18`), F7 screener rebuild + spec (web `0b5839c`/`d311d4b`), the as-of mislabel (fund_score `1976a7b`/`d8c0055`), and the positioning check adjudication (fund_score `2e1fd31`, five gate rounds). Web work is consolidated on ONE branch `night/drain-2026-08-25`; fund_score has two branches. **main untouched and nothing pushed in EITHER repo — the owner merges.** FOUR DECISIONS WAIT: (1) fabricated holdings dates, 3,484 of 5,963 rows with 0 genuine; (2) 827 false entry/exit rows across ~250 funds, LIVE; (3) the exposure freshness clock frozen at 2026-06-15, 13,212 rows; (4) which basis the fund page shows where Recent Changes and the X-Ray contradict. Also carried: the F4 byte-identity fence finding (still the owner's call) and a date disagreement between the plan and the memory file on the holding-weight ruling. One command left over: `node scripts/drop-legacy-funds-table.mjs --apply`.`
@@ -92,6 +92,60 @@ re-point the assertion at the rule that is now live rather than weakening it.
 
 ## Decision register (answered — never re-ask)
 
+**2026-08-26 — OWNER RULINGS on the night-drain batch (A/B/C/D), plus two standing actions.**
+
+**A — fabricated holdings dates.** Owner: *"I don't understand why we wouldn't know the holdings data
+but if we really don't leave it blank I guess."* **Ruled: blank it — but the premise turned out to be
+wrong and the owner's instinct was right.** Investigated after the ruling rather than assumed: of the
+**3,484** funds stamped with the constant, **3,263 (93.7%) DO have a filed holdings book** in
+`holdings_complete` (which itself spans 2025-01-31..2026-05-31). We are not missing the data; we are
+asking the wrong source for it. Two compounding causes, **both frozen constants — the same disease as
+decision C**: (1) the panel reads its date from the RISK MODEL's frame (`quarter_end_used`, an
+as-of-backward attach capped at 100 days off the risk grid) instead of from the holdings store, so a
+fund whose risk grid does not line up gets nothing even though its book exists; and (2) the panel's own
+evaluation date is hardcoded `EVAL_DATE = 2025-10-31` (`build_value_offering_reframed.py:64`), now ~10
+months stale — **3,042 of the 3,484 have books only AFTER that frozen date**, so the panel is asking
+what a fund held last October of a store that has moved on. Only **221 have no filed book at all**, and
+**221 could be dated correctly today** from the existing store (the constant was off by a median of
+**153 days**, max 273). **So "blank it" is the right IMMEDIATE action for honesty, but it is a stopgap:
+the real fix is to unfreeze `EVAL_DATE` and source the date from the holdings store, after which most
+of these funds get a REAL date rather than a blank.** Filed that way, not as "leave it blank forever".
+
+**B — 827 false "exited" rows.** Owner asked: *"What is the proper fix? Is it scoped?"*
+**Answer: the fix is mechanically viable, it is NOT scoped, and it is materially bigger than 827 rows.**
+The proper fix is to key the year-over-year comparison on **ISIN** — the identifier that survives when
+a filer drops the CUSIP — instead of on the ticker, then re-derive the affected rows as
+increased/decreased rather than entered/exited. Viability measured: of the **1,012,231 rows (38.9% of
+the 2.6M-row frame) that carry NO `security_ticker`, 1,002,884 (99.1%) DO carry an ISIN**; only 8,877
+have neither ISIN nor CUSIP. So ISIN can carry the join. **But that is a change to the MATCHING KEY of
+the whole comparison, touching ~1M rows, not a patch to 827.** The 827 are the visible tip — the
+surfaced subset; what the other ticker-less rows do today is not yet measured and must be before
+anyone builds. Consequences to expect: currently-separate rows merge, magnitudes move, and the
+surfaced set shifts. **This needs a spec and the reviewed lane, and it needs the "what else moves"
+measurement FIRST.** It is not a days-shaped job, which is the argument for suppressing the 827 now
+rather than waiting for it.
+
+**C — the frozen X-Ray clock.** Owner: *"Yes obviously we shouldn't have a stale hardcoded date."*
+**Ruled: unfreeze it.** DISPATCHED 2026-08-26 to `fix/xray-frozen-clock`, branched off
+`fix/asof-mislabel` (NOT main) because `exposure_xray.py` carries 115 lines of as-of work not yet on
+main and a rebuild from main would silently revert it. Expected flip 13,212 rows / 848 funds. The
+worker is also sweeping for sibling frozen constants — `EVAL_DATE` above is one, and it is the same
+class.
+
+**D — Recent Changes vs the X-Ray disagreeing.** Owner: *"Label both, don't unify, they genuinely
+answer different questions and this is fine."* **Ruled: label both.** The two surfaces stay on their
+own bases — Recent Changes as-filed (the 2026-08-24 no-expansion ruling), the X-Ray looking wrappers
+through — and the page must say which is which. **What is NOT fine and remains the defect: showing them
+side by side UNLABELLED**, which is what happens today on 53 of 3,578 funds (worst: THEQ's 26.69pp gap
+is a single T. Rowe Price ETF at 79.02% of NAV). Filed as a web labelling item; the check keeps
+tracking it via the pinned ratchet rather than blocking.
+
+**Two standing actions taken the same day.** (1) **The fabricated demo cluster is DROPPED** — see run
+log; owner: *"Drop the old fabricated screener table."* (2) **F4's byte-identity guard is retired** —
+owner: *"Let's get rid of the gate that cries wolf."* See the amended F4 above. (3) The plan-vs-memory
+disagreement on the holding-weight ruling's date is **explicitly dropped** — owner: *"I don't care
+about the date of the decision, we have more important things to worry about here."*
+
 **2026-08-21 — OWNER RULING: CONSOLIDATE TO EODHD, AND DISPLAY RIGHTS ARE CONFIRMED.** The owner
 ruled "We can display it. Go with EODHD." This adopts the **2026-07-16 validation spike's**
 recommendation (`fund_score/reports/product/eodhd_validation_spike.md`) — staged consolidation from
@@ -146,6 +200,32 @@ both vendors, pick cheaper, report actual.
   against the frozen copy — divergence = abort ([[rebuild-twice-proves-determinism]]). This DETECTS
   drift rather than preventing it; that is the honest strength of the guard, and D1 must not
   describe it as a replay.
+
+  **AMENDED AGAIN 2026-08-26 — OWNER RULING: *"Let's get rid of the gate that cries wolf."*** The
+  byte-for-byte form above threw a **FALSE POSITIVE on the 2026-08-25 load** (`974ab796…` ->
+  `0b7a88d7…`): the divergence was **37 of 5,819 `return_attribution` strings, identical lengths, no
+  null flips, and parsing both sides showed 37/37 order-only with 0 genuine value differences** —
+  the same multiset of JSON rows in a different order. Gold was byte-identical across the load
+  (`shasum -c` all OK on all five artifacts). So the guard's IMPLEMENTATION was strictly stronger
+  than its PURPOSE, and a guard that fires on a known-benign condition trains the line to wave
+  aborts through — the worst failure mode a fence can have.
+
+  **F4 now discharges on BOTH of these, and abort means abort:**
+  1. **Gold checksums unchanged across the load** — `shasum -c` every gold artifact the assembler
+     reads, before and after. Any change = ABORT. This is the leg that actually answers the fence's
+     question ("did the source move under us?").
+  2. **A CONTENT diff of the re-written staging against the frozen copy** — parse both sides and
+     compare the row multiset, not the bytes. Any genuine value difference, null flip, row added or
+     row dropped = ABORT.
+
+  **A byte difference with both legs clean is a WARNING, not an abort** — it must be logged with the
+  count and shape of the differing rows, and it obliges the operator to *run* legs 1 and 2 rather
+  than wave it off. **Weakening note, stated so it can be audited:** this trades a guarantee about
+  BYTES for a guarantee about CONTENT. It is strictly weaker against a defect that changes bytes
+  without changing parsed content — none is known, and the assembler's `return_attribution`
+  ordering is the only such source observed. That non-determinism is filed separately and is NOT
+  closed by this amendment. If a content-preserving byte defect is ever found, this fence goes back
+  to byte-identity. Prior form preserved above for provenance.
 
 ## ⇢ S3 CRITICAL PATH (owner directive 2026-08-17) — this OVERRIDES strict rank order
 
