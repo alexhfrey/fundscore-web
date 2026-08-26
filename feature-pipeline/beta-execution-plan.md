@@ -8,10 +8,10 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-25T17:46-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-25T23:40-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
-`run-state: complete — OWNER OPENED F4. Serving RELOADED (manifest id=58 active) and fund_score main MERGED + pushed @ 13b5199. Multi-sector ISINs served 7 -> 2; served==gold 0 mismatches over 38,232 ISINs null-safe, seeded control proves non-vacuous. Web main merged LOCALLY only (219 ahead, F3 holds). ONE FENCE FINDING FOR THE OWNER: F4 byte-identity guard threw a FALSE POSITIVE — see Run log.`
+`run-state: active — NIGHT DRAIN 2026-08-25 23:40 (owner briefed, four items picked, no owner input available until morning). Lanes: WEB = F3 Recent Changes flip then F7 screener; FUND_SCORE = L10 effective-positions then the as-of mislabel (F2 fence: one lakehouse writer at a time). Separate repos, so the two lanes run concurrently — that is the plan's stated exception to serialize-do-not-parallelize. Owner switched the session to Fable per the tiering rule. Carried forward for the morning: the F4 byte-identity fence finding (see Run log 2026-08-25 17:46) is still the OWNER'S CALL and was not acted on.`
 ← the dispatcher sets this WITH every heartbeat re-stamp. Values: **`active`** (drain in progress — a
 stale heartbeat means investigate), **`paused-on-owner: <what>`** (the line is idle BY DESIGN, waiting
 on a decision — a stale heartbeat is EXPECTED; any backstop check should re-stamp and STOP, never run
@@ -272,7 +272,7 @@ none needs an owner input, and each de-risks D1 or the fences this plan depends 
 | # | Item | Worker | Model/effort | STATUS |
 |---|------|--------|--------------|--------|
 | F1 | Movements 00/01/02/05/06(partial) — served-after-reload fields; flip protocol per movement (5 conditions incl. methodology anchor + critic pass) — `specs/queue/profile-v2-production-cutover.md` | IN (reviewed, frontend) | opus/xhigh impl; sonnet craft critics; session-model data critics | **done** (web `6190a96` on `f1/v4-movements-00-06` — **MERGED, verified 2026-08-17**) |
-| F2 | Movement 03 (neighbourhood) | IN | opus/high | blocked(serving reload only) — **web mirror DONE 2026-08-17** (`5c052f2`: `serving.ts` column + `gating.ts` GATED_SECTIONS entry + methodology anchor + cutover-spec §03 rewrite; `db:check-serving` exit 0). L15 closed, so the reload now fences on **L14 + the capital-gain item**, and this line holds it further for L6+L9 so ONE reload serves F2/F3/F4 (see § S3 CRITICAL PATH). The read path is a bare `.select()`, so F2 is a RENDER-only job. |
+| F2 | Movement 03 (neighbourhood) | IN | opus/high | **done — STATUS CORRECTED 2026-08-25 23:40 (the `blocked` below was stale for a week).** The RENDER shipped 2026-08-18 (`f69b6d5` feat(v4): movement 03) with the three codex advisories cleared 2026-08-20 (`14ec752`); both are ancestors of web HEAD, `M03Neighbourhood.tsx` + `NeighbourhoodCharts.tsx` + `buildNeighbourhood` + the preview page wiring all exist. The one thing that was genuinely outstanding — the serving reload — landed 2026-08-25 (manifest 58): `fund_profile_facts.neighbourhood` is non-null on **3,094 of 5,819** funds, matching L5's measured 52.91%. Remaining: nobody has read the RENDERED section against manifest 58, so the flip protocol's critic condition is unverified — folded into F5. Prior text: blocked(serving reload only) — **web mirror DONE 2026-08-17** (`5c052f2`: `serving.ts` column + `gating.ts` GATED_SECTIONS entry + methodology anchor + cutover-spec §03 rewrite; `db:check-serving` exit 0). L15 closed, so the reload now fences on **L14 + the capital-gain item**, and this line holds it further for L6+L9 so ONE reload serves F2/F3/F4 (see § S3 CRITICAL PATH). The read path is a bare `.select()`, so F2 is a RENDER-only job. |
 | F3 | Recent Changes section flip | IN | opus/high | blocked(L6) |
 | F4 | Movement 04 receipts + 01 twin-diff card | IN | opus/high | blocked(L9) |
 | F5 | Full-page critic panel `/critique-funds` → fix round → **S3** | critique pipeline | per-agent pins | blocked(F1-F4) |
