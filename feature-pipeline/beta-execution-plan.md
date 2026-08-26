@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-26T00:51-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-26T00:54-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 `run-state: active — NIGHT DRAIN 2026-08-25 23:40 (owner briefed, four items picked, no owner input available until morning). Lanes: WEB = F3 Recent Changes flip then F7 screener; FUND_SCORE = L10 effective-positions then the as-of mislabel (F2 fence: one lakehouse writer at a time). Separate repos, so the two lanes run concurrently — that is the plan's stated exception to serialize-do-not-parallelize. Session stayed on OPUS 5 — the Fable switch was found unnecessary and RETIRED with evidence (the backend workflow hard-pins its own reviewer/gate models; see the START HERE correction). Tiering was tightened, not relaxed. Carried forward for the morning: the F4 byte-identity fence finding (see Run log 2026-08-25 17:46) is still the OWNER'S CALL and was not acted on.`
@@ -765,7 +765,7 @@ them.
 
 ## Run log
 
-- 2026-08-26 00:55 — **AS-OF MISLABEL FIXED — `1976a7b` on `fix/asof-mislabel` (codex running).**
+- 2026-08-26 00:55 — **AS-OF MISLABEL FIXED — `1976a7b` + `d8c0055` on `fix/asof-mislabel`; **codex CLEAN, 0 P0/P1, 0 advisories**.**
   `exposure_xray_v0.5`. Nothing pushed, Postgres untouched, F4 respected. 33,301 concentration rows in
   and out, **0 rows added or dropped, 0 `holdings_value` changed, 0 nulls created** — this changed
   stamps and states ONLY. 4,797 rows re-stamped (1,599 funds x 3 metrics); 273 rows / **47 funds**
@@ -837,6 +837,20 @@ them.
 
   **Web follow-up for the next reload:** `fundscore-web/src/lib/methodology/registry.ts:166` pins
   `exposure_xray_v0.4` and must move to `v0.5` **in the same step as the reload**, never after.
+
+  **Codex round 2 — the P3 it raised was worth more than its label, and is FIXED (`d8c0055`).** The
+  new coherence gate could certify the exact regression it exists to catch:
+  `holdings_as_of != _src_date` yields NULL in Polars whenever either side is null and `.filter()`
+  drops nulls, so a row with a NULL source `quarter_end_used` but a FRESH served stamp scored as "no
+  mismatch" — gate `[A]` failing OPEN, with `[D]` blind for the same reason. The asymmetry was already
+  half-noticed in the code: the VALUE branch two lines above guards it explicitly with
+  `| _src_val.is_null()` and even carries an operator-precedence comment; the DATE branch did not.
+  Fixed with `ne_missing` (NULL treated as a value, so `(null, null)` stays coherent — that IS the
+  honest-missing path v0.5 deliberately serves — while `(a date, null)` is a mismatch).
+  **Proved three ways, not asserted:** still PASSes the corrected panel; still FAILs the pre-fix
+  control at **2,439 date mismatches** (= 813x3, reproducing the original measurement exactly); and a
+  two-row boundary mutation where the old `!=` flags **0** and `ne_missing` flags **1**
+  ([[vacuous-check-and-boundary-axis]]). Re-gate: **CODEX_GATE pass, 0 P0/P1, 0 advisories.**
 
 - 2026-08-26 00:13 — **F3 COMPLETE and DISPATCHER-VERIFIED (codex still owed).** `b110f18` (+ docs
   `58f3f26`) on `f3/recent-changes-flip`. Web main untouched at `4c43717`, nothing pushed.
