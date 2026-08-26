@@ -167,6 +167,29 @@ check("bogus vehicle becomes no filter", hostile.vehicle === null);
 check("bogus style becomes no filter", hostile.style === null);
 check("negative maxFeeBps becomes no filter", hostile.maxFeeBps === null);
 check("negative page clamps to 1", hostile.page === 1);
+
+// --- REPEATED search params (codex P2, 2026-08-26) ---------------------------
+// Next's searchParams is Record<string, string | string[] | undefined>, so a
+// hand-edited or shared link like /screener?q=voo&q=spy delivers an ARRAY. The
+// interface used to declare these as bare `string`, which told TypeScript that
+// `.trim()` was safe; it threw `TypeError: .trim is not a function` and turned a
+// shareable URL into a 500. Reproduced before fixing, guarded here after.
+// Non-vacuous: reverting `first()` in normalizeParams makes the q case THROW,
+// which fails this file rather than silently passing.
+const repeated = normalizeParams({
+  q: ["voo", "spy"],
+  sort: ["fee", "aum"],
+  dir: ["asc", "desc"],
+  vehicle: ["ETF", "MF"],
+  maxFeeBps: ["25", "99"],
+  page: ["2", "7"],
+} as Parameters<typeof normalizeParams>[0]);
+check("repeated q does not throw and takes the first value", repeated.q === "voo");
+check("repeated sort takes the first valid value", repeated.sort === "fee");
+check("repeated dir takes the first value", repeated.dir === "asc");
+check("repeated vehicle takes the first value", repeated.vehicle === "ETF");
+check("repeated maxFeeBps takes the first value", repeated.maxFeeBps === 25);
+check("repeated page takes the first value", repeated.page === 2);
 const valid = normalizeParams({
   sort: "fee",
   dir: "asc",

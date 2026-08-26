@@ -245,15 +245,37 @@ export type VerdictKey = (typeof VERDICT_KEYS)[number];
 export const VEHICLE_TYPES = ["ETF", "Mutual Fund", "Index Mutual Fund"] as const;
 export const MANAGEMENT_STYLES = ["active", "passive"] as const;
 
+/**
+ * A single URL search param as Next actually supplies it.
+ *
+ * Next's `searchParams` is `Record<string, string | string[] | undefined>` — a
+ * REPEATED param (`/screener?q=voo&q=spy`, which a hand-edited or shared link
+ * produces) arrives as an array. Declaring these as bare `string` told
+ * TypeScript that `.trim()` was safe when it was not, and `?q=voo&q=spy` threw
+ * `TypeError: .trim is not a function` at request time — a 500 on a link a user
+ * could legitimately share. Codex P2, 2026-08-26; reproduced before fixing.
+ *
+ * The other fields degraded safely by accident (`oneOf` array-vs-string
+ * `.includes` is false, `Number([...])` is NaN), which is exactly the kind of
+ * accident that stops being true when someone adds a field. So the type is
+ * honest here and every read goes through `first()`.
+ */
+type ScreenerParam = string | string[] | undefined;
+
 export interface ScreenerParams {
-  q?: string;
-  vehicle?: string;
-  style?: string;
-  verdict?: string;
-  maxFeeBps?: string;
-  sort?: string;
-  dir?: string;
-  page?: string;
+  q?: ScreenerParam;
+  vehicle?: ScreenerParam;
+  style?: ScreenerParam;
+  verdict?: ScreenerParam;
+  maxFeeBps?: ScreenerParam;
+  sort?: ScreenerParam;
+  dir?: ScreenerParam;
+  page?: ScreenerParam;
+}
+
+/** First value of a possibly-repeated param — the conventional duplicate resolution. */
+function first(raw: ScreenerParam): string | undefined {
+  return Array.isArray(raw) ? raw[0] : raw;
 }
 
 /** The normalized, already-validated shape the page renders its controls from. */
@@ -286,15 +308,15 @@ function parseMaxFee(raw: string | undefined): number | null {
 }
 
 export function normalizeParams(params: ScreenerParams): ScreenerFilters {
-  const pageRaw = Number(params.page);
+  const pageRaw = Number(first(params.page));
   return {
-    q: (params.q ?? "").trim().slice(0, 64),
-    vehicle: oneOf(params.vehicle, VEHICLE_TYPES),
-    style: oneOf(params.style, MANAGEMENT_STYLES),
-    verdict: oneOf(params.verdict, VERDICT_KEYS),
-    maxFeeBps: parseMaxFee(params.maxFeeBps),
-    sort: oneOf(params.sort, SORT_KEYS) ?? DEFAULT_SORT,
-    dir: oneOf(params.dir, SORT_DIRS) ?? DEFAULT_DIR,
+    q: (first(params.q) ?? "").trim().slice(0, 64),
+    vehicle: oneOf(first(params.vehicle), VEHICLE_TYPES),
+    style: oneOf(first(params.style), MANAGEMENT_STYLES),
+    verdict: oneOf(first(params.verdict), VERDICT_KEYS),
+    maxFeeBps: parseMaxFee(first(params.maxFeeBps)),
+    sort: oneOf(first(params.sort), SORT_KEYS) ?? DEFAULT_SORT,
+    dir: oneOf(first(params.dir), SORT_DIRS) ?? DEFAULT_DIR,
     page: Number.isFinite(pageRaw) && pageRaw >= 1 ? Math.floor(pageRaw) : 1,
   };
 }
