@@ -1,7 +1,7 @@
 ---
 id: unify-te-decomposition-global-basis
 title: Repoint the TE decomposition onto the 35-factor global basis; unify to ONE idio machine
-status: queued
+status: done
 track: backend
 repo: fund_score
 depends_on: te-decomposition-by-bet
@@ -10,6 +10,34 @@ scope: global
 model: opus
 effort: xhigh
 ---
+
+## ✅ CLOSED 2026-08-26 — backend SHIPPED four weeks ago; this file was stale in the queue
+
+Verified before closing (not inferred): all three commits are **ancestors of `fund_score` main** —
+`48c5dbe` (2026-07-30, repoint onto the 35-factor global basis), `f4aee40` (2026-07-31, unify the VO
+badge's idio onto `te_decomposition`), `fa3e599` (2026-07-31, retire `global_decomposition`) — and
+the live module carries `METHOD_VERSION = "te_decomp_v0.2_global"` /
+`BASIS_SOURCE = "global_basis_v0.2_nothemes"` (`src/fundscore/product/te_decomposition.py:100-101`).
+Segment 4's fail-closed gates shipped inside segment 1 as invariants 12/13 (`:586-605`), registered
+in `scripts/checks/run_checks.py:237-259`.
+
+**Why closing it matters more than tidiness:** while it read `status: queued`, `/implement-next`
+would have taken it as a ready `effort: xhigh` / opus spec and rebuilt shipped work from zero. It
+was also the declared `depends_on` of `recent-changes-te-ranked`, so it read as a live blocker on a
+spec that had itself already closed.
+
+**Its `ADDENDUM` (rebuild the positioning panel after landing) is already satisfied and was written
+on a premise that has since expired:** `te_decomposition.parquet` is dated 2026-08-17 and
+`positioning_changes_panel.parquet` 2026-08-25, and `build_positioning_changes_panel.py:88-89` reads
+its sigma window from the former — so the pin is coherent today.
+
+**Residual work is NOT closed — it is re-filed to `backlog.md`, not dropped** (three items, all
+web-side or new-backend, none of them the backend this spec specced): the part-(b) "where it comes
+from" held-names line (needs a new fund-holdings x basis-constituents join, never started, sizing is
+its own call); the post-reload FCNTX/FBGRX anatomy+bets coherence read; and the **bet-mix window
+disclosure** — the bets table scales to a fresh `te_current` while the mix is measured through
+`fit_window_end`, so the section states a current number over a stale mix with nothing saying so,
+and suppressed funds must render the honest missing-reason path rather than an empty table.
 
 ## Owner summary
 One risk vocabulary for the whole page and one idiosyncratic-share number everywhere. The bets
