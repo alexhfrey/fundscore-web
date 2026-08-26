@@ -111,6 +111,97 @@ const FCNTX_ROW = {
     ],
     method_version: "return_attr_v0.1",
   },
+  // positioning_changes gate=free (section locks for anon, one whitelisted row
+  // survives as the proof point). Three of FCNTX's eight served rows, VERBATIM
+  // from manifest 58, chosen so the assertions below cannot pass degenerately:
+  //   te_rank 1  META               the significance-ranked pick
+  //   te_rank 6  Financial Services LARGER by magnitude (−7.73pp vs −6.01pp) —
+  //                                 a magnitude sort would pick this one
+  //   te_rank 18 BRK.B              `entered`, so prior_value is genuinely null
+  positioningChanges: {
+    status: "available",
+    eval_date: "2026-04-30",
+    method_version: "positioning_changes_v0.3_no_expansion",
+    lookthrough_partial: null,
+    lookthrough_coverage: null,
+    rows: [
+      {
+        te_rank: 1,
+        change_z: -2.238125692759599,
+        change_id: "position::META",
+        value_unit: "pp",
+        window_end: "2026-03-31",
+        change_name: "META",
+        change_type: "position",
+        prior_value: 16.29739258221,
+        window_start: "2025-03-31",
+        current_value: 10.28753354151,
+        surfaced_rank: 1,
+        te_impact_bps: 206.6083567602436,
+        classification: "stock",
+        filing_lag_days: 30,
+        lookback_window: "1y",
+        te_impact_basis: "delta_weight_x_stock_idio_vol",
+        change_direction: "decreased",
+        change_magnitude: -6.009859040700002,
+        persistence_state: "single_quarter",
+        prior_state_label: null,
+        current_state_label: null,
+        holdings_as_of_prior: "2025-03-31",
+        holdings_as_of_current: "2026-03-31",
+      },
+      {
+        te_rank: 6,
+        change_z: -1.7375117462921381,
+        change_id: "sector::financial_services",
+        value_unit: "pp",
+        window_end: "2026-03-31",
+        change_name: "Financial Services",
+        change_type: "sector",
+        prior_value: 20.526150193437,
+        window_start: "2025-03-31",
+        current_value: 12.795417110375002,
+        surfaced_rank: 6,
+        te_impact_bps: 51.59579111431473,
+        classification: "sector",
+        filing_lag_days: 30,
+        lookback_window: "1y",
+        te_impact_basis: "delta_weight_x_factor_vol",
+        change_direction: "decreased",
+        change_magnitude: -7.730733083061999,
+        persistence_state: "single_quarter",
+        prior_state_label: null,
+        current_state_label: null,
+        holdings_as_of_prior: "2025-03-31",
+        holdings_as_of_current: "2026-03-31",
+      },
+      {
+        te_rank: 18,
+        change_z: 0.9512010450565032,
+        change_id: "position::BRK.B",
+        value_unit: "pp",
+        window_end: "2026-03-31",
+        change_name: "BRK.B",
+        change_type: "position",
+        prior_value: null,
+        window_start: "2025-03-31",
+        current_value: 1.023514435029,
+        surfaced_rank: 8,
+        te_impact_bps: 15.99012757547552,
+        classification: "stock",
+        filing_lag_days: 30,
+        lookback_window: "1y",
+        te_impact_basis: "delta_weight_x_stock_idio_vol",
+        change_direction: "entered",
+        change_magnitude: 1.023514435029,
+        persistence_state: "sustained",
+        prior_state_label: null,
+        current_state_label: null,
+        holdings_as_of_prior: "2025-03-31",
+        holdings_as_of_current: "2026-03-31",
+      },
+    ],
+  },
   // risk_attribution gate=free (section locks for anon); its
   // active_return_attribution sub-panel carries its own paid gate.
   riskAttribution: {
@@ -598,6 +689,85 @@ check(
   check(
     "positioning_context with MISSING gate key still opens for free",
     !isLocked(applyGates(rowSansPosGate, "free").positioningContext),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// positioning_changes (free) — movement 01's "biggest recent move" posline.
+// ---------------------------------------------------------------------------
+// This section had NO `defaultGate` until 2026-08-25: a load that dropped the
+// gates key would have failed OPEN to "public" and published the full ranked
+// change list to anonymous clients. These assertions are the tripwire.
+check("positioning_changes (free) is {locked} for anon", isLocked(anon.positioningChanges));
+{
+  const anonPc = anon.positioningChanges as {
+    locked?: string;
+    preview?: {
+      change_name?: string;
+      te_rank?: number | null;
+      prior_value?: number | null;
+      current_value?: number | null;
+      holdings_as_of_prior?: string | null;
+      holdings_as_of_current?: string | null;
+    } | null;
+  } | null;
+  check("positioning_changes locks at the FREE tier for anon", anonPc?.locked === "free");
+  // The proof point is ONE row. Non-degenerate: a magnitude sort would surface
+  // Financial Services (−7.73pp) instead of META (−6.01pp).
+  check(
+    "positioning_changes proof point is the TE-ranked change (META), not the largest by size",
+    anonPc?.preview?.change_name === "META",
+  );
+  check(
+    "positioning_changes proof point carries te_rank, so a consumer can refuse an unranked row",
+    anonPc?.preview?.te_rank === 1,
+  );
+  check(
+    "positioning_changes proof point carries BOTH as-of stamps",
+    anonPc?.preview?.holdings_as_of_prior === "2025-03-31" &&
+      anonPc?.preview?.holdings_as_of_current === "2026-03-31",
+  );
+  check(
+    "positioning_changes proof point carries the row's own prior/current weights",
+    anonPc?.preview?.prior_value === 16.29739258221 &&
+      anonPc?.preview?.current_value === 10.28753354151,
+  );
+  // The other two rows must not cross the boundary at all.
+  const anonPcJson = JSON.stringify(anon.positioningChanges ?? {});
+  check(
+    "positioning_changes: the other served rows do NOT ship below the gate",
+    !anonPcJson.includes("Financial Services") && !anonPcJson.includes("BRK.B"),
+  );
+  check(
+    "positioning_changes: no rows[] array survives for anon",
+    !hasLiveNumber(anon.positioningChanges, "surfaced_rank") || anonPc?.preview != null,
+  );
+}
+// free and above hold the full ranked list.
+{
+  const freePc = applyGates(FCNTX_ROW, "free").positioningChanges as { rows?: unknown[] } | null;
+  check("positioning_changes opens for free with the full row list", freePc?.rows?.length === 3);
+}
+// FAIL-CLOSED default: a row whose gates JSONB is MISSING the
+// positioning_changes key must still gate the populated section at free.
+// Without `defaultGate: "free"` this assertion fails — the section would open
+// to anonymous clients, ranked list and all.
+{
+  const gatesSansChanges = { ...(FCNTX_ROW.gates as Record<string, unknown>) };
+  delete gatesSansChanges.positioning_changes;
+  const rowSansChangesGate = { ...FCNTX_ROW, gates: gatesSansChanges } as typeof FCNTX_ROW;
+  const anonSans = applyGates(rowSansChangesGate, "anonymous").positioningChanges;
+  check(
+    "positioning_changes with MISSING gate key fails CLOSED for anon (default free)",
+    isLocked(anonSans),
+  );
+  check(
+    "positioning_changes with MISSING gate key leaks no ranked rows to anon",
+    !JSON.stringify(anonSans ?? {}).includes("Financial Services"),
+  );
+  check(
+    "positioning_changes with MISSING gate key still opens for free",
+    !isLocked(applyGates(rowSansChangesGate, "free").positioningChanges),
   );
 }
 

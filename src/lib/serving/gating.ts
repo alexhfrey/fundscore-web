@@ -378,7 +378,12 @@ const GATED_SECTIONS: { col: string; gate: string; defaultGate?: string }[] = [
   { col: "exposureXray", gate: "exposure_xray" },
   { col: "returnAttribution", gate: "return_attribution" },
   { col: "riskAttribution", gate: "risk_attribution" },
-  { col: "positioningChanges", gate: "positioning_changes" },
+  // positioning-changes — contract gate is "free" (verified: all 5,819 served
+  // rows carry `gates.positioning_changes = "free"`). It carried NO
+  // `defaultGate` until 2026-08-25, i.e. a load that dropped the gate key would
+  // have failed OPEN to "public" and published the full ranked change list to
+  // anonymous clients. Fail CLOSED to free, like its two neighbours below.
+  { col: "positioningChanges", gate: "positioning_changes", defaultGate: "free" },
   // positioning-context-percentiles — contract gate is "free"; fail CLOSED to
   // free (never public) if the gates key ever goes missing on a load drift.
   { col: "positioningContext", gate: "positioning_context", defaultGate: "free" },
@@ -452,6 +457,29 @@ export interface ShiftPreview {
   value_unit: string | null;
   holdings_as_of_current: string | null;
   holdings_as_of_prior: string | null;
+  /**
+   * The served rank of this change by ESTIMATED tracking-error impact
+   * (recent-changes-te-ranked, `positioning_changes_v0.3_no_expansion`).
+   *
+   * NULL means the change has no TE estimate at all — `concentration` and
+   * `cash` rows are served with `te_impact_bps: null` on purpose (the backend
+   * spec refuses a fake common scale across types). A consumer that claims a
+   * change is the one that MATTERED most must therefore fail closed on null
+   * here, or it is publishing magnitude-ranked prose under a
+   * significance-ranked claim.
+   *
+   * It is NOT 1-based within the served set: te_rank is assigned across all
+   * TE-estimated CANDIDATE rows and the panel surfaces a subset, so 191 of the
+   * 3,037 eligible funds have a served minimum of 2 or worse. Only a served
+   * top of exactly 1 earns the "biggest" superlative.
+   */
+  te_rank: number | null;
+  /** The row's own prior/current weights. NULL exactly when the direction is
+   *  `entered` (no prior) / `exited` (no current) — never back-filled with 0.
+   *  Whitelisted so a below-the-gate reader gets the same sentence as a free
+   *  one about the SAME single row, not a thinner variant of the claim. */
+  prior_value: number | null;
+  current_value: number | null;
 }
 export interface AlternativePreview {
   kind: "alternative";
@@ -722,7 +750,19 @@ function pickTopDetractor(s: AnyObj): DetractorPreview | null {
   };
 }
 
-/** Top surfaced_rank positioning shift. */
+/**
+ * Top surfaced_rank positioning shift.
+ *
+ * The sort key stays `surfaced_rank` deliberately. Measured on manifest 58: for
+ * every one of the 3,037 funds carrying a TE estimate, the `surfaced_rank = 1`
+ * row IS the minimum-`te_rank` row (0 disagreements), so this projector already
+ * yields the significance-ranked change wherever one exists. What it CANNOT do
+ * is tell the consumer which case it is in — for the 207 funds whose rows are
+ * concentration/cash only, `surfaced_rank = 1` is a magnitude-ranked row with
+ * no TE estimate. Carrying `te_rank` across the boundary is what lets a
+ * below-the-gate consumer fail closed on exactly that case instead of dressing
+ * a magnitude ranking as a significance ranking.
+ */
 function pickTopShift(s: AnyObj): ShiftPreview | null {
   const rows: AnyObj[] = Array.isArray(s?.rows) ? s.rows : [];
   if (rows.length === 0) return null;
@@ -738,6 +778,9 @@ function pickTopShift(s: AnyObj): ShiftPreview | null {
     value_unit: (top.value_unit as string | null) ?? null,
     holdings_as_of_current: (top.holdings_as_of_current as string | null) ?? null,
     holdings_as_of_prior: (top.holdings_as_of_prior as string | null) ?? null,
+    te_rank: num(top.te_rank),
+    prior_value: num(top.prior_value),
+    current_value: num(top.current_value),
   };
 }
 

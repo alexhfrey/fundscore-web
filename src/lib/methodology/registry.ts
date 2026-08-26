@@ -481,15 +481,23 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     anchor: "positioning-changes",
     title: "Portfolio Shifts",
     tagline:
-      "How a fund's exposures moved between its two most recent filings.",
+      "How a fund's exposures moved between its filed holdings and its own filings a year earlier.",
     methodVersion: "positioning_changes_v0.3_no_expansion",
+    // Corrected 2026-08-25 against the active serving load. The previous string
+    // read "Current holdings 2026-04-30 versus the prior qualifying filing (as
+    // early as 2024-01-31)". Both halves were wrong: 2026-04-30 is the panel's
+    // EVALUATION date, not any fund's holdings date (only 978 of the served
+    // funds file that late; most are 2026-03-31), and no served prior stamp is
+    // earlier than 2025-01-31 — the comparison is year-over-year, not
+    // open-ended.
     asOf:
-      "Current holdings 2026-04-30 versus the prior qualifying filing (as early as 2024-01-31).",
+      "Year over year: a fund's most recent qualifying filing against its own filing about a year earlier (365 days apart for 97.5% of rows). Panel evaluated 2026-04-30. Across served funds the later filing dates run 2026-01-30 to 2026-04-30 and the earlier ones 2025-01-31 to 2025-05-31, and every row on the page carries its own two dates.",
     measures: [
-      "Portfolio Shifts compares a fund against its own recent history — how its sector, theme, region, style, concentration and top-position exposures changed between its two most recent filings — so you can see where a manager is leaning in or out.",
+      "Portfolio Shifts compares a fund against its own recent history — how its sector, theme, concentration, cash and top-position exposures changed between two of its own filings a year apart — so you can see where a manager is leaning in or out.",
     ],
     method: [
-      "We reconstruct both filing endpoints from the fund's own filed holdings and difference them across six exposure families, surfacing the largest moves. When a fund holds an ETF or another fund, we report the trade in that holding itself rather than looking inside it — buying a semiconductor ETF is described as buying the ETF, not as buying each chipmaker in it.",
+      "We reconstruct both filing endpoints from the fund's own filed holdings and difference them across five exposure families, surfacing the largest moves. When a fund holds an ETF or another fund, we report the trade in that holding itself rather than looking inside it — buying a semiconductor ETF is described as buying the ETF, not as buying each chipmaker in it.",
+      "Changes are ranked by their ESTIMATED effect on the fund's tracking error — roughly the size of the weight change multiplied by how volatile the thing being changed is — rather than by the size of the change alone. The two orderings disagree for most funds: a small move in something volatile can matter more than a large move in something that barely moves. This is an estimate, and it is never presented with the authority of a measured tracking error.",
     ],
     sources: [
       "SEC N-PORT holdings at two filing endpoints",
@@ -501,6 +509,7 @@ export const METHODOLOGY_ARTIFACTS: MethodologyArtifact[] = [
     ],
     limitations: [
       "A fund needs a qualifying prior filing within the lookback window; without one, no shift is shown.",
+      "Concentration and cash moves carry no tracking-error estimate — there is no defensible way to put them on the same risk scale as a weight change, and we would rather leave them unranked than invent one. A fund whose only changes are of those kinds gets no ranked headline move.",
       "Where classified-weight coverage is too low to anchor a diff, the affected family is suppressed.",
       "A fund that expresses a bet through a held ETF shows that ETF trade rather than an underlying sector or theme shift, so some exposure moves are not surfaced here.",
       "Where a holding's identifiers disagree about which security it is, the row is withheld rather than shown under a name we cannot stand behind.",

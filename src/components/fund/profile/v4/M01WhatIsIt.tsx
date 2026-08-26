@@ -10,6 +10,12 @@
 //        with fund_exposure, passive_exposure, difference and BOTH as-of dates,
 //        at gate `free`.)
 // Card 3 "what moves it differently" — SERVED (te_decomposition.bets).
+// Posline "biggest recent move" — SERVED (positioning_changes, gate `free`,
+//        `positioning_changes_v0.3_no_expansion`). Flipped 2026-08-25 when
+//        `recent-changes-te-ranked` shipped; before that the slot carried a
+//        hold-back note. It renders ONE change, chosen by the served TE-impact
+//        rank, and renders nothing but its reason for the 2,782 funds that have
+//        no significance-ranked change to name. See `buildRecentMove`.
 //
 // BASIS DISCIPLINE, the two traps this movement exists to avoid:
 //  1. The bigbar and the unroll are measured over DIFFERENT windows (the twin's
@@ -38,6 +44,7 @@ import {
 import {
   buildActiveMix,
   buildConcentration,
+  buildRecentMove,
   buildTwin,
   fmtBpsAsPct,
   kindAdjective,
@@ -45,6 +52,7 @@ import {
   longDay,
   ownShare,
   type ActiveMixView,
+  type RecentMoveView,
   type TwinView,
 } from "./derive";
 
@@ -192,6 +200,90 @@ function BetsTableV4({ mix }: { mix: ActiveMixView }) {
   );
 }
 
+/**
+ * The "biggest recent move" posline — one change out of the served
+ * year-over-year holdings diff, chosen by ESTIMATED tracking-error impact.
+ *
+ * Two things this markup is responsible for, both non-negotiable:
+ *
+ *  1. THE DUAL AS-OF STAMPS. Every figure is attached to the filing it came
+ *     from, in the same breath. The two filings are a year apart and the later
+ *     one is itself 30-61 days behind the calendar, so a single date would let a
+ *     reader take a stale weight for a current one. There is deliberately no
+ *     branch that renders one stamp without the other — `buildRecentMove`
+ *     refuses a row missing either.
+ *  2. THE RANKING BASIS, IN WORDS, WITH "ESTIMATED" IN IT. The backend spec's
+ *     data-integrity guardrail requires the estimate to be labelled as an
+ *     estimate; the cutover spec requires the ranking to be, and to be seen to
+ *     be, by significance rather than size. Where the two rankings disagree —
+ *     58.8% of eligible funds — the loudest change is named too, so the claim
+ *     can be checked rather than taken on trust.
+ *
+ * The label itself is conditioned on `earnedSuperlative`: "biggest" is only said
+ * when the served row is te_rank 1.
+ */
+function RecentMovePosLine({ view }: { view: RecentMoveView }) {
+  const m = view.move;
+  if (m == null) {
+    return (
+      <PosLine>
+        <b>Biggest recent move:</b>{" "}
+        <span className="text-gray-500">{view.reason ?? FALLBACK_REASON}</span>
+      </PosLine>
+    );
+  }
+
+  // "META" for a single position; the others need naming as what they are.
+  const subject =
+    m.changeType === "sector"
+      ? `its ${m.name} sector`
+      : m.changeType === "theme"
+        ? `its ${m.name} theme`
+        : m.name;
+
+  // A null side is rendered as "no weight" ONLY when the served direction says
+  // so — `entered` had no prior book line, `exited` has no current one. Any
+  // other null is drift and gets an em dash, never an invented zero. The
+  // "of the portfolio" qualifier rides the FIRST side that is actually a
+  // percentage, so an entered position reads "no weight … then 1.9% of the
+  // portfolio" rather than "no weight of the portfolio".
+  const priorPct = m.priorPct != null ? `${m.priorPct.toFixed(1)}%` : null;
+  const currentPct = m.currentPct != null ? `${m.currentPct.toFixed(1)}%` : null;
+  const priorText =
+    priorPct != null
+      ? `${priorPct} of the portfolio`
+      : m.direction === "entered"
+        ? "no weight"
+        : EM_DASH;
+  const currentText =
+    currentPct != null
+      ? priorPct != null
+        ? currentPct
+        : `${currentPct} of the portfolio`
+      : m.direction === "exited"
+        ? "no weight"
+        : EM_DASH;
+
+  return (
+    <PosLine>
+      <b>{m.earnedSuperlative ? "Biggest recent move:" : "A recent move that mattered:"}</b>{" "}
+      {subject} &mdash; {priorText} in holdings filed{" "}
+      {longDay(m.asOfPrior) ?? m.asOfPrior}, {currentText} in holdings filed{" "}
+      {longDay(m.asOfCurrent) ?? m.asOfCurrent}. Ranked by its estimated effect on the
+      fund&rsquo;s risk rather than by the size of the change
+      {m.largestBySize ? <>; the biggest change by size was {m.largestBySize}</> : null}.
+      {m.earnedSuperlative ? null : (
+        <>
+          {" "}
+          Changes that scored higher are not shown for this fund, so this is not necessarily its
+          largest.
+        </>
+      )}{" "}
+      <MethodLink anchor="positioning-changes" />
+    </PosLine>
+  );
+}
+
 export interface M01Props {
   passiveBaseline: Parameters<typeof buildTwin>[0];
   valueScoreReplicaR2: number | null;
@@ -199,6 +291,9 @@ export interface M01Props {
   teProof: Parameters<typeof buildActiveMix>[1];
   teLocked: boolean;
   exposureXray: { rows?: unknown[] } | null;
+  /** The GATED `positioning_changes` value — full rows, the one-row locked proof
+   *  point, or null. `buildRecentMove` resolves all three; see its header. */
+  positioningChanges: unknown;
 }
 
 export function M01WhatIsIt({
@@ -208,8 +303,10 @@ export function M01WhatIsIt({
   teProof,
   teLocked,
   exposureXray,
+  positioningChanges,
 }: M01Props) {
   const twin = buildTwin(passiveBaseline, valueScoreReplicaR2);
+  const recentMove = buildRecentMove(positioningChanges);
   const mix = buildActiveMix(teDecomposition, teProof);
   const conc = buildConcentration(exposureXray);
   const own = ownShare(twin);
@@ -378,14 +475,7 @@ export function M01WhatIsIt({
             <span className="text-gray-500">{conc.activeShareReason}</span>
           )}
         </PosLine>
-        <PosLine>
-          <b>Biggest recent move:</b>{" "}
-          <span className="text-gray-500">
-            Ranking a quarter&rsquo;s portfolio changes by how much they actually shifted the
-            fund&rsquo;s behaviour is still being built. Ranking them by raw size instead would put
-            the loudest change on top rather than the one that mattered, so we hold this back.
-          </span>
-        </PosLine>
+        <RecentMovePosLine view={recentMove} />
       </Card>
     </Movement>
   );

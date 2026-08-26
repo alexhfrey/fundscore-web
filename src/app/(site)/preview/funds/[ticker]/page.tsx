@@ -145,6 +145,15 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
   // instead of handing a {locked} marker to the parser.
   const neighbourhood = buildNeighbourhood(unlocked<unknown>(row.neighbourhood));
 
+  // positioning-changes (movement 01's "biggest recent move" posline): section
+  // gate is `free`, so this is passed to M01 STILL GATED — deliberately. Unlike
+  // the sections above, a free gate has three outcomes, and only the gated value
+  // distinguishes them: the full ranked rows, the whitelisted one-row proof point
+  // applyGates leaves behind for anon, or nothing. `unlocked<T>()` would flatten
+  // the middle case to null and silently drop the free proof point.
+  // `buildRecentMove` reads the marker and never reaches past it.
+  const positioningChanges = row.positioningChanges;
+
   const twin = buildTwin(passiveBaseline, valueScore?.replica_r2 ?? null);
   const passiveLabel =
     navSeries?.passive_label ??
@@ -255,6 +264,7 @@ export default async function PreviewFundPage({ params, searchParams }: PreviewP
           teProof={teProof}
           teLocked={teLocked}
           exposureXray={exposureXray}
+          positioningChanges={positioningChanges}
         />
 
         <M02Record

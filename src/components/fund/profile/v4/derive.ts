@@ -20,6 +20,10 @@ import type {
   TeDecomposition,
 } from "@/lib/serving/profile-v2";
 import type { PassiveBaseline, TeProofPreview, TeRollupRow } from "@/lib/serving/profile";
+// Imported from `gating` and NOT from `profile`: these two are pure and db-free,
+// and `profile` re-exports them through a module that instantiates the Postgres
+// client. This file must stay importable without a DATABASE_URL.
+import { getPreview, isLocked } from "@/lib/serving/gating";
 
 // ---------------------------------------------------------------------------
 // Money
@@ -744,6 +748,200 @@ export function buildConcentration(
         : asFabricated
           ? "We could not see through this fund's twin to the shares underneath, so there is nothing to measure it against."
           : null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// The biggest recent move (movement 01 posline) — `positioning_changes`
+// ---------------------------------------------------------------------------
+// Served panel `positioning_changes_v0.3_no_expansion` (backend spec
+// `recent-changes-te-ranked`, shipped 2026-08-25), section gate `free`. Each row
+// is a year-over-year N-PORT diff carrying BOTH filing dates and, where the
+// change can be priced, `te_impact_bps ≈ |Δweight| × σ` — an ESTIMATE — with its
+// rank `te_rank`.
+//
+// RULE 1 · SIGNIFICANCE OR SILENCE. The cutover spec (lines 200-202) says this
+// posline is either significance-ranked or ABSENT — "not magnitude-ranked prose
+// pretending to be significance-ranked". That is not a stylistic preference:
+// measured on manifest 58, the TE-top change is NOT the largest change by size
+// in 1,787 of the 3,037 eligible funds (58.8%), so a magnitude ranking names the
+// wrong move more often than the right one. Everything below fails CLOSED on a
+// missing `te_rank`, which covers both honest gaps:
+//   • 2,575 funds serve no `positioning_changes` at all;
+//   • 207 more serve only `concentration` / `cash` rows, which the BACKEND
+//     deliberately gives `te_impact_bps: null` — spec line 50, "no TE mapping in
+//     v1 ... don't force a fake common scale".
+// Neither substitutes a magnitude ranking; both render their reason.
+//
+// RULE 2 · THE SUPERLATIVE IS EARNED, NOT ASSUMED. `te_rank` is assigned across
+// every TE-estimated CANDIDATE row while the panel surfaces a subset, so it is
+// not 1-based within the served rows: 191 of the 3,037 have a served best of
+// rank 2 or worse, i.e. a bigger priced change exists that this panel does not
+// carry. Calling that one "the biggest" would be false. Only a served
+// `te_rank === 1` sets `earnedSuperlative`; the rest get the softer label. This
+// is the same discipline as `top_bet_confident` in the te_decomposition — a
+// superlative needs its own served evidence.
+//
+// RULE 3 · DUAL AS-OF STAMPS ARE MANDATORY. Filings lag 30-61 days and the two
+// endpoints are a year apart; a row missing either stamp is refused rather than
+// stamped with one date. (Measured: 0 served rows are missing a stamp, so this
+// is drift protection, not a live filter.)
+//
+// RULE 4 · ONE SCALE. Only `value_unit === "pp"` rows are eligible. The panel
+// also serves `count` rows (151 of them — Effective Positions), and mixing a
+// count into percentage-point copy is the cross-type fake commensurability the
+// backend spec forbids. Every TE-ranked row is `pp` today, so this guard is
+// likewise drift protection — but the `count` rows it excludes are real.
+//
+// NOT RENDERED, deliberately: `te_impact_bps` itself. It is a STANDALONE
+// estimate (|Δweight| × σ), while the te_alloc_bps figures inches away in the
+// same card are ALLOCATIONS of the fund's total tracking error. Printing the two
+// side by side invites exactly the standalone-vs-allocation conflation this
+// movement's header calls out. The ranking basis is stated in words instead, and
+// the word "estimated" is required copy (backend spec, data-integrity
+// guardrails).
+
+/** The one change this posline names. Every field is a straight served read. */
+export interface RecentMove {
+  /** Served label: a ticker for `position` rows, a sector/theme name otherwise. */
+  name: string;
+  /** `position` | `theme` | `sector` — the priced kinds. */
+  changeType: string;
+  /** `entered` | `exited` | `increased` | `decreased`. */
+  direction: string;
+  /** Signed percentage points of the portfolio. */
+  magnitudePp: number | null;
+  /** Percent of the portfolio at each filing. `priorPct` is null exactly when the
+   *  direction is `entered` and `currentPct` when it is `exited` — the served
+   *  payload leaves them null and they are NEVER back-filled with 0. */
+  priorPct: number | null;
+  currentPct: number | null;
+  /** Both stamps, always. Never collapsed to one date. */
+  asOfPrior: string;
+  asOfCurrent: string;
+  /** Served `te_rank === 1`: no priced change outranks this one. See RULE 2. */
+  earnedSuperlative: boolean;
+  /** The largest of the priced moves by SIZE, named only when it is a different
+   *  change from the one above — the concrete proof that the ranking did work.
+   *  Null for a below-the-gate reader, who holds one row and cannot compare. */
+  largestBySize: string | null;
+}
+
+export interface RecentMoveView {
+  move: RecentMove | null;
+  /** Why nothing is shown. Non-null exactly when `move` is null. */
+  reason: string | null;
+}
+
+const NO_CHANGES_SERVED =
+  "We compare a fund's filed holdings against its own filing from a year earlier. That comparison is not served for this fund, so there is no recent move to rank.";
+
+const NO_PRICED_CHANGE =
+  "This fund's filed holdings did change, but none of the served changes carries a risk-impact estimate — concentration and cash moves have no tracking-error mapping, and some positions sit outside our pricing universe. Ranking what is left by size would name the loudest change rather than the one that mattered, so we hold this back.";
+
+const UNREADABLE =
+  "This fund's positioning-change data could not be read, so nothing is claimed about it.";
+
+/**
+ * Rows that may be ranked and rendered: priced, on the pp scale, dual-stamped.
+ *
+ * `te_rank` is the whole test for "priced" — the backend assigns it only to rows
+ * that carry a TE estimate, and the two agree exactly on manifest 58 (1,913 rows
+ * have a null `te_impact_bps`, the same 1,913 have a null `te_rank`). Testing
+ * `te_impact_bps` as well would look safer and be worse: it is NOT whitelisted
+ * into `ShiftPreview` (the posline does not print it, so it does not cross the
+ * gate), and requiring it here failed the anonymous tier closed on every fund.
+ */
+function eligibleShift(o: Record<string, unknown>): boolean {
+  return (
+    num(o["te_rank"]) != null &&
+    o["value_unit"] === "pp" &&
+    str(o["change_name"]) != null &&
+    str(o["change_direction"]) != null &&
+    str(o["holdings_as_of_prior"]) != null &&
+    str(o["holdings_as_of_current"]) != null
+  );
+}
+
+/**
+ * Served `positioning_changes` (or its locked marker) → the one move to name.
+ *
+ * Takes the GATED value, because this section's gate is `free` and therefore has
+ * THREE states, not two: the full rows (free/paid), the whitelisted one-row
+ * `ShiftPreview` proof point (anonymous), and null. All three converge on the
+ * same three outcomes here — a priced top move, the no-priced-change reason, or
+ * the not-served reason — so no tier is told a different story about the fund,
+ * only a shorter one.
+ */
+export function buildRecentMove(gatedSection: unknown): RecentMoveView {
+  // --- anonymous: the whitelisted single-row proof point --------------------
+  if (isLocked(gatedSection)) {
+    const p = getPreview(gatedSection) as Record<string, unknown> | null;
+    // A hard lock (malformed gate → no projector) carries no preview at all.
+    if (p == null) return { move: null, reason: UNREADABLE };
+    if (!eligibleShift(p)) return { move: null, reason: NO_PRICED_CHANGE };
+    return {
+      move: {
+        name: str(p["change_name"]) as string,
+        changeType: str(p["change_type"]) ?? "",
+        direction: str(p["change_direction"]) as string,
+        magnitudePp: num(p["change_magnitude"]),
+        priorPct: num(p["prior_value"]),
+        currentPct: num(p["current_value"]),
+        asOfPrior: str(p["holdings_as_of_prior"]) as string,
+        asOfCurrent: str(p["holdings_as_of_current"]) as string,
+        earnedSuperlative: num(p["te_rank"]) === 1,
+        largestBySize: null,
+      },
+      reason: null,
+    };
+  }
+
+  const s = obj(gatedSection);
+  if (!s) return { move: null, reason: NO_CHANGES_SERVED };
+  const rows = Array.isArray(s["rows"]) ? s["rows"] : null;
+  if (rows == null) return { move: null, reason: UNREADABLE };
+  if (rows.length === 0) return { move: null, reason: NO_CHANGES_SERVED };
+
+  const priced = rows
+    .map(obj)
+    .filter((o): o is Record<string, unknown> => o != null && eligibleShift(o));
+  if (priced.length === 0) return { move: null, reason: NO_PRICED_CHANGE };
+
+  // Array order is NOT a contract (two builds of the same gold emit these rows
+  // in different orders), so sort explicitly. `te_rank` is the served ranking and
+  // wins; the te_impact/surfaced tie-breaks only make the pick deterministic.
+  const byRank = [...priced].sort(
+    (a, b) =>
+      (num(a["te_rank"]) as number) - (num(b["te_rank"]) as number) ||
+      (num(b["te_impact_bps"]) ?? 0) - (num(a["te_impact_bps"]) ?? 0) ||
+      (num(a["surfaced_rank"]) ?? 9e9) - (num(b["surfaced_rank"]) ?? 9e9),
+  );
+  const top = byRank[0];
+
+  // The loudest move, for contrast — compared only among the PRICED rows, which
+  // all measure percentage points of the same portfolio. Comparing against a
+  // concentration or cash row would be comparing different quantities.
+  const bySize = [...priced].sort(
+    (a, b) => Math.abs(num(b["change_magnitude"]) ?? 0) - Math.abs(num(a["change_magnitude"]) ?? 0),
+  )[0];
+  const largestBySize =
+    bySize != null && bySize["change_id"] !== top["change_id"] ? str(bySize["change_name"]) : null;
+
+  return {
+    move: {
+      name: str(top["change_name"]) as string,
+      changeType: str(top["change_type"]) ?? "",
+      direction: str(top["change_direction"]) as string,
+      magnitudePp: num(top["change_magnitude"]),
+      priorPct: num(top["prior_value"]),
+      currentPct: num(top["current_value"]),
+      asOfPrior: str(top["holdings_as_of_prior"]) as string,
+      asOfCurrent: str(top["holdings_as_of_current"]) as string,
+      earnedSuperlative: num(top["te_rank"]) === 1,
+      largestBySize,
+    },
+    reason: null,
   };
 }
 
