@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-26T04:56-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-26T05:22-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 `run-state: active — NIGHT DRAIN 2026-08-25 23:40 (owner briefed, four items picked, no owner input available until morning). Lanes: WEB = F3 Recent Changes flip then F7 screener; FUND_SCORE = L10 effective-positions then the as-of mislabel (F2 fence: one lakehouse writer at a time). Separate repos, so the two lanes run concurrently — that is the plan's stated exception to serialize-do-not-parallelize. Session stayed on OPUS 5 — the Fable switch was found unnecessary and RETIRED with evidence (the backend workflow hard-pins its own reviewer/gate models; see the START HERE correction). Tiering was tightened, not relaxed. Carried forward for the morning: the F4 byte-identity fence finding (see Run log 2026-08-25 17:46) is still the OWNER'S CALL and was not acted on.`
@@ -764,6 +764,45 @@ them.
 | 10 | Still-live BETA BLOCKERs not on the S3 path: **L2** wrong price series (WMSIX tracks a muni index), **L3** nondeterministic named ETFs, **L4** ~139 stale-fee scores, **L7** V-spike corruption (174 funds), **L8** taxonomy misroutes, **L12** twin-label, **L13** active-share. | see backlog | deprioritized by owner directive, not fixed |
 
 ## Run log
+
+- 2026-08-26 05:22 — **RATCHET ROUND 3 — codex caught a hole in MY spec, and the worker caught a
+  CONTRADICTION in my correction.** `00ddd4d` on `fix/positioning-check-fails` (re-gate running).
+  **My error, owned:** I specified the ratchet as count + per-series set. Check 6's ORIGINAL gate was a
+  **ratio** gate (`frac_le1 >= 0.99`), and by replacing it with an absolute I dropped a bar the old one
+  enforced. Codex's P1: the same **53** divergent funds over a shrunken compared universe stays WARN —
+  1.48% at the pinned 3,578, but 2.65% at 2,000 compared, which the old bar failed. That is precisely
+  the [[aggregate-gate-masks-per-series-regression]] family I *quoted at the worker* when specifying
+  the ratchet. Two rounds, two real holes, both mine — the gate is doing its job on the dispatcher,
+  which is what it is for.
+  **Fix: pin the DENOMINATORS too, as independent legs — add, never replace.** Check 6 now carries four
+  legs (numerator 53 · set of 53 series · **denominator `funds_compared` 3,578, fails on ANY shrink** ·
+  **ratio `frac_le1`**). **Check 10 was NOT clean either** — telling the worker to audit rather than
+  assume paid: its denominator `surfaced_position_rows` = **49,205 was not recorded in the previous pin
+  at all**; halving it doubles the defect rate to 3.36% with count and fund-set untouched. It now pins
+  that, plus `control_true_exits` 24,381 and a **ceiling** on `total_rows` 907 (the unsurfaced tail can
+  grow while the surfaced headline does not move).
+  **The worker refused to invent a bar for Check 10, correctly.** Check 6 got a ratio leg because it
+  HAD a contract (0.99) worth surviving a re-pin; Check 10 never had one — its original gate was "any
+  false row > 0 -> FAIL", i.e. exactly the permanent red codex blocked in round 2. Inventing a threshold
+  now would be adopting a bar this project never agreed to. Floors + ceiling close the proportional
+  hole without one.
+  **AND IT CAUGHT A CONTRADICTION IN MY INSTRUCTION — the right call.** I asked for the original
+  `frac_le1 >= 0.99` enforced as a hard leg. But `frac_le1` is **0.985187 TODAY**, already below 0.99,
+  **because that breach IS the tracked defect**. A hard 0.99 reinstates the permanent red that was
+  round 2's P1 — my two instructions could not both hold literally. Its resolution, which I accept:
+  enforce the leg at the MEASURED value, carry the 0.99 contract explicitly in the baseline
+  (`frac_le1_original_bar` + a note) and restate it in the report body in words every run — *"This is
+  BELOW the original acceptance bar of 0.99 — that breach IS the tracked defect, stated plainly rather
+  than absorbed"* — and prove by demonstration that setting the leg to 0.99 turns the gate red TODAY,
+  so restoring the bar is the definition of done rather than a lost requirement.
+  **Probes: 9 unit cases in BOTH directions** (improvements must not fire: denominator grows -> WARN,
+  ceiling falls -> WARN, bar improves -> WARN), 5 inline probes on Check 6 and 6 on Check 10, plus two
+  end-to-end runs. The decisive one is codex's exact case, which previously WARNed: denominators pinned
+  UP (3,578->4,000; 49,205->60,000) with both numerators and **both per-series sets untouched** ->
+  **FAIL x2**, *"the defect RATE has worsened even though the count has not."*
+  **The re-pin absorbed nothing** — flattened diff is 0 changed keys, 0 removed, 4 added. Pin restored
+  and `cmp`-verified byte-identical. Gate `1 PASS | 1 WARN | 0 FAIL`, exit 0, WARN surfaced by name.
+  93/93 tests. **Four legs added, none removed.**
 
 - 2026-08-26 04:55 — **CODEX BLOCKED the positioning commit on 2 P1s, and it was RIGHT — resolved with
   a pinned-set ratchet, not by picking a side.** `562bfd1` on `fix/positioning-check-fails` (re-gate
