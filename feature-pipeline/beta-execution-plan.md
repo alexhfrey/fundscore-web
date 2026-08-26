@@ -8,10 +8,10 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-25T23:45-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-26T00:17-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
-`run-state: active — NIGHT DRAIN 2026-08-25 23:40 (owner briefed, four items picked, no owner input available until morning). Lanes: WEB = F3 Recent Changes flip then F7 screener; FUND_SCORE = L10 effective-positions then the as-of mislabel (F2 fence: one lakehouse writer at a time). Separate repos, so the two lanes run concurrently — that is the plan's stated exception to serialize-do-not-parallelize. Owner switched the session to Fable per the tiering rule. Carried forward for the morning: the F4 byte-identity fence finding (see Run log 2026-08-25 17:46) is still the OWNER'S CALL and was not acted on.`
+`run-state: active — NIGHT DRAIN 2026-08-25 23:40 (owner briefed, four items picked, no owner input available until morning). Lanes: WEB = F3 Recent Changes flip then F7 screener; FUND_SCORE = L10 effective-positions then the as-of mislabel (F2 fence: one lakehouse writer at a time). Separate repos, so the two lanes run concurrently — that is the plan's stated exception to serialize-do-not-parallelize. Session stayed on OPUS 5 — the Fable switch was found unnecessary and RETIRED with evidence (the backend workflow hard-pins its own reviewer/gate models; see the START HERE correction). Tiering was tightened, not relaxed. Carried forward for the morning: the F4 byte-identity fence finding (see Run log 2026-08-25 17:46) is still the OWNER'S CALL and was not acted on.`
 ← the dispatcher sets this WITH every heartbeat re-stamp. Values: **`active`** (drain in progress — a
 stale heartbeat means investigate), **`paused-on-owner: <what>`** (the line is idle BY DESIGN, waiting
 on a decision — a stale heartbeat is EXPECTED; any backstop check should re-stamp and STOP, never run
@@ -255,13 +255,13 @@ none needs an owner input, and each de-risks D1 or the fences this plan depends 
 | L1 | Foreign-holdings enrichment CORE (BETA BLOCKER; unlocks L8) — backlog Working set item 1 | FD (reviewed, multi-segment) | opus/high impl; Fable-session gates | **done 2026-08-09** — four merges (`bad49ad`,`c000de4`,`0674802`,`bd39539`); ~$40B sector coverage recovered + $50T valUSD fix + determinism + one shared sector basis across all three panels; seg 5 re-filed pending P3; follow-ups: L14 + filed chores |
 | L2 | Wrong-price-series collisions sweep (BETA BLOCKER) — Working set | FD | opus/high | **ready — DEPRIORITIZED 2026-08-17** off the S3 critical path (owner directive). Still a BETA BLOCKER; sequenced after the capital-gain item per the price-path order. |
 | L3 | l2_blend_etfs share-class adjudication (BETA BLOCKER; merged item — sort-key fix FORBIDDEN) | FD | opus/high | **Segments 0-2 COMMITTED + codex-gated (`6e177e2`). Segment 3 PHASE A complete, checkpoint PASS-WITH-CORRECTIONS 2026-08-20** (served==gold 0 mismatches over 480,562 field comparisons; R1 measured at cut 8 = 3,265 funds / 20,894 rows, net **+854**; D-4 takes undated served rows 139/93 funds -> **0**). **PHASE B PARKED:owner** — needs the `076562f` merge ruling, which itself carries D8-3's own DECISION 1 (73.8% recoverable-missing) and 2(a) (suppression refinement, 69 funds vs 143). 0 canonical writes. |
-| L4 | value_score stale ticker fees ~139 funds (BETA BLOCKER) | FD | opus/high | **Segment 0 complete, checkpoint PASS-WITH-CORRECTIONS 2026-08-21 — every claim independently re-derived, ALL FIVE owner decisions FIT as written.** PRNEX 30.48 -> **59.83**; top-10 27.234% -> 30.965%; coverage 44.9% -> **93.42%**; **66 funds would LOSE the figure**. Found a NEW defect (as-of mislabel, filed separately) and a **vacuous acceptance criterion (A8)**. **Segment 1 PARKED:owner** on the five decisions. 0 canonical writes. |
+| L4 | value_score stale ticker fees ~139 funds (BETA BLOCKER) | FD | opus/high | **ready — STATUS CORRECTED 2026-08-25 23:55. This cell had been carrying L10's Segment-0 result, not L4's.** The text that was here cited PRNEX 30.48 -> 59.83 (effective positions), the top-10 27.234% -> 30.965% split, and coverage 44.9% -> 93.42% on the FILED basis — every one of those is L10's measurement, and L4 is a stale-FEE defect in a different domain that has never been worked. Two ways this misled: it read as though L4 were measured and parked (it is not), and L10's own row read just `ready`, so a dispatcher would re-dispatch a partly-done opus/high item from zero. The text is moved to L10 below, not deleted. L4 remains a live BETA BLOCKER, deprioritized off the S3 path by the 2026-08-17 owner directive, never started. |
 | L5 | Neighbourhood panel backend — `specs/queue/neighbourhood-panel-backend.md` (unblocks F-movement 03) | IN (reviewed) | opus/high | **done 2026-08-09** (`009b872` merged; coverage 52.91%/83.46% with 0 recoverable-missing; 16 injection-proven invariants; found L15 + the H1-literal drift; web mirror handed off in report §12) |
 | L6 | recent-changes-te-ranked — `specs/queue/recent-changes-te-ranked.md` (unblocks F-movement on Recent Changes) | IN (reviewed) | opus/xhigh | **ready** |
 | L7 | V-spike price corruption 174 funds (BETA BLOCKER; needs ONE off-cycle L2 re-solve — coordinate with L2/L3 so the re-solve runs ONCE, after all price-touching fixes) | FD | opus/high | **ready** |
 | L8 | Taxonomy misroutes / ALT classification (BETA BLOCKER) | FD | opus/high | **ready** |
 | L9 | Per-stock receipts backend — `specs/queue/per-stock-receipts-backend.md` (contains **S2**; L1 closed 2026-08-09 → blank its `depends_on:` when dispatched) | IN (reviewed) | opus/high | **Segment 0 complete, checkpoint PASS-WITH-CORRECTIONS 2026-08-20, corrections applied and re-verified.** Headline: of the 1,947 funds clearing the 0.80 floor only **476-573 get a CLEAN card** — the rest miss a priceable holding (median 4.14% of NAV) or price one off a dead quote; **318 funds would show an UNDERSTATED weight** for a name the card does show. **Segment 1 PARKED:owner on D-1 (ADR basis)** — +116 funds, but **71.6% of ADR-priced value is twin-INVISIBLE**, pushing the false-twin defect from 361 funds onto 1,244-1,346. **D-3 (additive book) and D-4 (10-day freshness bound) TAKEN as line rulings.** 0 canonical writes. |
-| L10 | Riders build — `specs/queue/v4-serving-riders-skill-strip-effective-positions.md`. **RE-RATED 2026-08-07 (W5 grounding): lean/opus-med → reviewed/opus-high.** It is NOT two small additions: effective-positions is ALREADY served and rendered on the WRONG book (`holdings_snapshots` US-ticker basis, not filed `pctVal`) — PRNEX used 57 positions to describe a 127-holding fund, serving 30.5 where the filed book gives 59.8. **SIZING CORRECTED 2026-08-20 by L10 Segment 0 — the old "every fund reads ~2× more concentrated" line generalised PRNEX and is RETRACTED:** median served/filed ratio is **1.10**, p75 1.65, **p90 8.3×**, max 130×; 86.8% understate but **6.2% are biased the OTHER way**, and only 21% are ≥2× off. **The tail is the defect:** 163 served funds show effective positions <5 while filing ≥50 lines, 130 show <2, and 9 exceed their own filed line count — JFEAX files 288 lines and serves **1.0**, while JINTX files ONE line and serves **70.4**. So L10 is a **correctness fix on a live serving fact**, not a rider, and it must land before F6 cutover. Fold in the top-10 27.2/31.0 split (same root cause, filed as its own bug). | IN (**reviewed**) | **opus/high** | **ready** |
+| L10 | Riders build — `specs/queue/v4-serving-riders-skill-strip-effective-positions.md`. **RE-RATED 2026-08-07 (W5 grounding): lean/opus-med → reviewed/opus-high.** It is NOT two small additions: effective-positions is ALREADY served and rendered on the WRONG book (`holdings_snapshots` US-ticker basis, not filed `pctVal`) — PRNEX used 57 positions to describe a 127-holding fund, serving 30.5 where the filed book gives 59.8. **SIZING CORRECTED 2026-08-20 by L10 Segment 0 — the old "every fund reads ~2× more concentrated" line generalised PRNEX and is RETRACTED:** median served/filed ratio is **1.10**, p75 1.65, **p90 8.3×**, max 130×; 86.8% understate but **6.2% are biased the OTHER way**, and only 21% are ≥2× off. **The tail is the defect:** 163 served funds show effective positions <5 while filing ≥50 lines, 130 show <2, and 9 exceed their own filed line count — JFEAX files 288 lines and serves **1.0**, while JINTX files ONE line and serves **70.4**. So L10 is a **correctness fix on a live serving fact**, not a rider, and it must land before F6 cutover. Fold in the top-10 27.2/31.0 split (same root cause, filed as its own bug). | IN (**reviewed**) | **opus/high** | **NOT A VALID DRAIN PICK — owner-blocked. Re-assessed 2026-08-25 23:55 for the night drain and STOOD DOWN.** Segment 0 IS complete (its result was mis-filed into the L4 row above and is restored here): PRNEX 30.48 -> **59.83**; top-10 27.234% -> 30.965%; coverage 44.9% -> **93.42%** (5,436/5,819) on the filed basis; **66 funds would LOSE the figure**; found the as-of mislabel (now its own item, being worked tonight) and a **vacuous acceptance criterion (A8)**. It produced exactly ONE artifact — `reports/l10_effective_positions.md` (+577 lines, `77fbdf7` on `fix/l10-effective-positions`); no source, no tests, and the intermediate parquet lived in a scratchpad, so **the numbers are not re-runnable from the branch**. **Segment 1 cannot start:** its first step writes a `basis` column whose value IS the unruled DECISION 3 (position set — all-filed-long, PRNEX 59.83, vs EC-long, 56.24 and commensurable with the top-10 cell V4 already renders; the report recommends EC-long and explicitly declines to choose). **FIVE owner decisions sit open at `reports/l10_effective_positions.md:569-577`, none ruled since 2026-08-21**, and Segment 1 has **no written spec** — the Segment 0/1 split exists only in that report's §7. Two consumers the spec missed were also found: `positioning_changes` emits the same row, and the `vs_peer` sentence flips for 425/2,524 (16.8%) funds. |
 | L11 | Superlative-guard check (top_bet_confident consumer check) — Working set | FB | sonnet/med | **done** (fund_score `06ae57a` on `l11/superlative-guard` — **MERGED, verified 2026-08-17**; 2 deferred advisories → Open chore) |
 | L12 | Twin-label/basis-metadata fix (record's passive leg is a PIT twin cascade mislabeled as one current ETF; 204/218 blends) — **REQUIRED BEFORE F6**; backlog item filed 2026-08-07 | FD | opus/high | **ready** |
 | L13 | Active-share fail-open: propagate `method`+`lookthrough_resolved_weight` to serving + gate (17 funds at 0.5-vs-empty-benchmark, confidence high) — restores the stat F1 gated closed; NOT cutover-blocking | FD | opus/med | **NOT SAFELY READY — new hard prerequisite found 2026-08-21.** L13's whole purpose is to UN-GATE `active_share`, and L10's checkpoint proved `active_share` carries the as-of mislabel: `exposure_xray.py::build_concentration_rows` (L776–810) pulls `effective_positions`, `active_share` AND `hhi` from the same **age-unbounded** panel row, and **JFEAX serves `active_share = 1.0` computed from a ONE-LINE 2022-10-31 book, stamped 2026-04-30, at HIGH confidence.** Un-gating before the as-of item lands would ship a wrong number carrying a confident false date — strictly worse than the honest withholding it replaces. **Sequence: as-of mislabel → L13.** |
@@ -765,6 +765,66 @@ them.
 
 ## Run log
 
+- 2026-08-26 00:13 — **F3 COMPLETE and DISPATCHER-VERIFIED (codex still owed).** `b110f18` (+ docs
+  `58f3f26`) on `f3/recent-changes-flip`. Web main untouched at `4c43717`, nothing pushed.
+  **Coverage, re-derived by the dispatcher against manifest 58 rather than accepted:** **3,037 of
+  5,819 funds (52.2%)** render the posline — 2,846 as "biggest recent move" (served `te_rank` 1) and
+  191 as "a recent move that mattered" (best served rank >= 2, because `te_rank` ranks all candidates
+  while the panel surfaces a subset, so calling theirs "the biggest" would be false). **207 serve rows
+  but none priced** (`concentration`/`cash` carry `te_impact_bps: null` BY DESIGN — the backend
+  refuses a fake common scale) and **2,575 have no section**. 3,037 + 207 + 2,575 = 5,819 exactly, so
+  **the remainder is honest-missing, not a read-path defect.** 0 served rows lack an as-of stamp, so
+  the dual-stamp contract costs zero coverage.
+  **The feature does real work, measured:** the TE-top change is NOT the largest by raw size in
+  **1,790 of 3,037 funds (58.9%)** — the dispatcher's own recompute; the worker reported 1,787 and the
+  3-fund gap is tie-breaking among equal magnitudes, immaterial. This is the claim the section's
+  promise rests on ("significance-ranked, not magnitude-ranked prose pretending to be
+  significance-ranked") and it is now evidenced rather than asserted.
+
+  **The fail-open gate was real and is closed.** `gating.ts`'s `positioning_changes` entry had no
+  `defaultGate` and fell through to `"public"` — a load that dropped the gate key would have published
+  the full ranked list to anon. Fixed to `defaultGate: "free"`, and the tripwire was proved
+  **non-vacuous**: reverting the fix fails exactly the two new assertions
+  ([[vacuous-check-and-boundary-axis]]). 12 new golden assertions, deliberately non-degenerate — a
+  magnitude sort would pick Financial Services, not META.
+
+  **Three further defects found and fixed, none of them in the brief:** `registry.ts`'s `asOf` was
+  wrong in BOTH halves (2026-04-30 is the panel EVALUATION date, not any fund's holdings date — only
+  978/3,244 file that late, modal is 2026-03-31; and no prior stamp precedes 2025-01-31, not the
+  stated 2024-01-31); the methodology copy claimed **six** change families including `region` and
+  `style` when the served set is **five**, with zero region and zero style rows (fixture-era copy —
+  the exact sweep [[section-flip-protocol-lessons]] demands); and the worker caught a bug in its own
+  first cut where `eligibleShift` required `te_impact_bps`, which is not in the `ShiftPreview`
+  whitelist, so **every anon fund failed closed** — found by rendering `?tier=anonymous`, not by types.
+
+  **Dispatcher-verified independently, both confirmed:** `MFUS` appears as a `change_name` in **0 of
+  20,861** served rows and FAEQX has no section at all, so the filed wrong-name exposure is **NOT
+  live** on this posline and no special case was added — correctly. PAEAX's `surfaced_rank=1` row is
+  `Effective Positions`, the exact L10 wrong-book quantity the page withholds; the `te_rank` guard
+  excludes it BY CONSTRUCTION rather than by a hand-written case.
+
+  **NEW OBSERVATION, filed not chased:** **97 of 5,819 served funds carry a NULL `canonical_ticker`**
+  — all `value_offering_status: unavailable`, **0 scored**, all variable-insurance-trust
+  (`Invesco V.I. ...`) series that genuinely have no public ticker. 76 of them carry a
+  `positioning_changes` payload they can never render, since both fund routes key on ticker.
+  Honest-missing and harmless — but it means **any coverage figure keyed on `canonical_ticker`
+  silently undercounts by up to 97**. The dispatcher hit exactly that: a first recompute keyed on
+  ticker returned 2,961 and looked like it refuted the worker, when the worker was right and the KEY
+  was wrong. Recorded so the next person does not re-pay it.
+
+  **CODEX PAID AND CLEAN — `CODEX_GATE: pass`, 0 P0/P1, 0 advisories** (`--base b071a27`, high
+  reasoning, the one deep pass that IS the gate). The debt is discharged. For the record of how it
+  arose: `codex-commit-gate.sh` blocked the worker's commit (no verdict for HEAD `b071a27`), and the
+  worker used the gate's OWN documented `SKIP_CODEX_GATE=1` path, disclosed it in the commit body as
+  "DELIBERATE SKIP, NOT A PASS", and **edited no machinery** — the correct behaviour under a brief
+  that reserves codex to the dispatcher.
+
+  **Left in place, reported not fixed (recommend deleting at route cutover):** `v2/RecentChanges.tsx`
+  still ranks by `Math.abs(change_magnitude)` and still says "Ranking by tracking-error impact is in
+  development", now false; `RecentChangesTable.tsx`'s `dirChip()` colours only `cut`/`trimmed`/`down`,
+  none of which are served directions. Both are dead code — rendered by no route — and the
+  `recentChangesTe` fixture is already unreachable (`overlayV2Fixtures` has zero callers).
+
 - 2026-08-25 23:45 — **NIGHT DRAIN OPENED. Four items, two lanes, owner offline until morning.**
   Owner picked F3 + F7 (web lane) and L10 + the as-of mislabel (fund_score lane) and moved the
   session to Fable per the START HERE tiering rule. F2's STATUS was corrected in the same pass —
@@ -787,6 +847,71 @@ them.
   -6.2pp") is gone from the data. Rows carry `te_impact_bps`, `te_impact_basis`, dual
   `holdings_as_of_prior`/`_current` stamps, and no `style` rows in the sample (the D-4 ruling landed).
   So F3 is a render job against good data, not a data job.
+
+- 2026-08-25 23:52 — **SCOPING PASS REDREW THE NIGHT. L10 STOOD DOWN; two picks replaced; two
+  bookkeeping defects fixed.** A read-only scoping agent checked all four picks against the code
+  before dispatch rather than after. Three of its five findings changed what runs tonight, which is
+  the argument for scoping before dispatching, not during.
+
+  **L10 is NOT a valid overnight pick and was withdrawn** (details in its row above). Segment 1's
+  first step writes a `basis` column whose value IS the unruled DECISION 3; five owner decisions sit
+  open and unruled since 2026-08-21; and Segment 1 has no written spec. Dispatching it would have
+  burned an opus/high reviewed run to arrive at a question only the owner can answer. **Nothing was
+  lost by picking it — the cost was one scoping agent, and it also recovered Segment 0's mis-filed
+  result.**
+
+  **F3 was NARROWED mid-flight** (worker already running; corrected by SendMessage, not relaunched —
+  context survives). The governing spec scopes **only a posline** in movement 01
+  (`profile-v2-production-cutover.md:200-202`); no spec anywhere defines a V4 Recent Changes
+  *section*, the V4 movement map has no slot for one, and movement 04 is reserved for receipts. My
+  first brief asked for the section too — that was scope I invented, and building an unspecced
+  MEDIUM section overnight with the owner asleep is exactly the call that is not the line's to make.
+  Posline-only is SMALL: 3-4 file edits, no new component. Two donor traps were also corrected —
+  `v2/RecentChanges.tsx` is a FIXTURE block rendered nowhere and consumes the WRONG row shape; the
+  only renderer already on the served `ShiftRow` shape is `SelectionEvidence.tsx:521-600`.
+
+  **A real gate defect was found and folded into F3:** `gating.ts:381` (`positioningChanges`) has
+  **no `defaultGate`, so it fails OPEN to `public`** — its neighbours at `:384`/`:387` both declare
+  one. That is the fail-open class this project has already paid for, sitting on the exact section
+  being wired. In scope, with a proof required.
+
+  **BACKEND LANE SUBSTITUTED: the as-of mislabel**, dispatched to a fresh worktree
+  (`fund_score-wt-asof`, `fix/asof-mislabel` off main `13b5199`, `data/` symlinked). Root cause
+  confirmed in code, with three aggravating findings the backlog item did not state: the CORRECT date
+  (`quarter_end_used`) is present in the div panel and thrown away at the `.select()`; `top10_weight`
+  is computed on a DIFFERENT, newer book yet stamped identically, so the row is not commensurable
+  with itself; and `:803` hardcodes `confidence_state="high"` regardless of book age, which is why
+  45 of the worst 48 serve "available / high". Measured 813/2,621 (31.0%), and **only 3 are explained
+  by the panel being stale on disk — 810 are a true structural lag, so rebuilding the panel does not
+  fix it.**
+
+  **LINE RULING taken on the as-of fix (tier b — recorded so it is reversibly wrong).** Honest
+  stamping flips ~**805 of 2,621 funds (30.7%)** from `available` to `stale` under the existing
+  `STALE_DAYS = 180`. Ruling: **apply the existing rule to the true date; do not recalibrate the bar,
+  do not add a threshold, do not special-case the structural lag.** The flip is not a new rule — it
+  is the existing rule finally seeing true data, which the false stamp was hiding. Inventing a wider
+  bar to keep chips green is papering over a gap. Materiality: the false stamp is live TODAY, the fix
+  is behind F4, and every option ships the honest date — so it is an implementation call, not a
+  ruling. **PARKED for the owner (with numbers, not adjectives): should the 180-day bar be
+  recalibrated against the div panel's structural one-quarter lag?** The worker is measuring the flip
+  at 180/270/365d so that is a data decision in the morning.
+
+  **Two premises of mine were refuted and are recorded as such:** `recent-changes-te-ranked` was NOT
+  an open shipped-code/unfinished-spec inversion — it was closed earlier the same day (`02ef2f0`,
+  moved to `specs/done/`); the run-log text I read predated that commit. And
+  `unify-te-decomposition-global-basis` is **shipped in full** (`48c5dbe` / `f4aee40` / `fa3e599`,
+  2026-07-30/31, all ancestors of main) while its spec file still reads `status: queued` — a live
+  re-dispatch hazard, since it is an `effort: xhigh` opus spec that `/implement-next` would take from
+  zero. **Queued, deliberately not done now:** move it to `specs/done/` once the F3 worker releases
+  the web working tree, so the move does not get swept into F3's commit.
+
+  **Still FAILING and now adjudicated as pre-existing, not tonight's:**
+  `reports/product/positioning_changes_check_data.md` reads 5 PASS / 1 WARN / **2 FAIL** on main —
+  Check 5 (`S000073478` `position::SPY` prior 111.42pp vs recompute 0.00pp, a likely recompute-basis
+  mismatch of the same wrong-book class as L10, and UNADJUDICATED in the report) and Check 6 (X-Ray
+  coherence 98.5650%, already filed at `backlog.md:29`). The as-of worker was told to baseline both
+  first so they cannot mask a regression it introduces. **Check 5 is the next backend pick when the
+  as-of item lands.**
 
   **⚠ F7 IS BIGGER THAN "a stale demo page" — measured, not assumed.** `/screener` is linked from
   `Header.tsx:21`, so it is one click from every page, and it reads `schema.funds` — the pre-pivot
