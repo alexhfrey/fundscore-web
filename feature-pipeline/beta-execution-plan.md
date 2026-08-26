@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-26T04:00-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-26T04:56-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 `run-state: active — NIGHT DRAIN 2026-08-25 23:40 (owner briefed, four items picked, no owner input available until morning). Lanes: WEB = F3 Recent Changes flip then F7 screener; FUND_SCORE = L10 effective-positions then the as-of mislabel (F2 fence: one lakehouse writer at a time). Separate repos, so the two lanes run concurrently — that is the plan's stated exception to serialize-do-not-parallelize. Session stayed on OPUS 5 — the Fable switch was found unnecessary and RETIRED with evidence (the backend workflow hard-pins its own reviewer/gate models; see the START HERE correction). Tiering was tightened, not relaxed. Carried forward for the morning: the F4 byte-identity fence finding (see Run log 2026-08-25 17:46) is still the OWNER'S CALL and was not acted on.`
@@ -764,6 +764,47 @@ them.
 | 10 | Still-live BETA BLOCKERs not on the S3 path: **L2** wrong price series (WMSIX tracks a muni index), **L3** nondeterministic named ETFs, **L4** ~139 stale-fee scores, **L7** V-spike corruption (174 funds), **L8** taxonomy misroutes, **L12** twin-label, **L13** active-share. | see backlog | deprioritized by owner directive, not fixed |
 
 ## Run log
+
+- 2026-08-26 04:55 — **CODEX BLOCKED the positioning commit on 2 P1s, and it was RIGHT — resolved with
+  a pinned-set ratchet, not by picking a side.** `562bfd1` on `fix/positioning-check-fails` (re-gate
+  running).
+  **The disagreement, stated plainly because it is worth having on the record:** my dispatch brief said
+  *"you must NOT make the check green by loosening a tolerance"*. Codex's P1s said the opposite —
+  `positioning_changes` is a **registered marker check**, so hard-failing on two KNOWN, deliberately-
+  unfixed defects (Check 6's by-design basis mismatch, Check 10's pre-existing ISIN/ticker defect)
+  leaves `make check FEATURE=positioning_changes` permanently red for everyone downstream, on the
+  intended artifact.
+  **Both were half right.** A permanently-red gate is a broken gate — and this plan already carries
+  that exact lesson from earlier the same night, when the F4 byte-identity fence fired on a benign
+  re-serialisation and the finding written for the owner was that a guard firing on known-benign
+  conditions *"trains the line to wave aborts through — the worst failure mode a fence can have"*.
+  Downgrading to WARN is equally wrong: silent rot is what let Check 5 sit stale for 15 days.
+  **Adjudication (dispatcher, tier b — nothing user-visible changes, every option ships the same data,
+  so it is an implementation call): a PINNED-BASELINE RATCHET.** Pin each defect's measured extent —
+  Check 10 at **827 surfaced rows / 244 funds** (control 24,381 true exits), Check 6 at **53 of 3,578
+  funds >1pp** — then **FAIL above baseline, WARN at-or-below with the absolute number and backlog item
+  printed every run**. The gate now means "no regression" rather than "no defect", and is strictly MORE
+  informative than the permanent red, which never said which series moved.
+  **Pin the SET, not just the count** ([[aggregate-gate-masks-per-series-regression]]): a bare count
+  ratchet passes while one entity regresses. Verified in the code myself — three INDEPENDENT `if`s, not
+  `elif`, so a swap at identical total leaves the count leg silent and still trips `new`:
+  `if total_current > total_baseline: FAIL` · `if new: FAIL` · `if grown: FAIL`. `left`/`shrunk` are
+  reported but never fail, so improvement cannot go red.
+  **Three non-vacuity demos, two end-to-end on the real gate**, the third decisive: swapping ONE pinned
+  series for a phantom with `surfaced_rows=827` and `funds_over_1pp=53` UNTOUCHED still FAILs both
+  blocks — a count-only ratchet reads 827==827 and passes. Baseline restored and byte-diffed after.
+  The worker also caught a bug in its own first cut: the inline self-probes were driven off the LIVE
+  observation, so under a seeded regression they went red for the right reason but printed "the ratchet
+  failed its own probes" — re-pointed at the pinned baseline, since the probes are properties of the
+  GATE and must hold wherever today's artifact sits.
+  **Gate: `positioning_changes` FAIL/exit 1 -> WARN/exit 0**, roll-up `1 PASS | 1 WARN | 0 FAIL`, and
+  the WARN is surfaced to the owner by name. 93/93 positioning tests. **No tolerance, population or bar
+  moved** — Check 6 still measures the stricter 3,578-fund population from `3774c52`.
+  **Check 10's root cause remains unfixed, correctly** — filed with the DAACX worked example.
+  **Dispatcher note:** my own independent set-leg mutation run was killed mid-flight by a background
+  job stop; the mutated baseline was restored from a saved copy and **byte-verified identical**, with
+  `git status` clean. The static read of the branch logic above stands in its place, alongside the
+  worker's end-to-end demonstration.
 
 - 2026-08-26 04:00 — **POSITIONING CHECK-DATA ADJUDICATED — `3774c52` on `fix/positioning-check-fails`
   (codex running).** Framed as an adjudication rather than a fix, and that framing paid: **nothing was
