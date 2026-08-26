@@ -1,5 +1,10 @@
 import { pgEnum } from "drizzle-orm/pg-core";
 
+// The only enum the serving mirror uses (serving.ts). The five demo-era enums
+// were retired with the fabricated `funds` table in F7 — nothing in the served
+// pipeline emits them, and one of them encoded a buy/sell rating this product
+// does not make. See scripts/drop-legacy-funds-table.mjs for the full list and
+// the local-DB cleanup.
 export const assetClassCodeEnum = pgEnum("asset_class_code", [
   "EQ",
   "FI",
@@ -8,34 +13,4 @@ export const assetClassCodeEnum = pgEnum("asset_class_code", [
   "ALT",
   "RE",
   "OT",
-]);
-
-export const scoreLabelEnum = pgEnum("score_label", [
-  "Strong Buy",
-  "Buy",
-  "Hold",
-  "Underperform",
-  "Sell",
-]);
-
-export const feeLevelEnum = pgEnum("fee_level", [
-  "Low",
-  "Below Average",
-  "Average",
-  "Above Average",
-  "High",
-]);
-
-export const attributionTypeEnum = pgEnum("attribution_type", [
-  "equity",
-  "fixedIncome",
-  "allocation",
-]);
-
-export const tradeActionEnum = pgEnum("trade_action", ["buy", "sell"]);
-
-export const tradeOutcomeEnum = pgEnum("trade_outcome", [
-  "winner",
-  "loser",
-  "pending",
 ]);

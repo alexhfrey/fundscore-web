@@ -1,7 +1,7 @@
 ---
 id: screener-rebuild-fund-profile-facts
 title: "F7 — rebuild /screener on fund_profile_facts; retire the fabricated 25-row demo table"
-status: queued
+status: done
 track: frontend
 repo: fundscore-web
 lane: standard
@@ -372,3 +372,27 @@ without it ever being built. It is hereby **Acceptance criterion 9**:
 > `passive_alt_label` — the assertion must catch it. Record the failing run. This is the specific
 > regression that would otherwise surface a fee-vs-passive verdict for 1,329 funds this product
 > deliberately declines to judge.
+
+## ADDENDUM 3 — implementer, 2026-08-26: shipped on `f7/screener-rebuild`
+
+Implementation report (coverage first, then every acceptance criterion with its proof, the four
+recorded non-vacuity FAIL runs, and the decisions taken):
+`feature-pipeline/reports/f7-screener-rebuild.md`.
+
+All nine acceptance criteria PASS with one carve-out on criterion 1: `DROP TABLE public.funds` on
+the LOCAL dev DB was refused by the agent sandbox's permission classifier and has **not** run. The
+code path is fully retired (mirror entry, accessors and every consuming component deleted), prod
+never held the table, and `db:check-serving` is unaffected — but `to_regclass('public.funds')` still
+returns non-NULL locally. One command finishes it:
+
+    node scripts/drop-legacy-funds-table.mjs --apply
+
+Two engineering findings worth carrying forward:
+
+1. **ADDENDUM 2 fix 3's failure mode had a SECOND instance the spec did not name.** The production
+   build caught `ScreenerControls.tsx` (a client component) importing the facet vocabularies from
+   `screener-universe.ts` and thereby pulling `postgres` into the BROWSER bundle. The db-free split
+   has to cover everything a client component imports, not just the golden test's entry point.
+2. **The criterion-1 grep is over-broad as written.** `-iE …|fundScore|…` matches the brand name
+   `FundScore` on ~80 legitimate lines. It needs the context check the spec asks for; a mechanical
+   "0 hits" reading of it would be a false negative on this repo.

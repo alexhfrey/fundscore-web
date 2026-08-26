@@ -16,7 +16,12 @@ import {
   primaryKey,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { assetClassCodeEnum } from "./enums";
+// Explicit `.ts` extension: this module is in the import graph of the db-free
+// golden test scripts/test/screener-select-golden.ts, which runs under Node's
+// type-stripping ESM loader — and that loader does NOT add extensions. tsconfig
+// sets `allowImportingTsExtensions`, so tsc/eslint/the bundler accept the same
+// specifier. Same rationale as gating-golden.ts's import of gating.ts.
+import { assetClassCodeEnum } from "./enums.ts";
 
 // ============================================================================
 // THESE SERVING TABLES ARE A READ-ONLY MIRROR — THEY ARE NOT CREATED FROM HERE.
