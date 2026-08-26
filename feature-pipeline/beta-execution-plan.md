@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-26T01:15-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-26T01:21-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 `run-state: active — NIGHT DRAIN 2026-08-25 23:40 (owner briefed, four items picked, no owner input available until morning). Lanes: WEB = F3 Recent Changes flip then F7 screener; FUND_SCORE = L10 effective-positions then the as-of mislabel (F2 fence: one lakehouse writer at a time). Separate repos, so the two lanes run concurrently — that is the plan's stated exception to serialize-do-not-parallelize. Session stayed on OPUS 5 — the Fable switch was found unnecessary and RETIRED with evidence (the backend workflow hard-pins its own reviewer/gate models; see the START HERE correction). Tiering was tightened, not relaxed. Carried forward for the morning: the F4 byte-identity fence finding (see Run log 2026-08-25 17:46) is still the OWNER'S CALL and was not acted on.`
@@ -814,6 +814,20 @@ them.
   repo while a worker owns its tree.** This is [[shared-worktree-contamination]] arriving from the
   DISPATCHER side rather than the worker side, in the WEB repo rather than fund_score. Either commit
   before dispatching, or wait for the worker to finish.
+
+  **Codex on F7: pass, 0 P0/P1, 1 P2 — and the P2 was a REAL 500.** `/screener?q=voo&q=spy`, which any
+  hand-edited or shared link produces, threw `TypeError: (params.q ?? "").trim is not a function` at
+  request time. Next's `searchParams` is `Record<string, string | string[] | undefined>` but
+  `ScreenerParams` declared every field as bare `string`, so **the type told TypeScript `.trim()` was
+  safe when it was not**. Reproduced before fixing, not taken on report. The other fields degraded
+  safely only **by accident** (`oneOf`'s array-vs-string `.includes` is false; `Number([...])` is NaN)
+  — precisely the accident that expires when someone adds a field — so the fix is at the TYPE, with
+  every read through a `first()` duplicate resolution, rather than at the one crashing call.
+  Side effect worth naming: a repeated `maxFeeBps` now yields the first value instead of silently
+  becoming "no filter" — more correct, not a regression. **6 new golden assertions, proved
+  non-vacuous by mutation** (strip `first()`'s array unwrap and the suite throws the original
+  TypeError; restored, 46/46 pass). `d311d4b`. **Re-gate: CODEX_GATE pass, 0 P0/P1, 0 advisories.**
+  `night/drain-2026-08-25` is now codex-clean end to end.
 
 - 2026-08-26 00:55 — **AS-OF MISLABEL FIXED — `1976a7b` + `d8c0055` on `fix/asof-mislabel`; **codex CLEAN, 0 P0/P1, 0 advisories**.**
   `exposure_xray_v0.5`. Nothing pushed, Postgres untouched, F4 respected. 33,301 concentration rows in
