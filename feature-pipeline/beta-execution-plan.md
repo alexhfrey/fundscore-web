@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-26T00:54-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-26T01:15-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 `run-state: active — NIGHT DRAIN 2026-08-25 23:40 (owner briefed, four items picked, no owner input available until morning). Lanes: WEB = F3 Recent Changes flip then F7 screener; FUND_SCORE = L10 effective-positions then the as-of mislabel (F2 fence: one lakehouse writer at a time). Separate repos, so the two lanes run concurrently — that is the plan's stated exception to serialize-do-not-parallelize. Session stayed on OPUS 5 — the Fable switch was found unnecessary and RETIRED with evidence (the backend workflow hard-pins its own reviewer/gate models; see the START HERE correction). Tiering was tightened, not relaxed. Carried forward for the morning: the F4 byte-identity fence finding (see Run log 2026-08-25 17:46) is still the OWNER'S CALL and was not acted on.`
@@ -764,6 +764,56 @@ them.
 | 10 | Still-live BETA BLOCKERs not on the S3 path: **L2** wrong price series (WMSIX tracks a muni index), **L3** nondeterministic named ETFs, **L4** ~139 stale-fee scores, **L7** V-spike corruption (174 funds), **L8** taxonomy misroutes, **L12** twin-label, **L13** active-share. | see backlog | deprioritized by owner directive, not fixed |
 
 ## Run log
+
+- 2026-08-26 01:25 — **F7 COMPLETE — `/screener` no longer serves fabricated data.** `0b5839c` on
+  `f7/screener-rebuild`, fast-forwarded onto `night/drain-2026-08-25`. Web main untouched at
+  `4c43717`, nothing pushed. **All 9 acceptance criteria PASS**, criterion 9 proved non-vacuous by
+  **four recorded failing runs**.
+  **The page now reads `fund_profile_facts`: 5,722 routable funds** (of 5,819 served; the 97
+  NULL-ticker insurance-trust series are excluded AND disclosed in the caption) against the 25
+  fabricated rows it replaced. Dispatcher-verified independently: **zero references remain** anywhere
+  in `src/` or `scripts/` to `schema.funds`, `getFundSummaries`, `searchFunds`, `getFundByTicker`,
+  `analyst_note` or `score_label` — the "Strong Buy" rating, the invented batting average and the
+  named-trade prose are gone from the code path, not merely hidden.
+  **Every gap is honest-missing, zero recoverable** — 51 fee-less rows are the pipeline's own
+  `fee_unavailable`/`too_new` verdict, and `jsonb_typeof(identity->'aum_usd') NOT IN
+  ('number','null')` returns **0**, so nothing numeric is lost to a parse failure.
+
+  **The build found a SECOND instance of the review's own finding, and this one was worse.**
+  ADDENDUM 2 fix 3 caught a db client in a TEST's import graph. The build then caught
+  `ScreenerControls.tsx` — a `"use client"` component — importing its facet vocabularies from
+  `screener-universe.ts`, which pulls **`postgres` into the BROWSER BUNDLE**. Fixed by moving
+  `SORT_KEYS`/`VERDICT_KEYS`/`normalizeParams` into the db-free module, where the sort whitelist
+  belongs anyway since it is a P4 tier surface. **Dispatcher-verified:** no client component imports
+  `screener-universe`; `screener-select.ts` imports only `sql` from drizzle-orm and the schema table
+  reference; and the golden test **runs and passes with `DATABASE_URL` unset** (`env -u DATABASE_URL`),
+  which was the entire point of the review finding.
+
+  **Criterion 9's four failing runs**, i.e. the trap is guarded not just documented: (A) a forbidden
+  key added to `SCREENER_SELECT` -> 4 FAIL; (B) `isScored` -> `value_score != null` -> 3 FAIL incl.
+  "REJECTS the trap row"; (C) label form -> 2 FAIL (worker flagged this demo as *honestly weaker*
+  than intended); (D) caption keyed on `Boolean(value_passive_alt)` — literally the 1,329-fund defect
+  — -> 1 FAIL. Live confirmation: CHNTX/QCSTFX/GSINX/FEMSX each render their honest state with **no**
+  "vs {alt}" caption while FCNTX renders "vs SPY".
+  Criterion 1's grep needed a **context check** exactly as [[section-flip-protocol-lessons]] warns: the
+  naive case-insensitive pattern matched the BRAND NAME on ~80 legitimate lines; excluding those gives 0.
+
+  **ONE ITEM DELIBERATELY LEFT UNDONE — `DROP TABLE public.funds` (25 rows) has NOT run.** The worker
+  was permission-blocked on every route and correctly did not work around it. The **dispatcher then
+  declined to run it too**, which is a judgement call worth stating: it is irreversible, and since the
+  entire code path is already gone nothing reads the table, so dropping it buys hygiene only. Spending
+  an irreversible action on hygiene while the owner is asleep is a bad trade. Dry run verified and the
+  command is known-good: `node scripts/drop-legacy-funds-table.mjs --apply` (25 rows, 5 demo enum
+  types, targets 127.0.0.1). One command in the morning.
+
+  **DISPATCHER PROCESS ERROR, recorded because it nearly cost commits.** Two of my own docs commits
+  (`40d129e`, `293b4f6`) landed on `f7/screener-rebuild` instead of `night/drain-2026-08-25`, because
+  the web repo is ONE working tree and the worker had switched the branch under me. The worker caught
+  it and flagged that a rebase or discard would have destroyed them. Nothing was lost — history was
+  linear and a fast-forward preserved everything in order — but **the dispatcher must not commit to a
+  repo while a worker owns its tree.** This is [[shared-worktree-contamination]] arriving from the
+  DISPATCHER side rather than the worker side, in the WEB repo rather than fund_score. Either commit
+  before dispatching, or wait for the worker to finish.
 
 - 2026-08-26 00:55 — **AS-OF MISLABEL FIXED — `1976a7b` + `d8c0055` on `fix/asof-mislabel`; **codex CLEAN, 0 P0/P1, 0 advisories**.**
   `exposure_xray_v0.5`. Nothing pushed, Postgres untouched, F4 respected. 33,301 concentration rows in
