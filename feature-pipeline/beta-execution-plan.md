@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-26T01:21-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-26T04:00-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 `run-state: active — NIGHT DRAIN 2026-08-25 23:40 (owner briefed, four items picked, no owner input available until morning). Lanes: WEB = F3 Recent Changes flip then F7 screener; FUND_SCORE = L10 effective-positions then the as-of mislabel (F2 fence: one lakehouse writer at a time). Separate repos, so the two lanes run concurrently — that is the plan's stated exception to serialize-do-not-parallelize. Session stayed on OPUS 5 — the Fable switch was found unnecessary and RETIRED with evidence (the backend workflow hard-pins its own reviewer/gate models; see the START HERE correction). Tiering was tightened, not relaxed. Carried forward for the morning: the F4 byte-identity fence finding (see Run log 2026-08-25 17:46) is still the OWNER'S CALL and was not acted on.`
@@ -764,6 +764,66 @@ them.
 | 10 | Still-live BETA BLOCKERs not on the S3 path: **L2** wrong price series (WMSIX tracks a muni index), **L3** nondeterministic named ETFs, **L4** ~139 stale-fee scores, **L7** V-spike corruption (174 funds), **L8** taxonomy misroutes, **L12** twin-label, **L13** active-share. | see backlog | deprioritized by owner directive, not fixed |
 
 ## Run log
+
+- 2026-08-26 04:00 — **POSITIONING CHECK-DATA ADJUDICATED — `3774c52` on `fix/positioning-check-fails`
+  (codex running).** Framed as an adjudication rather than a fix, and that framing paid: **nothing was
+  loosened.** The check bar is unchanged and the twin carve-out was REMOVED on this basis (3,554 ->
+  3,578 funds tested = strictly stricter). `/check-data` positioning goes **5 PASS/1 WARN/2 FAIL ->
+  7 PASS/1 WARN/2 FAIL**, Check 5 now PASSES at max abs delta **0.0000pp**, invariants 22/22, and the
+  two residual reds are HONEST — one pre-existing, one the worker deliberately ADDED so a hidden
+  defect stops hiding.
+
+  **Ground truth first, from the filing, exactly as briefed.** Accession `0001752724-25-156777`,
+  `report_period_end=2025-04-30`, **two** holding rows: SPDR S&P 500 at valUSD 99,817.20 / pctVal
+  **111.42012403**, and SGS SA at 882.80 / 0.985. `netAssets = 89,586.33`, and 99,817.20 / 89,586.33 =
+  1.114201 — **the panel's figure is the filed `pctVal` digit-for-digit.** Cross-verified on EDGAR
+  (`primary_doc.xml` carries exactly 2 `<invstOrSec>`) and in SEI's own NPORT-EX prose. So our ingest
+  is faithful; **SEI filed a seed-shell portfolio against a live $391M series** (its own filings three
+  months either side hold 1,737 lines / $375.8M and 1,711 lines / $264.4M).
+  Three of the four hypotheses died on evidence: **units/double-count/NAV-denominator DEAD** (two
+  independent filed fields reproduce it), **legitimate >100% leverage DEAD** (every other filing is a
+  1,698-1,737-line $264M-$391M book; the >100% comes from an $89.6k denominator), **wrong-security
+  binding DEAD** (CUSIP 78462F103 / ISIN US78462F1030 is SPDR S&P 500).
+  **The surviving hypothesis is sharper than my brief's:** not a `holdings_snapshots` basis mismatch —
+  the CHECK hard-coded the **EXPANDED** frame while the owner's 2026-08-24 ruling moved the panel to
+  no-expansion. The check was last touched 2026-08-09, **15 days before the switch**. Under expansion
+  SPY dissolves into 500 constituents, so the recompute correctly returned 0.0. The check was stale,
+  not the data — which is exactly why "make the red go away" would have been the wrong instinct.
+
+  **But the stale check was HIDING a live fabrication, and this one reached the product.**
+  **DAACX (`S000073478`) is serving 8 surfaced rows right now on manifest 58 claiming the manager
+  "entered" NVDA, MSFT, GOOGL, META, TSLA, AVGO, GOOG and JPM** — dispatcher-verified against the live
+  DB, not taken on report. No such trades happened: the prior endpoint is the $89.6k seed shell holding
+  only SPY, so the diff against the real book reads a fund STARTING UP as a manager repositioning.
+  It cleared the existing sum-of-weights guard (sigma pct_nav = 1.124, inside [0, 1.5]) because the
+  stub is *internally* coherent — **wrong scope, not wrong denominator**, which is why a magnitude
+  guard could never have caught it.
+  The remedy adds no arbitrary constant: a new pinned rule bounds endpoints on the INDEPENDENT
+  snapshot `netAssets`, and a census of **238,755 filings** puts the threshold inside an **11.5x-wide
+  empty region** (...19.04, 30.66 || GAP || 352.06, 889.62, 2951.77) — any value in [40, 340] refuses
+  the same three funds. A NAV-*ratio* rule was tried and **rejected** because legitimate ETFs reach
+  674x. It went in the WINDOW BUILDER rather than the panel because the panel-only version created a
+  recoverable miss that Check 8 caught. DAACX now serves its real 2025-01-31 <-> 2026-01-31 pair.
+
+  **DISPATCHER VERIFICATION FOUND THAT DAACX IS STILL WRONG — a SECOND, separate defect lands on the
+  same fund.** Its corrected rows include "exited AAPL -4.89pp". Checked against the no-expansion
+  frame: at 2025-01-31 Apple is `ticker=AAPL, cusip=037833100, isin=US0378331005, pct_nav=4.888%`; at
+  2026-01-31 **the same `isin=US0378331005` is still there at `pct_nav=4.689%`** with `ticker=None,
+  cusip=None`. **The fund never sold a share — the filing stopped printing the CUSIP.** That is the
+  worker's own Check 10: `cusip='N/A'` is a STRING SENTINEL, so an omitted CUSIP drops the ticker and a
+  security held at BOTH endpoints reads as an EXIT. **827 surfaced rows across ~250 funds**, against a
+  control leg of 24,381 true exits. The worker sized it, declined to patch it (the remedy is a design
+  change — resolve ticker via ISIN, re-derive as increased/decreased), and **added the failing check so
+  it surfaces instead of hiding**. Filed to `backlog.md` with the DAACX example. **This is the next
+  item off this thread**, and the overlap is the argument for it: the fund we just fixed is still
+  making a false claim.
+
+  **Check 6 is NOT independent** — same origin (the 2026-08-24 basis switch), different manifestation.
+  53 of 3,578 funds exceed 1pp, and **49 of them (92.5%) hold a >=1%-of-NAV opaque line that
+  `holdings_complete` looks through, vs 175 of 3,525 (5.0%) among the coherent — an 18.6x
+  enrichment**, so the mechanism is identified rather than guessed. THEQ's entire 26.69pp is one line:
+  TRP US Equity Research ETF at 79.02% of NAV. Recommendation: **track, don't block** — which basis the
+  fund page shows is an owner call, parked with numbers.
 
 - 2026-08-26 01:25 — **F7 COMPLETE — `/screener` no longer serves fabricated data.** `0b5839c` on
   `f7/screener-rebuild`, fast-forwarded onto `night/drain-2026-08-25`. Web main untouched at
