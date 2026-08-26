@@ -8,10 +8,10 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-26T08:50-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-26T09:55-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
-`run-state: complete — NIGHT DRAIN 2026-08-25/26 CLOSED. Five items shipped, all codex-clean: F3 posline (web `b110f18`), F7 screener rebuild + spec (web `0b5839c`/`d311d4b`), the as-of mislabel (fund_score `1976a7b`/`d8c0055`), and the positioning check adjudication (fund_score `2e1fd31`, five gate rounds). Web work is consolidated on ONE branch `night/drain-2026-08-25`; fund_score has two branches. **main untouched and nothing pushed in EITHER repo — the owner merges.** FOUR DECISIONS WAIT: (1) fabricated holdings dates, 3,484 of 5,963 rows with 0 genuine; (2) 827 false entry/exit rows across ~250 funds, LIVE; (3) the exposure freshness clock frozen at 2026-06-15, 13,212 rows; (4) which basis the fund page shows where Recent Changes and the X-Ray contradict. Also carried: the F4 byte-identity fence finding (still the owner's call) and a date disagreement between the plan and the memory file on the holding-weight ruling. One command left over: `node scripts/drop-legacy-funds-table.mjs --apply`.`
+`run-state: active — OWNER RULINGS BEING WORKED (2026-08-26 morning). The night drain's five items are done and codex-clean; this is the follow-on. IN FLIGHT: decision C, unfreezing the X-Ray's hardcoded `--today 2026-06-15` clock, on `fix/xray-frozen-clock` — branched off `fix/asof-mislabel`, NOT main, because `exposure_xray.py` carries 115 lines of as-of work not yet merged and a rebuild from main would silently revert it. DONE this morning: fabricated demo cluster DROPPED (14 tables / 14,103 rows / 5 enums, serving intact, build green); F4's byte-identity guard RETIRED per owner ruling; decisions A/B/C/D recorded in the register; D filed as a web labelling item. STILL OPEN: A's real fix (unfreeze `EVAL_DATE`, same class as C) and B (ISIN re-key — viable but ~1M rows, needs a spec and a what-else-moves measurement first). main untouched, nothing pushed, in either repo.`.`
 ← the dispatcher sets this WITH every heartbeat re-stamp. Values: **`active`** (drain in progress — a
 stale heartbeat means investigate), **`paused-on-owner: <what>`** (the line is idle BY DESIGN, waiting
 on a decision — a stale heartbeat is EXPECTED; any backstop check should re-stamp and STOP, never run
@@ -844,6 +844,62 @@ them.
 | 10 | Still-live BETA BLOCKERs not on the S3 path: **L2** wrong price series (WMSIX tracks a muni index), **L3** nondeterministic named ETFs, **L4** ~139 stale-fee scores, **L7** V-spike corruption (174 funds), **L8** taxonomy misroutes, **L12** twin-label, **L13** active-share. | see backlog | deprioritized by owner directive, not fixed |
 
 ## Run log
+
+- 2026-08-26 09:55 — **DECISION C DONE — the X-Ray clock is unfrozen.** `8c90cc5` + `71900c7` on
+  `fix/xray-frozen-clock` (branched off `fix/asof-mislabel`, not main). Codex running.
+  **12,137 rows across 860 funds relabelled, every one toward `stale`, zero the other way**, plus
+  4,864 concentration rows `high -> low` confidence. **0 rows added or dropped, 0 `holdings_value`
+  changed, 0 `holdings_as_of` changed** — a pure clock change. Panel `stale` share 15.81% -> 17.36%.
+  **Dispatcher-verified on a 1:1 join and it reproduces exactly** (available->stale 11,718,
+  partial->stale 390, missing->stale 29).
+  **It reconciled my 13,212 expectation rather than quietly matching or missing it:** that figure
+  counts rows whose age CROSSES the 180-day bar between the two clocks regardless of the label they
+  already carried; 1,157 of them already read `stale`/`missing`, and 13,294 - 1,157 = **12,137**.
+  Fund count 848 vs 860 differs only by the `style` axis. That is the right way to handle a briefed
+  number that does not land — explain the difference, don't bend to it.
+
+  **THE GATE COULD NOT HAVE CAUGHT THIS, AND THAT IS THE REAL FINDING.**
+  `check_exposure_xray_asof_coherence` derived `today` from `max(eval_date)` — which the BUILDER sets
+  to `today`. **A stopped clock was being checked against itself and passing.** Perfectly circular,
+  and it is why 72 days of drift went unnoticed. New gate **[F]** reads the clock RECORDED IN THE
+  ARTIFACT and bounds it against the check's own run date: FAIL if absent, FAIL if in the future,
+  WARN with numbers on drift (not FAIL — rows age past the bar continuously after any build, so a
+  hard gate would flap within days and get suppressed, which is the cry-wolf pathology the owner
+  just had us retire from F4). Proven on four seeded controls: absent -> FAIL, future -> FAIL,
+  a 20-fund panel pinned at 2026-06-15 -> WARN naming 915 rows / 15 funds, rebuilt gold -> PASS.
+
+  **Line ruling (tier b): default to the real date AND RECORD it.** A frozen default is not
+  determinism, it is a wrong answer that reproduces. `--today` now defaults to `date.today()`, a
+  FUTURE clock is refused, a pinned past clock logs a loud `PINNED CLOCK` warning with the drift, and
+  the resolved value is written to both artifacts' parquet metadata as `build_today`.
+  **Dispatcher-verified: `build_today = 2026-08-26` is present in both** (via the project's own
+  `read_build_clock`; note a `pyarrow.read_schema().metadata` probe returns empty because Polars
+  writes it file-level — my first probe looked in the wrong place, not the worker's claim being
+  wrong). No wall-clock timestamp is recorded, deliberately: it would differ between two identical
+  rebuilds and defeat the byte diff.
+
+  **Sibling sweep — done by date-SHAPE, not by grepping the literal `2026-06-15`.** Fixed:
+  `build_passive_holdings_foundation.py:77`, the same frozen default on a direct X-Ray input, proven
+  data-neutral at both clocks (the boolean it feeds is identical for all 101 ETFs) so the artifact was
+  NOT rebuilt — rebuilding would have reverted the L16 passive sector relabel. **Filed with numbers,
+  not fixed:** `value_score.AS_OF_DEFAULT = 2026-04-24` bootstraps the served universe and moving it
+  shifts it by **3,965 -> 3,892 series (83 in, 10 out)** — an owner as-of call, not the line's;
+  plus three latent ones (`portfolio_passive_solver`, `BASKET_END`, `build_fmp_reference`).
+
+  **NEW FINDING, same never-computed-constant class but not a date — filed:** `build_stock_rows`
+  hardcodes `coverage_state = lit("stale")` on `stock`/`vs_benchmark` rows. **88,350 rows, of which
+  82,475 (93.4%, 3,299 funds) sit on a book <=180 days old** (median 148d). On that frame "stale"
+  does not mean "old book" — it means nothing at all. Relabelling 82K served rows is a different
+  change from the one authorised and is entangled with the parked suppress-vs-flag decision, so it
+  was correctly left alone.
+
+  **Gates: before == after, byte-identical status tables** (21 ran / 13 PASS / 4 WARN / 3 FAIL), same
+  three pre-existing FAILs, nothing absorbed. Determinism: real-today makes cross-day byte identity
+  impossible by construction, so the run pinned the clock twice; residual churn is pre-existing (the
+  pre-change builder reproduces the same class and magnitude), and **NEW vs OLD code at the same
+  pinned clock shows 0 diffs in `coverage_state`, `confidence_state` and `holdings_as_of`**.
+  Consumers swept by accessor: `select_candidates` 0 candidate lists changed, `build_factor_exposure`
+  5,523 series identical, served `fund_holdings_date` 0 changed.
 
 - 2026-08-26 05:46 — **POSITIONING ITEM CLOSED — `2e1fd31` on `fix/positioning-check-fails`,
   CODEX_GATE pass, 0 P0/P1.** Four commits, five gate rounds. **Every hole the rounds found was in MY
