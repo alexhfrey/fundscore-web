@@ -454,3 +454,25 @@ semantics pass (green gate ≠ sufficient — the serve-l2 inverse-ETF lesson).
   twin-diff join → honest exclusion (`unmatched_identifier`), never a forced match.
 - Concurrent worktree contamination on shared `data/` (known lesson): isolated worktree, scoped
   commits, symlinked lakehouse, pinned `--as-of` on rebuilds.
+
+
+## ADDENDUM — 2026-08-26 owner ruling on DECISION 1 (pricing basis)
+
+Owner, in-session (Path-to-Live batch): *"we have foreign stocks from EODHD, try to use that and
+fallback to US if not available."* This supersedes the three framings (1a/1b/1c) in the S2-D4
+decision section. Binding consequences for Segment 1:
+
+- **Pricing precedence for a non-US-listed holding:** (1) the ordinary share's own price history from
+  EODHD, once the `eodhd-international-prices` ingestion lands — that spec is now a PREREQUISITE of
+  this segment; (2) fallback where EODHD lacks the ordinary: the US listing. Ra (US-primary listing)
+  recovery is unconditional either way — it is a defect fix, not a basis change. A true ADR proxy is
+  used only as the labelled fallback, under 1b's full contract (row-level label, corporate-action
+  screen, honest exclusion on screen-fire).
+- **`pricing_basis` becomes a served per-row enum: `{eodhd_ordinary, us_line, adr_proxy}`.**
+- The Segment-0 wedge measurements (F-S2.9) remain the acceptance baseline for any `adr_proxy` rows;
+  EODHD-priced rows need their own spot-check leg vs filed `valUSD/balance` marks (same method,
+  new vendor).
+- **Sequencing (not silently chosen):** if this spec is dispatched before the EODHD ingestion is
+  served, STOP and check the register/run log for the owner's sequencing answer — the interim
+  (build on `us_line` + labelled `adr_proxy`, re-price when EODHD lands) was offered to the owner
+  on 2026-08-26; do not assume either way.

@@ -8,10 +8,10 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-26T10:52-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-26T11:14-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
-`run-state: stock-take 2026-08-26 — cleanup + re-plan session, owner present. SCOPE FLIPPED by owner directive: the target is a LIVE fully-demonstrable MVP ASAP — Track D UN-ICED (see the dated re-scope at top). Cleanup done: fund_score worktrees 13→5 (main + capgain/d83/l10/l9, all owner-parked), 16 merged fund_score branches + 1 harness branch deleted, 3 stranded codex verdicts rescued to feature-pipeline/reviews/ (UNCOMMITTED on fund_score main — sweep into the next branch commit); web wt-f1 removed + 10 merged branches deleted. Status rows corrected in this file: L6/F3/F7 done, L13 unblocked, Track D un-iced. New spec queued: positioning-isin-rekey (decision B, measurement-first). Owner decision batch delivered in session. Nothing in flight.`
+`run-state: stock-take 2026-08-26 — RULINGS IN. The owner answered the Path-to-Live batch in-session (register: 2026-08-26 Path-to-Live entry): effective-positions all-four-as-recommended (L10 UNBLOCKED), receipts = EODHD-primary/US-fallback (NOT 1b; EODHD price ingestion is a new prerequisite — no store exists yet), wrapper YES x3 (merge has 3 conflicted files vs the morning positioning merges — queued, not hand-resolved), 4-fund quarantine YES + bad-dividend-record filed as the durable source fix, preview tier YES, demo definition CONFIRMED; solver licence deliberately unanswered. Spec dispatches: effective-positions Segment 1 + eodhd-international-prices. Remaining owner actions: merge plan/stocktake branch, 3 blocked cleanup commands, Supabase preview upgrade at D1, licence at deploy.`
 ← the dispatcher sets this WITH every heartbeat re-stamp. Values: **`active`** (drain in progress — a
 stale heartbeat means investigate), **`paused-on-owner: <what>`** (the line is idle BY DESIGN, waiting
 on a decision — a stale heartbeat is EXPECTED; any backstop check should re-stamp and STOP, never run
@@ -111,6 +111,51 @@ for five days before surfacing as an apparent regression inside an unrelated spe
 re-point the assertion at the rule that is now live rather than weakening it.
 
 ## Decision register (answered — never re-ask)
+
+**2026-08-26 (midday) — OWNER RULINGS on the Path-to-Live batch (in-session, same day as the stock-take).**
+
+- **Effective positions (L10) — owner: "recommendations" = all four RATIFIED as recommended.**
+  (a) position set = filed long **EC** — **[CORRECTED same day by the Segment-1 spec's grounding: EC
+  means equity-COMMON only in this codebase (`book_basis.EQUITY_CAT`), not "equity+credit" as this
+  entry first glossed; the PRNEX 56.24 anchor pins it]** (PRNEX 56.24, commensurable with the served
+  top-10 cell); (b) validity gate = the split rule — **[pinned by the spec as the UNION: band OR
+  balance-sheet coherence = 96.43%; coherence-alone is only 90.89% and would drop 322 band-passing
+  funds]** (96.43% coverage, +175 funds over the spec's 90<=S<=110); (c) degenerate single-line/feeder books serve as filed **plus a
+  disclosure field** (no invented threshold); (d) `PeerConcentrationReadout` **recomputes the peer
+  baseline on the new basis** (never silently drops the sentence). Decision 4 of the original five was
+  already resolved by events (the as-of mislabel fix). **L10 UNBLOCKED; Segment-1 spec dispatched this
+  session.**
+- **Receipts pricing (L9 D-1) — owner: "we have foreign stocks from EODHD, try to use that and
+  fallback to US if not available."** NOT option 1b as briefed; reads on the 2026-08-21 EODHD ruling.
+  **Consequence, measured not assumed: no EODHD price store exists yet** — the 2026-07-16 spike was
+  API-sampling validation (96.8% of foreign ISINs resolve), not ingestion; `data/bronze/` has no eodhd
+  layer and no ingestion script exists. So **EODHD stage-1 (international price layer) becomes a
+  prerequisite of receipts Segment 1** — ingestion spec dispatched this session. Ra (US-primary
+  listing) recovery stays an unconditional defect fix; ADR-proxy becomes the **labelled fallback**
+  (pricing_basis flag + corporate-action screen retained) only where EODHD lacks the ordinary.
+  Sequencing option (interim US-basis build, re-price when EODHD lands) surfaced to the owner —
+  see run log; not chosen silently.
+- **Wrapper look-through (D8-3) — YES x3.** (i) merge the shipped flag+suppress fix; (ii) adopt the
+  error-bound suppression refinement (2a); (iii) build the resolve-the-wrappers segment (its D1) as its
+  own reviewed item, **folding in the X-Ray's identical defect (its D3)**. Merge attempted same
+  session: `git merge-tree` shows **3 conflicted files** against the morning's positioning merges
+  (`build_holdings_lookthrough_window.py`, `build_positioning_changes_panel.py`,
+  `positioning_changes.py`) — queued as the first ruled build (worktree + gates + rebuild), NOT
+  hand-resolved in-chat. L3 Phase B unparks when it lands.
+- **Four fabricated-step funds (BRLIX +28.3% / CSIUX +62.72% / JOPSX +28.1% / SMGAX -52.7%) — YES to
+  the chart quarantine, and the owner's "is there a better fix (unreliable-fund flag / fix price
+  history at source)?" was answered in-session:** capgain Segment 1's own S1-F14 adjudicated these four
+  OUT of the distribution class and prescribed a **`bad-dividend-record` source-level item** ("is the
+  distributions feed itself wrong?" — the 4 funds + 516 `suspect_yield=True` events + the ~40% of
+  events where the stamped distribution never leaves the price + the MAPOX doubled-print family). That
+  FILE-THIS action had never reached the backlog (the report lives on the unmerged capgain worktree) —
+  **filed now.** Quarantine = the honest interim (extends the ratified W3 withholding pattern, 6 funds
+  today); the distributions-feed item = the durable fix, which IS the owner's fix-at-source instinct.
+- **P1-preview — ANSWERED: YES.** Preview upgrades to the paid tier (owner dashboard action, due at
+  D1/D2 time).
+- **Solver licence (S4) — deliberately not answered**; stays flagged for the deploy phase.
+- **Demo milestone — CONFIRMED:** full experience live at fundscore.ai behind `early_access`; owner
+  grants demo access; open signup stays off; wider invites remain S5.
 
 **2026-08-26 — OWNER RULINGS on the night-drain batch (A/B/C/D), plus two standing actions.**
 
@@ -367,14 +412,14 @@ none needs an owner input, and each de-risks D1 or the fences this plan depends 
 |---|------|--------|--------------|--------|
 | L1 | Foreign-holdings enrichment CORE (BETA BLOCKER; unlocks L8) — backlog Working set item 1 | FD (reviewed, multi-segment) | opus/high impl; Fable-session gates | **done 2026-08-09** — four merges (`bad49ad`,`c000de4`,`0674802`,`bd39539`); ~$40B sector coverage recovered + $50T valUSD fix + determinism + one shared sector basis across all three panels; seg 5 re-filed pending P3; follow-ups: L14 + filed chores |
 | L2 | Wrong-price-series collisions sweep (BETA BLOCKER) — Working set | FD | opus/high | **ready — DEPRIORITIZED 2026-08-17** off the S3 critical path (owner directive). Still a BETA BLOCKER; sequenced after the capital-gain item per the price-path order. |
-| L3 | l2_blend_etfs share-class adjudication (BETA BLOCKER; merged item — sort-key fix FORBIDDEN) | FD | opus/high | **Segments 0-2 COMMITTED + codex-gated (`6e177e2`). Segment 3 PHASE A complete, checkpoint PASS-WITH-CORRECTIONS 2026-08-20** (served==gold 0 mismatches over 480,562 field comparisons; R1 measured at cut 8 = 3,265 funds / 20,894 rows, net **+854**; D-4 takes undated served rows 139/93 funds -> **0**). **PHASE B PARKED:owner** — needs the `076562f` merge ruling, which itself carries D8-3's own DECISION 1 (73.8% recoverable-missing) and 2(a) (suppression refinement, 69 funds vs 143). 0 canonical writes. |
+| L3 | l2_blend_etfs share-class adjudication (BETA BLOCKER; merged item — sort-key fix FORBIDDEN) | FD | opus/high | **Segments 0-2 COMMITTED + codex-gated (`6e177e2`). Segment 3 PHASE A complete, checkpoint PASS-WITH-CORRECTIONS 2026-08-20** (served==gold 0 mismatches over 480,562 field comparisons; R1 measured at cut 8 = 3,265 funds / 20,894 rows, net **+854**; D-4 takes undated served rows 139/93 funds -> **0**). **PHASE B PARKED:owner** — needs the `076562f` merge ruling, which itself carries D8-3's own DECISION 1 (73.8% recoverable-missing) and 2(a) (suppression refinement, 69 funds vs 143). 0 canonical writes. **MERGE RULED GO 2026-08-26 (+2a adopted, resolve-segment approved — register: Path-to-Live entry); merge-tree shows 3 conflicted files vs the morning positioning merges, so it runs as the first ruled build; Phase B unparks when it lands.** |
 | L4 | value_score stale ticker fees ~139 funds (BETA BLOCKER) | FD | opus/high | **ready — STATUS CORRECTED 2026-08-25 23:55. This cell had been carrying L10's Segment-0 result, not L4's.** The text that was here cited PRNEX 30.48 -> 59.83 (effective positions), the top-10 27.234% -> 30.965% split, and coverage 44.9% -> 93.42% on the FILED basis — every one of those is L10's measurement, and L4 is a stale-FEE defect in a different domain that has never been worked. Two ways this misled: it read as though L4 were measured and parked (it is not), and L10's own row read just `ready`, so a dispatcher would re-dispatch a partly-done opus/high item from zero. The text is moved to L10 below, not deleted. L4 remains a live BETA BLOCKER, deprioritized off the S3 path by the 2026-08-17 owner directive, never started. |
 | L5 | Neighbourhood panel backend — `specs/queue/neighbourhood-panel-backend.md` (unblocks F-movement 03) | IN (reviewed) | opus/high | **done 2026-08-09** (`009b872` merged; coverage 52.91%/83.46% with 0 recoverable-missing; 16 injection-proven invariants; found L15 + the H1-literal drift; web mirror handed off in report §12) |
 | L6 | recent-changes-te-ranked — `specs/queue/recent-changes-te-ranked.md` (unblocks F-movement on Recent Changes) | IN (reviewed) | opus/xhigh | **done — ROW WAS STALE, corrected 2026-08-26** (same class as the 2026-08-25 23:40 F2 correction). Built + checkpointed 2026-08-20 (run log: five segments incl. L6); `no_expansion` promoted canonical 2026-08-24 (`l6b` merged); branch `feat/l6-recent-changes-te-ranked` merged to fund_score main `e34d480`; spec sits in `specs/done/`; panel served in manifest 58 and F3 rendered+verified against it 2026-08-26. |
 | L7 | V-spike price corruption 174 funds (BETA BLOCKER; needs ONE off-cycle L2 re-solve — coordinate with L2/L3 so the re-solve runs ONCE, after all price-touching fixes) | FD | opus/high | **ready** |
 | L8 | Taxonomy misroutes / ALT classification (BETA BLOCKER) | FD | opus/high | **ready** |
-| L9 | Per-stock receipts backend — `specs/queue/per-stock-receipts-backend.md` (contains **S2**; L1 closed 2026-08-09 → blank its `depends_on:` when dispatched) | IN (reviewed) | opus/high | **Segment 0 complete, checkpoint PASS-WITH-CORRECTIONS 2026-08-20, corrections applied and re-verified.** Headline: of the 1,947 funds clearing the 0.80 floor only **476-573 get a CLEAN card** — the rest miss a priceable holding (median 4.14% of NAV) or price one off a dead quote; **318 funds would show an UNDERSTATED weight** for a name the card does show. **Segment 1 PARKED:owner on D-1 (ADR basis)** — +116 funds, but **71.6% of ADR-priced value is twin-INVISIBLE**, pushing the false-twin defect from 361 funds onto 1,244-1,346. **D-3 (additive book) and D-4 (10-day freshness bound) TAKEN as line rulings.** 0 canonical writes. |
-| L10 | Riders build — `specs/queue/v4-serving-riders-skill-strip-effective-positions.md`. **RE-RATED 2026-08-07 (W5 grounding): lean/opus-med → reviewed/opus-high.** It is NOT two small additions: effective-positions is ALREADY served and rendered on the WRONG book (`holdings_snapshots` US-ticker basis, not filed `pctVal`) — PRNEX used 57 positions to describe a 127-holding fund, serving 30.5 where the filed book gives 59.8. **SIZING CORRECTED 2026-08-20 by L10 Segment 0 — the old "every fund reads ~2× more concentrated" line generalised PRNEX and is RETRACTED:** median served/filed ratio is **1.10**, p75 1.65, **p90 8.3×**, max 130×; 86.8% understate but **6.2% are biased the OTHER way**, and only 21% are ≥2× off. **The tail is the defect:** 163 served funds show effective positions <5 while filing ≥50 lines, 130 show <2, and 9 exceed their own filed line count — JFEAX files 288 lines and serves **1.0**, while JINTX files ONE line and serves **70.4**. So L10 is a **correctness fix on a live serving fact**, not a rider, and it must land before F6 cutover. Fold in the top-10 27.2/31.0 split (same root cause, filed as its own bug). | IN (**reviewed**) | **opus/high** | **NOT A VALID DRAIN PICK — owner-blocked. Re-assessed 2026-08-25 23:55 for the night drain and STOOD DOWN.** Segment 0 IS complete (its result was mis-filed into the L4 row above and is restored here): PRNEX 30.48 -> **59.83**; top-10 27.234% -> 30.965%; coverage 44.9% -> **93.42%** (5,436/5,819) on the filed basis; **66 funds would LOSE the figure**; found the as-of mislabel (now its own item, being worked tonight) and a **vacuous acceptance criterion (A8)**. It produced exactly ONE artifact — `reports/l10_effective_positions.md` (+577 lines, `77fbdf7` on `fix/l10-effective-positions`); no source, no tests, and the intermediate parquet lived in a scratchpad, so **the numbers are not re-runnable from the branch**. **Segment 1 cannot start:** its first step writes a `basis` column whose value IS the unruled DECISION 3 (position set — all-filed-long, PRNEX 59.83, vs EC-long, 56.24 and commensurable with the top-10 cell V4 already renders; the report recommends EC-long and explicitly declines to choose). **FIVE owner decisions sit open at `reports/l10_effective_positions.md:569-577`, none ruled since 2026-08-21**, and Segment 1 has **no written spec** — the Segment 0/1 split exists only in that report's §7. Two consumers the spec missed were also found: `positioning_changes` emits the same row, and the `vs_peer` sentence flips for 425/2,524 (16.8%) funds. |
+| L9 | Per-stock receipts backend — `specs/queue/per-stock-receipts-backend.md` (contains **S2**; L1 closed 2026-08-09 → blank its `depends_on:` when dispatched) | IN (reviewed) | opus/high | **Segment 0 complete, checkpoint PASS-WITH-CORRECTIONS 2026-08-20, corrections applied and re-verified.** Headline: of the 1,947 funds clearing the 0.80 floor only **476-573 get a CLEAN card** — the rest miss a priceable holding (median 4.14% of NAV) or price one off a dead quote; **318 funds would show an UNDERSTATED weight** for a name the card does show. **Segment 1 PARKED:owner on D-1 (ADR basis)** — +116 funds, but **71.6% of ADR-priced value is twin-INVISIBLE**, pushing the false-twin defect from 361 funds onto 1,244-1,346. **D-3 (additive book) and D-4 (10-day freshness bound) TAKEN as line rulings.** 0 canonical writes. **D-1 RULED 2026-08-26: EODHD-primary / US-fallback (register: Path-to-Live entry; spec ADDENDUM records it). EODHD stage-1 price ingestion is now a PREREQUISITE of Segment 1 (spec dispatched).** |
+| L10 | Riders build — `specs/queue/v4-serving-riders-skill-strip-effective-positions.md`. **RE-RATED 2026-08-07 (W5 grounding): lean/opus-med → reviewed/opus-high.** It is NOT two small additions: effective-positions is ALREADY served and rendered on the WRONG book (`holdings_snapshots` US-ticker basis, not filed `pctVal`) — PRNEX used 57 positions to describe a 127-holding fund, serving 30.5 where the filed book gives 59.8. **SIZING CORRECTED 2026-08-20 by L10 Segment 0 — the old "every fund reads ~2× more concentrated" line generalised PRNEX and is RETRACTED:** median served/filed ratio is **1.10**, p75 1.65, **p90 8.3×**, max 130×; 86.8% understate but **6.2% are biased the OTHER way**, and only 21% are ≥2× off. **The tail is the defect:** 163 served funds show effective positions <5 while filing ≥50 lines, 130 show <2, and 9 exceed their own filed line count — JFEAX files 288 lines and serves **1.0**, while JINTX files ONE line and serves **70.4**. So L10 is a **correctness fix on a live serving fact**, not a rider, and it must land before F6 cutover. Fold in the top-10 27.2/31.0 split (same root cause, filed as its own bug). | IN (**reviewed**) | **opus/high** | **NOT A VALID DRAIN PICK — owner-blocked. Re-assessed 2026-08-25 23:55 for the night drain and STOOD DOWN.** Segment 0 IS complete (its result was mis-filed into the L4 row above and is restored here): PRNEX 30.48 -> **59.83**; top-10 27.234% -> 30.965%; coverage 44.9% -> **93.42%** (5,436/5,819) on the filed basis; **66 funds would LOSE the figure**; found the as-of mislabel (now its own item, being worked tonight) and a **vacuous acceptance criterion (A8)**. It produced exactly ONE artifact — `reports/l10_effective_positions.md` (+577 lines, `77fbdf7` on `fix/l10-effective-positions`); no source, no tests, and the intermediate parquet lived in a scratchpad, so **the numbers are not re-runnable from the branch**. **Segment 1 cannot start:** its first step writes a `basis` column whose value IS the unruled DECISION 3 (position set — all-filed-long, PRNEX 59.83, vs EC-long, 56.24 and commensurable with the top-10 cell V4 already renders; the report recommends EC-long and explicitly declines to choose). **FIVE owner decisions sit open at `reports/l10_effective_positions.md:569-577`, none ruled since 2026-08-21**, and Segment 1 has **no written spec** — the Segment 0/1 split exists only in that report's §7. Two consumers the spec missed were also found: `positioning_changes` emits the same row, and the `vs_peer` sentence flips for 425/2,524 (16.8%) funds. **UNBLOCKED 2026-08-26 — all four open decisions RATIFIED as recommended (register: Path-to-Live entry); Segment-1 spec dispatched the same session.** |
 | L11 | Superlative-guard check (top_bet_confident consumer check) — Working set | FB | sonnet/med | **done** (fund_score `06ae57a` on `l11/superlative-guard` — **MERGED, verified 2026-08-17**; 2 deferred advisories → Open chore) |
 | L12 | Twin-label/basis-metadata fix (record's passive leg is a PIT twin cascade mislabeled as one current ETF; 204/218 blends) — **REQUIRED BEFORE F6**; backlog item filed 2026-08-07 | FD | opus/high | **ready** |
 | L13 | Active-share fail-open: propagate `method`+`lookthrough_resolved_weight` to serving + gate (17 funds at 0.5-vs-empty-benchmark, confidence high) — restores the stat F1 gated closed; NOT cutover-blocking | FD | opus/med | **NOT SAFELY READY — new hard prerequisite found 2026-08-21.** L13's whole purpose is to UN-GATE `active_share`, and L10's checkpoint proved `active_share` carries the as-of mislabel: `exposure_xray.py::build_concentration_rows` (L776–810) pulls `effective_positions`, `active_share` AND `hhi` from the same **age-unbounded** panel row, and **JFEAX serves `active_share = 1.0` computed from a ONE-LINE 2022-10-31 book, stamped 2026-04-30, at HIGH confidence.** Un-gating before the as-of item lands would ship a wrong number carrying a confident false date — strictly worse than the honest withholding it replaces. **Sequence: as-of mislabel → L13.** **UNBLOCKED 2026-08-26 — the prerequisite LANDED:** as-of mislabel fixed at source (`exposure_xray_v0.5`, codex clean, merged in fund_score `e34d480`). L13 is ready, with one coupling: the un-gating must ride the SAME serving reload that carries the v0.5 stamps, and `fundscore-web/src/lib/methodology/registry.ts:166` moves v0.4→v0.5 in that same step (run-log 2026-08-26 00:55, web follow-up). |
@@ -483,7 +528,7 @@ lakehouse-writing session at a time, in a dedicated worktree.
 
 ## Parked decisions (owner drains in batches)
 
-### P1 — Supabase paid tier — **PROD ANSWERED 2026-08-07: YES. Preview still open.**
+### P1 — Supabase paid tier — **PROD ANSWERED 2026-08-07: YES. PREVIEW ANSWERED 2026-08-26: YES (owner dashboard action, due at D1/D2).**
 **OWNER ANSWER (2026-08-07): "I'm good with a paid supabase tier in prod."** So the prod half of
 option (a) is approved and **D1's prod load is no longer blocked on spend** — it remains blocked on
 S1 (the campaign delta review + local reload GO), which is the only thing left in front of it.
@@ -877,6 +922,25 @@ them.
 | 10 | Still-live BETA BLOCKERs not on the S3 path: **L2** wrong price series (WMSIX tracks a muni index), **L3** nondeterministic named ETFs, **L4** ~139 stale-fee scores, **L7** V-spike corruption (174 funds), **L8** taxonomy misroutes, **L12** twin-label, **L13** active-share. | see backlog | deprioritized by owner directive, not fixed |
 
 ## Run log
+
+- 2026-08-26 11:14 — **OWNER RULED THE PATH-TO-LIVE BATCH (in-session). Six of seven answered; full
+  text in the register (Path-to-Live entry). Three things the rulings changed beyond bookkeeping:**
+  (1) **Receipts pricing is NOT the briefed 1b** — owner directed EODHD-primary with US fallback,
+  which reads on the 2026-08-21 consolidation ruling my brief under-connected (the ADR options were
+  measured 2026-08-20, the EODHD ruling landed 2026-08-21, and the brief presented the stale option
+  space — lesson filed to memory). Verified before recording: **no EODHD price store exists** (spike
+  was API validation only), so stage-1 ingestion becomes a receipts prerequisite; the interim option
+  (US-basis build now, re-price on EODHD landing) is surfaced, not silently chosen.
+  (2) **The d83 merge is authorized but NOT clean** — `git merge-tree` shows 3 conflicted files
+  against this morning's positioning merges; routed to the queue as the first ruled build rather than
+  hand-resolved here ([[never-edit-machinery-to-unblock]] adjacent: a conflict resolution in core
+  positioning machinery deserves the reviewed lane, not a chat-session hand-merge).
+  (3) **The four-fund question produced a filing gap find:** capgain S1-F14's "FILE THIS
+  bad-dividend-record" action never reached the backlog because the report lives on the unmerged
+  worktree branch — filed now, alongside the quarantine item it pairs with.
+  Dispatched: spec-writers for `effective-positions-segment1` and `eodhd-international-prices`;
+  ADDENDUM appended to `per-stock-receipts-backend.md`. Solver licence (S4) deliberately unanswered —
+  stands flagged for the deploy phase.
 
 - 2026-08-26 10:52 — **STOCK-TAKE + CLEANUP SESSION (owner present) — SCOPE FLIPS TO LIVE.**
   Owner directive, verbatim aim: *"getting my MVP site that is 'fully demonstratable' live as soon

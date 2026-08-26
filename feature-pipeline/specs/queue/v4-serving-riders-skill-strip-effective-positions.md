@@ -19,6 +19,15 @@ model: opus
 effort: high
 ---
 
+> **SUPERSEDED IN PART — 2026-08-26.** Rider B (effective positions / `holdings.concentration` /
+> the `concentration::effective_positions` retirement, §2.2, §3.3–3.5, §4.2, and acceptance
+> A4–A8) is replaced by `specs/queue/effective-positions-segment1.md`, which carries the four
+> owner rulings of 2026-08-26 (EC-long position set, union validity gate, degenerate-book
+> disclosure field, peer-baseline recompute) and the Segment-0 corrections (A8 grep scope,
+> `positioning_changes` emitter, as-of mislabel already fixed at source). Do NOT implement
+> Rider B from this file. **Rider A (the P(skill) population strip, §2.1, §3.1–3.2, §4.1,
+> A1–A3) remains live in this spec and is unchanged.**
+
 ## Owner summary
 The new fund page wants to say two things it can't say honestly yet: "here's where this manager's
 skill evidence sits versus every other fund we grade," and "this fund says it holds 127 names, but
