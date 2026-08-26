@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-25T23:40-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-25T23:45-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 `run-state: active — NIGHT DRAIN 2026-08-25 23:40 (owner briefed, four items picked, no owner input available until morning). Lanes: WEB = F3 Recent Changes flip then F7 screener; FUND_SCORE = L10 effective-positions then the as-of mislabel (F2 fence: one lakehouse writer at a time). Separate repos, so the two lanes run concurrently — that is the plan's stated exception to serialize-do-not-parallelize. Owner switched the session to Fable per the tiering rule. Carried forward for the morning: the F4 byte-identity fence finding (see Run log 2026-08-25 17:46) is still the OWNER'S CALL and was not acted on.`
@@ -287,6 +287,23 @@ none needs an owner input, and each de-risks D1 or the fences this plan depends 
 | D3 | **S5** go/no-go + invites (grant via scripts/grant-early-access.mjs) | owner | — | blocked(all blockers, F6, D1, D2) |
 
 ## ⇢ START HERE — fresh dispatcher session (written 2026-08-07 for the local-MVP re-scope)
+
+**CORRECTION 2026-08-25 23:50 (dispatcher, verified in the code — this paragraph's premise is
+STALE and the switch it demands is no longer load-bearing).** The claim below is *"the gates inherit
+the SESSION model"*. That was true when written; the backend workflow has since been given its own
+explicit pins and inherits nothing. `.claude/workflows/implement-backend-spec.js:74-77` hard-codes
+`sampleReviewModel='fable'`, `gateModel='fable'`, `fullReviewModel='opus'`, `edaModel='opus'`, and
+passes them at the call sites (`:196` review, `:272`/`:296` data-scientist, `:330` final data gate);
+the plugin's `data-reviewer.md:5` is independently pinned `model: fable`. So the adversarial
+checkpoint and the final data gate run on Fable **whatever the session is**. The one agent that
+genuinely still inherits the session is `data-quality-critic` (no `model:` line), and it belongs to
+the F5 critic panel, which is blocked on F1-F4.
+**Consequence for the 2026-08-25 night drain:** the session stayed on Opus 5 and the tiering rule is
+still honoured — in fact tightened, by passing `fullReviewModel: 'fable'` so *every* checkpoint is
+strictly above the opus implementer rather than equal to it at the full-build step. Recorded rather
+than acted on silently, and the START HERE text is annotated rather than rewritten, because the rule
+it encodes (reviewer >= implementer) is unchanged — only its stated mechanism was wrong.
+**Original text follows.**
 
 **Run the dispatcher on FABLE at effort `high`.** Not a preference — the tiering rule is
 *reviewer ≥ implementer*, and the gates (`data-reviewer`, `data-quality-critic`, the final data
@@ -747,6 +764,44 @@ them.
 | 10 | Still-live BETA BLOCKERs not on the S3 path: **L2** wrong price series (WMSIX tracks a muni index), **L3** nondeterministic named ETFs, **L4** ~139 stale-fee scores, **L7** V-spike corruption (174 funds), **L8** taxonomy misroutes, **L12** twin-label, **L13** active-share. | see backlog | deprioritized by owner directive, not fixed |
 
 ## Run log
+
+- 2026-08-25 23:45 — **NIGHT DRAIN OPENED. Four items, two lanes, owner offline until morning.**
+  Owner picked F3 + F7 (web lane) and L10 + the as-of mislabel (fund_score lane) and moved the
+  session to Fable per the START HERE tiering rule. F2's STATUS was corrected in the same pass —
+  it had read `blocked(serving reload only)` for a week while the render had in fact shipped
+  2026-08-18 (`f69b6d5`, advisories cleared `14ec752`) and the reload it was waiting on landed
+  2026-08-25 as manifest 58 (`neighbourhood` non-null on **3,094 of 5,819**, matching L5's 52.91%).
+  Backstop cron re-armed at `11,41`.
+
+  **Pre-dispatch baseline gate, run BEFORE any worker touches the tree so a later failure has
+  something to be measured against:** `npm run build` **exit 0** (compiled 2.9s, 22/22 static pages,
+  resolved against the local 127.0.0.1:54322 DB per `next-env-guard`) and `npm run lint` **0 errors**
+  (1 pre-existing warning, `implement-backend-spec.js:285` unused `s1` — harness file, not product
+  code). `npm run db:check-serving` **PASS** (all six serving tables match the mirror, no
+  anon/authenticated grants). Route table confirms the cutover shape F6 will invert: `/funds/[ticker]`
+  and `/preview/funds/[ticker]` are both live and dynamic today.
+
+  **F3's data verified live before dispatch, and it already carries the fix for known-wrong #4.**
+  FCNTX's served `positioning_changes` payload ranks **BRK.A -6.21pp at te_rank 3** with BRK.B down at
+  rank 18 — the exact inversion the defect described ("serves entered BRK.B +1.0pp while hiding BRK.A
+  -6.2pp") is gone from the data. Rows carry `te_impact_bps`, `te_impact_basis`, dual
+  `holdings_as_of_prior`/`_current` stamps, and no `style` rows in the sample (the D-4 ruling landed).
+  So F3 is a render job against good data, not a data job.
+
+  **⚠ F7 IS BIGGER THAN "a stale demo page" — measured, not assumed.** `/screener` is linked from
+  `Header.tsx:21`, so it is one click from every page, and it reads `schema.funds` — the pre-pivot
+  demo table — **not** `fund_profile_facts`. That table holds **25 rows** against the serving
+  layer's **5,819 scored funds**, and its `analyst_note` column is generated prose asserting
+  specific figures that exist nowhere in the pipeline. FCNTX's row alone serves a **"Strong Buy"**
+  label, a FundScore of 78, "batting average of 50.8%", "win/loss ratio of 0.86x", "Technology
+  (70% across 25 trades)", "active share of 61%", "conviction score of 3.2", named trades
+  ("ServiceNow +23.9%"), a `three_year_return` of **-11.53**, and the sentence *"one of the rare
+  active funds that has historically justified its fee premium over VUG"*.
+  That is fabricated financial data plus an investment recommendation, on a page in the nav — the
+  exact class CLAUDE.md's data-integrity rule forbids, and worse than the "invented analyst prose
+  about 25 made-up funds" the re-scope note called it (the tickers are real, which makes the
+  fabricated figures MORE credible to a reader, not less). Recorded here so F7 is scoped against
+  the measurement rather than the memory of it.
 
 - 2026-08-25 17:46 — **OWNER OPENED F4. Serving reloaded + fund_score main merged.** Owner: *"I want you
   to reload serving and merge."* Read as the LOCAL serving DB (Track D / prod stays ICED under the
