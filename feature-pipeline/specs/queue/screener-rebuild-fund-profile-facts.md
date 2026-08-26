@@ -28,7 +28,7 @@ fabricated demo data so it can never render again.
 - Line default (decision register, `beta-execution-plan.md:118`): "screener port defaults to a
   Postgres-served query surface (same pattern as profiles) unless the worker's EDA finds a hard
   blocker." EDA below found **no blocker** — direct Postgres over `fund_profile_facts` is the pick.
-- § P4 — ANSWERED 2026-08-08 (`beta-execution-plan.md:421`): per-fund `value_bps_3y` gates to PAID
+- § P4 — ANSWERED 2026-08-08 (`beta-execution-plan.md` § `P4 — ANSWERED 2026-08-08`, line 438 at time of writing — cite the HEADING, not the line: that file is the live run-state doc and its line numbers move nightly): per-fund `value_bps_3y` gates to PAID
   on every surface; aggregates free only if they cannot reconstruct a single fund's figure. The
   column set below is chosen to be coherent with this ruling.
 
@@ -80,7 +80,7 @@ consumer-audit lesson).** Verified on main:
 - `src/lib/db/schema/serving.ts:82-170` — typed mirror of `fund_profile_facts` with all columns
   this spec needs already present (no mirror change, no fund_score change).
 - `src/lib/serving/gating.ts` — `applyGates` strips `value_score` precise figures + the
-  denormalized `valueScoreBps`/`valueScore100` scalars below paid (`gating.ts:918-941`). The
+  denormalized `valueScoreBps`/`valueScore100` scalars below paid (`gating.ts:960-983`). The
   screener does not go through `applyGates` (list read, not a fact-row read), so its safety comes
   from a **select-list whitelist** — see Tier safety.
 - `scripts/test/gating-golden.ts` — db-free golden-test precedent (run:
@@ -332,3 +332,43 @@ so the spec's refusal to build an asset-class filter is right — it would be a 
 And the 97 NULL-`canonical_ticker` rows reproduce exactly; note that **any coverage figure keyed on
 `canonical_ticker` silently undercounts by up to 97**, which is a trap the dispatcher walked into
 earlier the same night on a different item.
+
+
+## ADDENDUM 2 — dispatcher, 2026-08-26: three review fixes, applied to the SPEC before dispatch
+
+`artifact-reviewer` returned **READY WITH FIXES**, no owner decisions. All three are settled here so
+the implementer reads one coherent document rather than a spec plus a correction list.
+
+**Fix 1 + 2 (mechanical, applied above).** Two `file:line` pointers were stale from the July worktree
+the spec was drafted in — the P4 ruling and the `gating.ts` `value_score` strip block. The underlying
+claims were both TRUE; only the pointers were wrong. The P4 pointer is now anchored to its heading,
+because `beta-execution-plan.md` is the live run-state document and its line numbers shift nightly.
+
+**Fix 3 (engineering, BINDING — the spec's own "db-free" promise was false as written).** The spec
+puts `SCREENER_SELECT` in `src/lib/serving/screener-universe.ts` and then claims
+`scripts/test/screener-select-golden.ts` is db-free "following the `gating-golden.ts` precedent".
+It would not have been. Verified: **`src/lib/serving/gating.ts` has ZERO imports** — that is deliberate,
+and its own header says so ("so the golden test can import `applyGates` without a live Postgres client
+or `DATABASE_URL` in its import graph"); the db-touching half lives in `profile.ts`. Meanwhile
+`src/lib/db/index.ts` eagerly constructs a `postgres()` client at module scope off
+`process.env.DATABASE_URL!`. So `screener-universe.ts` — which must `import { db }` to run
+`db.select(...)` — drags a live client into the test's import graph, and the tripwire that is supposed
+to guard tier safety would fail to run wherever `DATABASE_URL` is absent. **A tier-safety check that
+cannot run in CI is not a check.**
+
+Required: put `SCREENER_SELECT` and the three verdict `CASE` builders in their own module
+`src/lib/serving/screener-select.ts`, importing ONLY `fundProfileFacts` from `../db/schema/serving`
+(schema references, no live client) and `sql` from `drizzle-orm`. `screener-universe.ts` then imports
+`db` and `SCREENER_SELECT` from there. This mirrors the existing `gating.ts` / `profile.ts` split
+exactly — do not invent a new pattern.
+
+**Fix 4 (engineering, BINDING).** ADDENDUM 1 item 4 is marked "binding on the implementer" but lives
+below the fold, and the numbered Acceptance criteria never reference it — so all eight could go green
+without it ever being built. It is hereby **Acceptance criterion 9**:
+
+> **9. Scored-predicate regression test.** A golden assertion pins the scored population to
+> `value_coverage_state = 'scored'` (2,233 on manifest 58) and is proved **non-vacuous** by a seeded
+> row in a non-scored state that carries BOTH a non-null `value_score` object AND a non-null
+> `passive_alt_label` — the assertion must catch it. Record the failing run. This is the specific
+> regression that would otherwise surface a fee-vs-passive verdict for 1,329 funds this product
+> deliberately declines to judge.
