@@ -8,7 +8,7 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-26T00:41-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-26T00:51-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
 `run-state: active — NIGHT DRAIN 2026-08-25 23:40 (owner briefed, four items picked, no owner input available until morning). Lanes: WEB = F3 Recent Changes flip then F7 screener; FUND_SCORE = L10 effective-positions then the as-of mislabel (F2 fence: one lakehouse writer at a time). Separate repos, so the two lanes run concurrently — that is the plan's stated exception to serialize-do-not-parallelize. Session stayed on OPUS 5 — the Fable switch was found unnecessary and RETIRED with evidence (the backend workflow hard-pins its own reviewer/gate models; see the START HERE correction). Tiering was tightened, not relaxed. Carried forward for the morning: the F4 byte-identity fence finding (see Run log 2026-08-25 17:46) is still the OWNER'S CALL and was not acted on.`
@@ -764,6 +764,79 @@ them.
 | 10 | Still-live BETA BLOCKERs not on the S3 path: **L2** wrong price series (WMSIX tracks a muni index), **L3** nondeterministic named ETFs, **L4** ~139 stale-fee scores, **L7** V-spike corruption (174 funds), **L8** taxonomy misroutes, **L12** twin-label, **L13** active-share. | see backlog | deprioritized by owner directive, not fixed |
 
 ## Run log
+
+- 2026-08-26 00:55 — **AS-OF MISLABEL FIXED — `1976a7b` on `fix/asof-mislabel` (codex running).**
+  `exposure_xray_v0.5`. Nothing pushed, Postgres untouched, F4 respected. 33,301 concentration rows in
+  and out, **0 rows added or dropped, 0 `holdings_value` changed, 0 nulls created** — this changed
+  stamps and states ONLY. 4,797 rows re-stamped (1,599 funds x 3 metrics); 273 rows / **47 funds**
+  `available -> stale`; 2,095 rows `high -> low`.
+
+  **MY RULING'S FRAMING WAS WRONG, and the worker caught it. Corrected here rather than left to
+  stand.** I briefed "honest stamping flips ~805 funds (30.7%)" and told the worker to apply the
+  existing 180-day bar. That 805 is **`today`-dependent**, and the panel is not built with real today:
+  `build_exposure_xray_panel.py:41` hardcodes `--today 2026-06-15` and `make build-exposure-xray`
+  passes nothing — dispatcher-verified in the source, not taken on report.
+
+  | build `today` | bar | `available -> stale` flip |
+  |---|---|---|
+  | **2026-06-15 (what the panel actually uses)** | **180d** | **47 funds (1.8%)** |
+  | 2026-06-15 | 270d | 40 (1.5%) |
+  | 2026-08-26 (real today) | 180d | 805 (30.7%) <- what my brief assumed |
+  | 2026-08-26 | 270d | 46 (1.8%) |
+
+  The ruling was right in direction and the fix is unchanged, but **the decision I parked for the
+  owner is ~47 funds, not 805.** 180-vs-270 only bites at real-today: the structural lag mode is
+  exactly one quarter, and a 2026-01-31 book is 207 days old on 2026-08-26 — past 180, not past 270.
+  **Running the materiality test properly BEFORE parking would have shown this is not an owner
+  decision at all at the current build clock.** It becomes one only if the clock moves — now its own
+  filed item.
+
+  **The 810/3 premise was CONFIRMED and strengthened.** The worker replaced my rebuild-diff framing
+  with a **ceiling test**: recompute `attach_holdings_quarter_end` over the current `idio_te_panel`
+  grid against current `holdings_snapshots`, take the max achievable `quarter_end_used` per series.
+  **0 of 813 could reach the served stamp; 0 of 813 would advance even one day; 813/813 structural.**
+  A rebuild fixes nothing. Root cause exact: the div panel's eval grid ends before the newest period
+  end, so an as-of-backward attach can never bind to it.
+
+  **Non-degenerate, proven not asserted:** the new gate **FAILs exit 1 on the pre-fix panel** (2,439
+  date mismatches = 813x3; 2,439 forward-stamped, worst +1,642d; 1,822 stale-but-`available`/`high`)
+  and PASSes on the rebuild — **the seeded control was free, because the shipped panel IS the
+  control**. A mutation test (removing the null arm) makes the guard serve `available`/`high` for an
+  undatable figure, and the test catches it. Gate `[A]` binds the served VALUE to one div-panel row
+  bit-for-bit BEFORE comparing dates, so the date check is not circular
+  ([[verification-metric-must-be-non-degenerate]]).
+
+  **Consumer sweep done by helper/constant sites, not literal-path grep**
+  ([[consumer-audit-not-literal-grep]]): 6 consumers proven unaffected by recomputation
+  (`fact_assembler` header 0/5,523 series changed; `build_factor_exposure` 0/5,523;
+  `select_candidates` max |delta| **0.0** over 100k rows; `value_offering_reframed` max delta 2.2e-16
+  float noise), 1 affected correctly (`build_peer_rows`, 0 divergent / 0 orphan of 16,463), and the
+  sibling `build_positioning_changes_panel` emitter found **already correct**. It also audited the
+  negation filter — `build_peer_rows` uses `coverage_state != "missing"`, which fails OPEN on an
+  unknown enum, which is exactly why the null branch reuses the existing `missing` value rather than
+  inventing a state ([[negation-filters-absorb-new-row-types]]).
+
+  **Gates:** `make check` 12 PASS/4 WARN/4 FAIL -> **13 PASS/4 WARN/3 FAIL**; the new check flipped a
+  FAIL to PASS. The 3 residual FAILs are pre-existing and proven so (positioning and freshness
+  sections diff to **zero bytes**; the other two scripts grep-proven not to read the X-Ray panel).
+  `/check-data` **Overall PASS**, 7 funds / 35 rows spot-checked **against the raw N-PORT store**
+  (`data/nport/holding/year=2021..2026`), 0 FAIL. Determinism: 4 rebuilds (2 new, 2 old) —
+  stamp/state/version columns **bit-identical in all four**.
+
+  **FIVE findings parked, now filed to `backlog.md`, one SEVERE.**
+  **`build_value_offering_reframed.py:306` FABRICATES a holdings date on 3,484 of 5,963 rows (58.4%)**
+  via `pl.coalesce(quarter_end_used, pl.lit(EVAL_DATE))`. The dispatcher re-sized it and it is WORSE
+  than filed: at the panel's own nearest eval date, `quarter_end_used` is NULL for 2,982 of 5,461
+  series and **exactly 0 series genuinely carry 2025-10-31** — so all 3,484 stamps are manufactured,
+  none is a filed date, and nothing in the output tells them apart. A data-integrity violation, not a
+  staleness question. Also filed: two served `active_share` figures disagreeing on 2,370 of 2,479
+  shared funds (max 56.8pp); the frozen `--today` clock (13,212 rows / 848 funds); `lit("high")`
+  surviving on the `asset_class` axis (2,400 rows already >180d); and intra-fund `fund_ticker`
+  inconsistency (1,160 of 2,621), which the worker correctly declined to overwrite because the
+  div-panel ticker carries real L2-fit provenance.
+
+  **Web follow-up for the next reload:** `fundscore-web/src/lib/methodology/registry.ts:166` pins
+  `exposure_xray_v0.4` and must move to `v0.5` **in the same step as the reload**, never after.
 
 - 2026-08-26 00:13 — **F3 COMPLETE and DISPATCHER-VERIFIED (codex still owed).** `b110f18` (+ docs
   `58f3f26`) on `f3/recent-changes-flip`. Web main untouched at `4c43717`, nothing pushed.
