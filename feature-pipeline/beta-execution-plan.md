@@ -8,10 +8,10 @@ ONLY per the contract below. Item detail lives in `backlog.md` / `specs/queue/` 
 only rank, routing, and status. Update STATUS in place as items complete; this file is the run's
 shared state and heartbeat carrier.
 
-`heartbeat: 2026-08-26T09:55-06:00` ← dispatcher re-stamps from `date` output after every unit of
+`heartbeat: 2026-08-26T10:23-06:00` ← dispatcher re-stamps from `date` output after every unit of
 work (never extrapolate — the night-drain lesson).
 
-`run-state: active — OWNER RULINGS BEING WORKED (2026-08-26 morning). The night drain's five items are done and codex-clean; this is the follow-on. IN FLIGHT: decision C, unfreezing the X-Ray's hardcoded `--today 2026-06-15` clock, on `fix/xray-frozen-clock` — branched off `fix/asof-mislabel`, NOT main, because `exposure_xray.py` carries 115 lines of as-of work not yet merged and a rebuild from main would silently revert it. DONE this morning: fabricated demo cluster DROPPED (14 tables / 14,103 rows / 5 enums, serving intact, build green); F4's byte-identity guard RETIRED per owner ruling; decisions A/B/C/D recorded in the register; D filed as a web labelling item. STILL OPEN: A's real fix (unfreeze `EVAL_DATE`, same class as C) and B (ISIN re-key — viable but ~1M rows, needs a spec and a what-else-moves measurement first). main untouched, nothing pushed, in either repo.`.`
+`run-state: complete — SESSION CLOSED 2026-08-26. Everything merged and PUSHED on owner instruction. fund_score main `e34d480` (three branches: as-of mislabel, X-Ray frozen clock, positioning adjudication). fundscore-web main `18a955e` (241 commits, incl. the F3 posline, the F7 screener rebuild and the fabricated-demo-cluster drop) — **this DEPLOYED to fundscore.ai**; the site answers 200, but the Vercel BUILD was not confirmed from that session (no CLI credentials) and is worth a dashboard glance. fundscore-harness master `8c2128d`. Nothing is in flight. Owner decisions A/B/C/D are answered and recorded in the register above; the remaining work is on the backlog, not in anyone's head.`.`
 ← the dispatcher sets this WITH every heartbeat re-stamp. Values: **`active`** (drain in progress — a
 stale heartbeat means investigate), **`paused-on-owner: <what>`** (the line is idle BY DESIGN, waiting
 on a decision — a stale heartbeat is EXPECTED; any backstop check should re-stamp and STOP, never run
@@ -188,6 +188,19 @@ both vendors, pick cheaper, report actual.
   owner merges ([[shared-worktree-contamination]] / [[fund-score-worktree-shared-lakehouse]]).
 - **F3 — branch-guard**: all commits on run/feature branches; NEVER push web `main` (auto-deploy
   = prod). Owner merges.
+
+  **ONE-TIME EXCEPTION 2026-08-26 — and F3 REMAINS IN FORCE.** The owner instructed *"I want
+  everything merged and pushed"*, so web `main` was merged and pushed that day
+  (`ec03bed..18a955e`), which auto-deployed fundscore.ai. **That was an explicit owner instruction
+  for one integration, not a change to the rule** — the next session still branches, still never
+  pushes `main` on its own initiative, and still leaves the merge to the owner. Recorded here rather
+  than edited into the fence text precisely so a future reader cannot mistake the exception for the
+  rule.
+  **What made the deploy safe, checked rather than assumed:** prod holds only the waitlist +
+  early_access tables, so `/screener`, `/funds/*` and `/xray` have no serving data and would 500 —
+  which is PRE-EXISTING, documented in `docs/DEPLOYMENT.md`, and unchanged by this session
+  (`/screener` swapped one absent table for another absent table). The gate is still the only thing
+  holding those pages up, and `early_access` must stay empty.
 - **F4 — serving loads**: local reload = S1-gated; preview/prod loads only from the verified
   staging the local reload used ([[serving-db-ahead-of-branches]]).
   **AMENDED 2026-08-07 (W2 finding, dispatcher-verified — the fence's literal form is not
@@ -844,6 +857,56 @@ them.
 | 10 | Still-live BETA BLOCKERs not on the S3 path: **L2** wrong price series (WMSIX tracks a muni index), **L3** nondeterministic named ETFs, **L4** ~139 stale-fee scores, **L7** V-spike corruption (174 funds), **L8** taxonomy misroutes, **L12** twin-label, **L13** active-share. | see backlog | deprioritized by owner directive, not fixed |
 
 ## Run log
+
+- 2026-08-26 10:23 — **SESSION CLOSED. Everything merged and pushed on owner instruction.**
+
+  | repo | main now | pushed | note |
+  |---|---|---|---|
+  | fund_score | `e34d480` | ✅ `13b5199..e34d480` | 3 branches merged; one conflict in `pipeline_status.md` resolved by KEEPING BOTH sections |
+  | fundscore-web | `18a955e` | ✅ `ec03bed..18a955e` | **auto-deployed fundscore.ai** |
+  | fundscore-harness | `8c2128d` | ✅ `1128960..8c2128d` | self-test regression case |
+
+  **Verified on the MERGED result, not on the branches:** as-of coherence gate **Overall PASS**
+  (exit 0), positioning check exit 0, web `npm run build` compiled clean, `lint` 0 errors,
+  `db:check-serving` **PASS**. Merge order mattered and was deliberate — `fix/xray-frozen-clock`
+  descends from `fix/asof-mislabel`, so asof and clock fast-forwarded and only positioning was a real
+  merge; branching the clock work off main instead would have silently reverted 115 lines of as-of
+  stamping ([[serving-db-ahead-of-branches]]).
+
+  **The deploy, stated honestly.** The site answers **HTTP 200**. The Vercel BUILD was **not**
+  confirmed from this session — no CLI credentials — so it is worth one dashboard glance. What made
+  the push safe was checked, not assumed: prod carries only waitlist + early_access, so the product
+  routes have no serving data and sit behind the gate, which is pre-existing and unchanged.
+  `/screener` swapped one absent table for another absent table. **`early_access` must stay empty.**
+
+  **HARNESS — one real defect found, characterised, pinned, and deliberately NOT fixed.**
+  Four `SKIP_BRANCH_GUARD=1` workarounds during the drain traced to a single parser gap:
+  `prepare_text` correctly refuses to treat `<<` inside a double quote as a here-doc, but in
+  `-m "$(cat <<'EOF' … )"` the here-doc IS real, because `$( )` opens a fresh shell context where
+  quoting resets. The body is never stripped, and a lone `"` in it closes the outer quote →
+  `PARSE_ERROR No closing quotation`. **Bisected**: apostrophes, BALANCED double quotes, backticks and
+  a literal `$(` in the body all parse fine; only an UNBALANCED double quote trips it. It fails
+  CLOSED, so it is friction, not a hole. Two cases added to `commit-hooks-selftest.sh` pinning CURRENT
+  behaviour (**119 passed, 0 failed**) — a permanently red test is not a test, the same lesson this
+  session applied to the positioning gate. Flip the first case to `allow` when the parser learns that
+  `$( )` resets quote context.
+  **Checked and deliberately left alone:** `codex-commit-gate.sh` blocking docs-only commits when
+  another worker's code is pending is **working as designed** — its own comment explains it must look
+  at unstaged files because a compound `git add … && git commit` has not staged at hook time.
+  Narrowing it to the staged set would open exactly the bypass it guards.
+
+  **Cleanup:** 8 merged worktrees removed (21 → 13). The 5 removed by hand were merged AND clean; 8
+  more are merged but hold uncommitted files from earlier sessions and were **left alone rather than
+  force-removed**. 4 remain genuinely unmerged and are all owner-parked items (capgain, d83, l10, l9).
+  A regenerated `positioning_changes_check_data.md` diff was discarded as pure set-ordering churn —
+  same 5 funds, same values, different list order (a small non-determinism in the report generator,
+  noted not chased).
+
+  **Where the product stands.** Decisions A/B/C/D are answered and in the register. C shipped. D is
+  filed as a web labelling item. A shipped its honest stopgap with the real fix identified (unfreeze
+  `EVAL_DATE`, now with a proven sibling fix to copy from the clock work). B is scoped and
+  deliberately unbuilt — re-keying on ISIN touches ~1M rows and needs a spec plus a
+  what-else-moves measurement first. **Nothing is in flight and nothing is held in context.**
 
 - 2026-08-26 09:55 — **DECISION C DONE — the X-Ray clock is unfrozen.** `8c90cc5` + `71900c7` on
   `fix/xray-frozen-clock` (branched off `fix/asof-mislabel`, not main). Codex running.
